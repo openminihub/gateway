@@ -16,12 +16,13 @@ settings = nconf.get('settings');
 var mqtt = require('mqtt')
 var client  = mqtt.connect('mqtt://'+settings.mqtt.server.value+':'+settings.mqtt.port.value, {username:settings.mqtt.username.value, password:settings.mqtt.password.value})
 var Datastore = require('nedb')
-db = new Datastore({filename : path.join(__dirname, dbDir, settings.database.name.value), autoload: true})
+NodeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.node.value), autoload: true})
+BuildingDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.building.value), autoload: true})
 
 var express     = require('express')
 var app         = express()
 var bodyParser  = require('body-parser')
-var http	= require('http')
+var http  = require('http')
 
 //global variable for firmware upload
 global.nodeTo = 0
@@ -69,7 +70,8 @@ serial.on('data', function(data) { processSerialData(data) })
 
 serial.open()
 
-db.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
+NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
+BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 
 global.processSerialData = function (data) {
 //  console.log('SERIAL: %s', data)
@@ -79,7 +81,7 @@ global.processSerialData = function (data) {
 //MQTT
 client.on('connect', () => {  
   //on startup subscribe to all node topics
-  db.find({ "contact.message.mqtt": { $exists: true }}, function (err, entries) {
+  NodeDB.find({ "contact.message.mqtt": { $exists: true }}, function (err, entries) {
     if (!err)
     {
       console.log('==============================');
@@ -157,7 +159,7 @@ function handleOutTopic(rxmessage) {
     if (global.nodeTo == 0)
     {
       var toMsg = message.toString().split(':')
-      db.find({ _id : toMsg[1] }, function (err, entries) {
+      NodeDB.find({ _id : toMsg[1] }, function (err, entries) {
         if (entries.length == 1)
         {
           dbNode = entries[0]
@@ -201,7 +203,7 @@ function handleOutTopic(rxmessage) {
 
   var fndMsg = message.toString().split(';')
   //search in db for node
-  db.find({ _id : fndMsg[0] }, function (err, entries) {
+  NodeDB.find({ _id : fndMsg[0] }, function (err, entries) {
       var trim_msg = message.replace(/(\n|\r)+$/, '')
       var msg = trim_msg.toString().split(';')
       if (entries.length == 1)
@@ -228,7 +230,7 @@ function handleOutTopic(rxmessage) {
                     var updateCon = {$set:{}}   
                     updateCon.$set["contact."+c+".message."+i+".value"] = msg[5]
                     updateCon.$set["contact."+c+".message."+i+".updated"] = new Date().getTime()
-                    db.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
+                    NodeDB.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
 
                     if (dbNode.contact[c].message[i].mqtt)
                     {
@@ -259,7 +261,7 @@ function handleOutTopic(rxmessage) {
                   newMessage.retain = ""
                   var updateCon = {$push:{}}   
                   updateCon.$push["contact."+c+".message"] = newMessage
-                  db.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
+                  NodeDB.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
                 }
                 //publish message type
                 //client.publish('system/node/'+msg[0]+'/'+msg[1]+'/msgtype', msg[4], {qos: 0, retain: false})
@@ -272,7 +274,7 @@ function handleOutTopic(rxmessage) {
               {
                 var updateCon = {$set:{}}   
                 updateCon.$set["contact."+c+".type."] = msg[4]
-                db.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
+                NodeDB.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
                 client.publish('system/node/'+msg[0]+'/'+msg[1]+'/type', msg[4], {qos: 0, retain: false})
                 break
               }
@@ -286,19 +288,19 @@ function handleOutTopic(rxmessage) {
             newContact.message = new Array()
             var updateCon = {$push:{}}   
             updateCon.$push["contact"] = newContact
-            db.update({ _id: msg[0] }, updateCon )
+            NodeDB.update({ _id: msg[0] }, updateCon )
           }
         } 
         else if (msg[1] == 255 && msg[2] == '3') //Internal presentation message
         {
           if (msg[4] == '11')  //Name
           {
-            db.update({ _id: msg[0]}, { $set: { name: msg[5] } })
+            NodeDB.update({ _id: msg[0]}, { $set: { name: msg[5] } })
             client.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
-	  }
+    }
           if (msg[4] == '12')  //Version
           {
-            db.update({ _id: msg[0]}, { $set: { version: msg[5] } })
+            NodeDB.update({ _id: msg[0]}, { $set: { version: msg[5] } })
             client.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
           }
         }
@@ -310,12 +312,12 @@ function handleOutTopic(rxmessage) {
         dbNode._id = msg[0]
         dbNode.name = ""
         dbNode.version = ""
-	      dbNode.contact = new Array()
+        dbNode.contact = new Array()
 
-  	    if (msg[2] == '1') // Update node value
-	      {
+        if (msg[2] == '1') // Update node value
+        {
           dbNode.contact[0] = new Object()
-	        dbNode.contact[0].id = msg[1]
+          dbNode.contact[0].id = msg[1]
           dbNode.contact[0].type = ""
           dbNode.contact[0].message = new Array()
           dbNode.contact[0].message[0] = new Object()
@@ -325,22 +327,22 @@ function handleOutTopic(rxmessage) {
           dbNode.contact[0].message[0].mqtt = ""
           dbNode.contact[0].message[0].qos = ""
           dbNode.contact[0].message[0].retain = ""
-	      }
-  	    else if (msg[2] == '0')  // Got present message
-	      {
+        }
+        else if (msg[2] == '0')  // Got present message
+        {
           dbNode.contact[0] = new Object()
           dbNode.contact[0].id = msg[1]
           dbNode.contact[0].type=msg[4]
         }
- 	      else if (msg[2] == '3') //Got internal message
-  	    {
-	        if (msg[4] == '11')  //Name
-	      	  dbNode.name = msg[5]
-	         if (msg[4] == '12')  //Version
-	    	    dbNode.version = msg[5]
-	      }
-  	    // Insert to database
-	      db.insert(dbNode, function (err, newEntry) {
+        else if (msg[2] == '3') //Got internal message
+        {
+          if (msg[4] == '11')  //Name
+            dbNode.name = msg[5]
+           if (msg[4] == '12')  //Version
+            dbNode.version = msg[5]
+        }
+        // Insert to database
+        NodeDB.insert(dbNode, function (err, newEntry) {
             if (err != null)
               console.log('ERROR:%s', err)
               //TO DO: if error that row exists then do update
@@ -420,7 +422,7 @@ function handleNodeMessage(topic, message) {
   //set node contact message MQTT topic
   if (splitTopic[1] == 'node' && splitTopic[5] == 'set' && splitTopic.length == 5 && message.length > 0)
   {
-    db.find({ _id : splitTopic[2] }, function (err, entries) {
+    NodeDB.find({ _id : splitTopic[2] }, function (err, entries) {
       if (entries.length == 1)
       {
         dbNode = entries[0]
@@ -438,7 +440,7 @@ function handleNodeMessage(topic, message) {
                   var oldTopic = dbNode.contact[c].message[m].mqtt
                   var updateCon = {$set:{}}
                   updateCon.$set["contact."+c+".message."+m+".mqtt"] = message.toString()
-                  db.update({ _id: splitTopic[2], "contact.id": splitTopic[3] }, updateCon )
+                  NodeDB.update({ _id: splitTopic[2], "contact.id": splitTopic[3] }, updateCon )
                   //change subscription
                   client.subscribe(message+'/set')
                   client.unsubscribe(oldTopic+'/set')
@@ -459,7 +461,7 @@ function handleNodeMessage(topic, message) {
 
 function handleSendMessage(topic, message) {
   var findTopic = topic.toString().split('/set') //TO DO: remove /set in correct way
-  db.find({ "contact.message.mqtt" : findTopic[0] }, function (err, entries) {
+  NodeDB.find({ "contact.message.mqtt" : findTopic[0] }, function (err, entries) {
     if (!err)
     {
       if (entries.length > 0)
@@ -483,7 +485,7 @@ function handleSendMessage(topic, message) {
 }
 
 function listNodes(listall) {
-    db.find({ "contact.message.mqtt" : { $exists: true } }, function (err, entries) {
+    NodeDB.find({ "contact.message.mqtt" : { $exists: true } }, function (err, entries) {
       if (!err)
       {
         if (entries.length > 0)
@@ -529,6 +531,97 @@ function readNextFileLine(hexFile, lineNumber) {
       serial.write('FLX:' + lineNumber + fileLine.toString('ascii').trim() + '\n', function () { serial.drain(); });
     }
   }
+}
+
+function listBuildings(listall) {
+    BuildingDB.find({ "building" : { $exists: true } }, function (err, entries) {
+      if (!err)
+      {
+        if (entries.length > 0)
+        {
+          for (var n=0; n<entries.length; n++)
+          {
+            var dbBuilding = entries[n]
+            for (var c=0; c<dbBuilding.contact.length; c++)
+            {
+              for (var m=0; m<dbBuilding.contact[c].message.length; m++)
+              {
+                if (listall || !dbBuilding.contact[c].message[m].mqtt)
+                {
+                  var newJSON = '{"nodeid": '+dbNode._id+', "contactid": '+dbNode.contact[c].id+', "contacttype": '+dbNode.contact[c].type+', "msgtype": '+dbNode.contact[c].message[m].type+', "value": "'+dbNode.contact[c].message[m].value+'", "mqtt": "'+dbNode.contact[c].message[m].mqtt+'"}'
+                  console.log('%s', newJSON)
+                  client.publish('system/node', newJSON, {qos: 0, retain: false})
+//                  serial.write(dbNode._id + ';' + dbNode.contact[c].id + ';1;1;' + dbNode.contact[c].message[m].type + ';' + message + '\n', function () { serial.drain(); });
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+}
+
+function createBuilding(id, buildingName) {
+  dbBuilding = new Object()
+  dbBuilding.name = buildingName
+  dbBuilding.floor = new Array()
+  BuildingDB.insert(dbBuilding, function (err, newEntry) {
+    if (err != null)
+      console.log('ERROR:%s', err)
+      //TO DO: if error that row exists then do update
+  })
+
+  // dbBuilding.floor = new Array()
+  // dbBuilding.floor[0] = new Object()
+  // dbBuilding.floor[0].name = ""
+  // dbBuilding.floor[0].room = new Array()
+  // dbBuilding.floor[0].room[0] = new Object()
+  // dbBuilding.floor[0].room[0].name = ""
+}
+
+function createFloorForBuilding(id, floorName, buildingName) {
+  BuildingDB.find({ name : buildingName }, function (err, entries) {
+    if (entries.length == 1)
+    {
+      var newFloor = new Object()
+      newFloor.name = floorName
+      newFloor.room = new Array()
+      var updateCon = {$push:{}}   
+      updateCon.$push["floor"] = newFloor
+      BuildingDB.update({ name: buildingName }, updateCon )
+    }
+  })
+}
+
+function createRoomForFloor(id, parameters) {
+  // var par
+  try {
+    var par = JSON.parse(parameters);
+  } catch (e) {
+    return console.error(e)
+  }
+    // par.building
+    // par.floor
+    // par.room
+
+  BuildingDB.find({ name : par.building }, function (err, entries) {
+    for (var n=0; n<entries.length; n++)
+    {
+      var dbBuilding = entries[n]
+      for (var f=0; f<dbBuilding.floor.length; f++)
+      {
+        if (dbBuilding.floor[f].name == par.floor)
+        {
+          var newRoom = new Object()
+          newRoom.name = par.room
+          newRoom.node = new Array()
+          var updateCon = {$push:{}}   
+          updateCon.$push["room"] = newRoom
+          BuildingDB.update({ name: par.building, "floor.name": par.floor }, updateCon )
+        }
+      }
+    }
+  })
 }
 
 //on startup do something
