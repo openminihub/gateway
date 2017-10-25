@@ -377,6 +377,12 @@ function handleGatewayMessage(topic, message) {
       case 'listBuildings':
         listBuildings(msg.id)
         break
+      case 'listFloorsForBuilding':
+        listFloorsForBuilding(msg.id, msg.parameters)
+        break
+      case 'listRoomsForFloor':
+        listRoomsForFloor(msg.id, msg.parameters)
+        break
       case 'listnew':
         listNodes(false)
         break
@@ -564,6 +570,53 @@ function listBuildings(id) {
     }
   })
 }
+// - listFloorsForBuilding => ["floor1", "floor2","outside"]
+function listFloorsForBuilding(id, par) {
+  BuildingDB.find({ building : par.building }, function (err, entries) {
+    if (entries.length == 1)
+    {
+      var listJSON='['
+      for (var f=0; f<entries[0].floor.length; f++)
+      {
+        listJSON = listJSON + '"' + entries[0].floor[f].name + '"'
+        if (f<entries[0].floor.length-1)
+          listJSON += ","
+      }
+      listJSON += ']'
+      var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
+      client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+    }
+  })
+}
+
+// - listRoomsForFloor => ["guestroom", "bedroom"]
+function listRoomsForFloor(id, par) {
+  BuildingDB.find({ building : par.building }, function (err, entries) {
+    if (entries.length == 1)
+    {
+      for (var f=0; f<entries[0].floor.length; f++)
+      {
+        if (entries[0].floor[f].name == par.floor)
+        {
+          var listJSON='['
+          for (var r=0; r<entries[0].floor[f].room.length; r++)
+          {
+            listJSON = listJSON + '"' + entries[0].floor[f].room[r].name + '"'
+            if (r<entries[0].floor[f].room.length-1)
+              listJSON += ","
+          }
+          listJSON += ']'
+          var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
+          client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+        }
+      }
+    }
+  })
+}
+
+// - listAttachedNodesForRoom => ["temp", "hum","trv"]
+// - listUnusedNodes => [[id:2,name:node_name,versio:1.0], [id:3,name:node_name,versio:2.1]]
+
 
 function createBuilding(id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
@@ -642,5 +695,11 @@ function createRoomForFloor(id, par) {
     }
   })
 }
+
+// - composeNodeForRoomFromNode // e.g. crete temp sensor for unused temp sensor
+// - getNodeContacts => ["2", "3"]
+// - getNodeContactType => ["29", "1"]
+// - getNodeContactValue => ["22.3"]
+
 
 //on startup do something
