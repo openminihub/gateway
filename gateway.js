@@ -26,6 +26,8 @@ var http  = require('http')
 
 //global variable for firmware upload
 global.nodeTo = 0
+//global variable for gateway system topic
+global.systempTopic = 'system/gateway'
 
 var port = 8080
 
@@ -116,6 +118,7 @@ client.on('connect', () => {
   //system configuration topics
   client.subscribe('system/gateway')
   client.subscribe('system/node/?/?/?/set')
+  // client.subscribe('gateway')
 })
 
 client.on('message', (topic, message) => {
@@ -354,15 +357,26 @@ function handleOutTopic(rxmessage) {
 function handleGatewayMessage(topic, message) {
   var splitTopic = topic.toString().split('/')
   //get node list
-  if (splitTopic[1] == 'gateway' && splitTopic.length == 2)
+  if (splitTopic[1] == 'gateway' && message.length > 0)
   {
-    var msg
     try {
-      msg = JSON.parse(message);
+      var msg = JSON.parse(message);
     } catch (e) {
       return console.error(e)
     }
     switch (msg.cmd) {
+      case 'createBuilding':
+        createBuilding(msg.id, msg.parameters)
+        break
+      case 'createFloorForBuilding':
+        createFloorForBuilding(msg.id, msg.parameters)
+        break
+      case 'createRoomForFloor':
+        createRoomForFloor(msg.id, msg.parameters)
+        break
+      case 'listBuildings':
+        listBuildings(msg.id)
+        break
       case 'listnew':
         listNodes(false)
         break
@@ -533,78 +547,72 @@ function readNextFileLine(hexFile, lineNumber) {
   }
 }
 
-function listBuildings(listall) {
-    BuildingDB.find({ "building" : { $exists: true } }, function (err, entries) {
-      if (!err)
-      {
-        if (entries.length > 0)
-        {
-          for (var n=0; n<entries.length; n++)
-          {
-            var dbBuilding = entries[n]
-            for (var c=0; c<dbBuilding.contact.length; c++)
-            {
-              for (var m=0; m<dbBuilding.contact[c].message.length; m++)
-              {
-                if (listall || !dbBuilding.contact[c].message[m].mqtt)
-                {
-                  var newJSON = '{"nodeid": '+dbNode._id+', "contactid": '+dbNode.contact[c].id+', "contacttype": '+dbNode.contact[c].type+', "msgtype": '+dbNode.contact[c].message[m].type+', "value": "'+dbNode.contact[c].message[m].value+'", "mqtt": "'+dbNode.contact[c].message[m].mqtt+'"}'
-                  console.log('%s', newJSON)
-                  client.publish('system/node', newJSON, {qos: 0, retain: false})
-//                  serial.write(dbNode._id + ';' + dbNode.contact[c].id + ';1;1;' + dbNode.contact[c].message[m].type + ';' + message + '\n', function () { serial.drain(); });
-                }
-              }
-            }
-          }
-        }
-      }
-    })
-}
-
-function createBuilding(id, buildingName) {
-  dbBuilding = new Object()
-  dbBuilding.name = buildingName
-  dbBuilding.floor = new Array()
-  BuildingDB.insert(dbBuilding, function (err, newEntry) {
-    if (err != null)
-      console.log('ERROR:%s', err)
-      //TO DO: if error that row exists then do update
-  })
-
-  // dbBuilding.floor = new Array()
-  // dbBuilding.floor[0] = new Object()
-  // dbBuilding.floor[0].name = ""
-  // dbBuilding.floor[0].room = new Array()
-  // dbBuilding.floor[0].room[0] = new Object()
-  // dbBuilding.floor[0].room[0].name = ""
-}
-
-function createFloorForBuilding(id, floorName, buildingName) {
-  BuildingDB.find({ name : buildingName }, function (err, entries) {
-    if (entries.length == 1)
+function listBuildings(id) {
+  BuildingDB.find({ "building" : { $exists: true } }, function (err, entries) {
+    if (entries.length > 0)
     {
-      var newFloor = new Object()
-      newFloor.name = floorName
-      newFloor.room = new Array()
-      var updateCon = {$push:{}}   
-      updateCon.$push["floor"] = newFloor
-      BuildingDB.update({ name: buildingName }, updateCon )
+      var listJSON='['
+      for (var n=0; n<entries.length; n++)
+      {
+        listJSON = listJSON + '"' + entries[n].building + '"'
+        if (n<entries.length-1)
+          listJSON += ","
+      }
+      listJSON += ']'
+      var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
+      client.publish('system/gateway', newJSON, {qos: 0, retain: false})
     }
   })
 }
 
-function createRoomForFloor(id, parameters) {
-  // var par
-  try {
-    var par = JSON.parse(parameters);
-  } catch (e) {
-    return console.error(e)
-  }
-    // par.building
-    // par.floor
-    // par.room
+function createBuilding(id, par) {
+  BuildingDB.find({ building : par.building }, function (err, entries) {
+    if (entries.length == 1)
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "Building already exists"}'
+      client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+      return
+    }
+    dbBuilding = new Object()
+    dbBuilding.building = par.building
+    dbBuilding.floor = new Array()
+    BuildingDB.insert(dbBuilding, function (err, newEntry) {
+      if (err != null)
+        console.log('ERROR:%s', err)
+        //TO DO: if error that row exists then do update
+    })
+    var newJSON = '{"id": "'+id+'", "payload": "OK"}'
+    client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+  })
+}
 
-  BuildingDB.find({ name : par.building }, function (err, entries) {
+function createFloorForBuilding(id, par) {
+  BuildingDB.find({ building : par.building }, function (err, entries) {
+    if (entries.length == 1)
+    {
+      for (var f=0; f<entries[0].floor.length; f++)
+      {
+        if (entries[0].floor[f].name == par.floor)
+        {
+              var newJSON = '{"id": "'+id+'", "payload": "Floor already exists"}'
+              client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+              return
+        }
+      }
+      var newFloor = new Object()
+      newFloor.name = par.floor
+      newFloor.room = new Array()
+      var updateCon = {$push:{}}   
+      updateCon.$push["floor"] = newFloor
+      BuildingDB.update({ building: par.building }, updateCon )
+      var newJSON = '{"id": "'+id+'", "payload": "OK"}'
+      client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+    }
+  })
+}
+
+function createRoomForFloor(id, par) {
+  BuildingDB.find({ building : par.building }, function (err, entries) {
     for (var n=0; n<entries.length; n++)
     {
       var dbBuilding = entries[n]
@@ -612,12 +620,23 @@ function createRoomForFloor(id, parameters) {
       {
         if (dbBuilding.floor[f].name == par.floor)
         {
+          for (var r=0; r<dbBuilding.floor[f].room.length; r++)
+          {
+            if (dbBuilding.floor[f].room[r].name == par.room)
+            {
+              var newJSON = '{"id": "'+id+'", "payload": "Room already exists"}'
+              client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+              return
+            }
+          }
           var newRoom = new Object()
           newRoom.name = par.room
           newRoom.node = new Array()
-          var updateCon = {$push:{}}   
-          updateCon.$push["room"] = newRoom
-          BuildingDB.update({ name: par.building, "floor.name": par.floor }, updateCon )
+          var updateCon = {$push:{}}
+          updateCon.$push["floor."+f+".room"] = newRoom
+          BuildingDB.update({ building: par.building, "floor.name": par.floor }, updateCon )
+          var newJSON = '{"id": "'+id+'", "payload": "OK"}'
+          client.publish('system/gateway', newJSON, {qos: 0, retain: false})
         }
       }
     }
