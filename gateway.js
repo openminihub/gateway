@@ -23,6 +23,7 @@ var express     = require('express')
 var app         = express()
 var bodyParser  = require('body-parser')
 var http  = require('http')
+var crypto = require('crypto');
 
 //global variable for firmware upload
 global.nodeTo = 0
@@ -117,6 +118,8 @@ client.on('connect', () => {
   })
   //system configuration topics
   client.subscribe('system/gateway')
+  client.subscribe('user/login')
+  client.subscribe('system/login')
   client.subscribe('system/node/?/?/?/set')
   // client.subscribe('gateway')
 })
@@ -136,6 +139,8 @@ client.on('message', (topic, message) => {
           default:
             return false;
         }
+      case 'user':
+        return handleUserMessage(topic, message)
       default:
         return handleSendMessage(topic, message)
     }
@@ -355,6 +360,7 @@ function handleOutTopic(rxmessage) {
 }
 
 function handleGatewayMessage(topic, message) {
+  // console.log('%s: %s', topic, message)
   var splitTopic = topic.toString().split('/')
   //get node list
   if (splitTopic[1] == 'gateway' && message.length > 0)
@@ -365,24 +371,6 @@ function handleGatewayMessage(topic, message) {
       return console.error(e)
     }
     switch (msg.cmd) {
-      case 'createBuilding':
-        createBuilding(msg.id, msg.parameters)
-        break
-      case 'createFloorForBuilding':
-        createFloorForBuilding(msg.id, msg.parameters)
-        break
-      case 'createRoomForFloor':
-        createRoomForFloor(msg.id, msg.parameters)
-        break
-      case 'listBuildings':
-        listBuildings(msg.id)
-        break
-      case 'listFloorsForBuilding':
-        listFloorsForBuilding(msg.id, msg.parameters)
-        break
-      case 'listRoomsForFloor':
-        listRoomsForFloor(msg.id, msg.parameters)
-        break
       case 'listnew':
         listNodes(false)
         break
@@ -426,6 +414,68 @@ function handleGatewayMessage(topic, message) {
   if (splitTopic[1] == 'gateway' && splitTopic[2] == 'password' && message.length > 0)
   {
     serial.write('*p' + message + '\n', function () { serial.drain(); })
+  }
+
+  if (splitTopic[1] == 'login' && message.length > 0)
+  {
+    // console.log('login mode')
+    try {
+      var msg = JSON.parse(message);
+    } catch (e) {
+      return console.error(e)
+    }
+    // console.log('MD5: %s', crypto.createHash('md5').update(msg.username).digest("hex"))
+    var userMD5 = crypto.createHash('md5').update(msg.username).digest("hex")
+    client.publish('system/login/'+msg.username, '{"md5": "'+userMD5+'"}', {qos: 0, retain: false})
+    client.subscribe(userMD5+'/in')
+  }
+}
+
+function handleUserMessage(topic, message) {
+  var splitTopic = topic.toString().split('/')
+  if (splitTopic[2] == 'in' && message.length > 0)
+  {
+    try {
+      var msg = JSON.parse(message);
+    } catch (e) {
+      return console.error(e)
+    }
+    var userTopic = 'user/'+splitTopic[1]+'/out'
+    switch (msg.cmd) {
+      case 'createBuilding':
+        createBuilding(userTopic, msg.id, msg.parameters)
+        break
+      case 'createFloorForBuilding':
+        createFloorForBuilding(userTopic, msg.id, msg.parameters)
+        break
+      case 'createRoomForFloor':
+        createRoomForFloor(userTopic, msg.id, msg.parameters)
+        break
+      case 'listBuildings':
+        listBuildings(userTopic, msg.id)
+        break
+      case 'listFloorsForBuilding':
+        listFloorsForBuilding(userTopic, msg.id, msg.parameters)
+        break
+      case 'listRoomsForFloor':
+        listRoomsForFloor(userTopic, msg.id, msg.parameters)
+        break
+      default:
+        console.log('No handler for %s %s', topic, message)
+    }
+  }
+
+  if (splitTopic[1] == 'login' && message.length > 0)
+  {
+    // console.log('login mode')
+    try {
+      var msg = JSON.parse(message);
+    } catch (e) {
+      return console.error(e)
+    }
+    var userMD5 = crypto.createHash('md5').update(msg.username).digest("hex")
+    client.publish('user/login/'+msg.username, '{"md5": "'+userMD5+'"}', {qos: 0, retain: false})
+    client.subscribe('user/'+userMD5+'/in')
   }
 }
 
@@ -553,7 +603,7 @@ function readNextFileLine(hexFile, lineNumber) {
   }
 }
 
-function listBuildings(id) {
+function listBuildings(userTopic, id) {
   BuildingDB.find({ "building" : { $exists: true } }, function (err, entries) {
     if (entries.length > 0)
     {
@@ -566,12 +616,12 @@ function listBuildings(id) {
       }
       listJSON += ']'
       var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-      client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
   })
 }
 // - listFloorsForBuilding => ["floor1", "floor2","outside"]
-function listFloorsForBuilding(id, par) {
+function listFloorsForBuilding(userTopic, id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
     if (entries.length == 1)
     {
@@ -584,13 +634,13 @@ function listFloorsForBuilding(id, par) {
       }
       listJSON += ']'
       var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-      client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
   })
 }
 
 // - listRoomsForFloor => ["guestroom", "bedroom"]
-function listRoomsForFloor(id, par) {
+function listRoomsForFloor(userTopic, id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
     if (entries.length == 1)
     {
@@ -607,7 +657,7 @@ function listRoomsForFloor(id, par) {
           }
           listJSON += ']'
           var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-          client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+          client.publish(userTopic, newJSON, {qos: 0, retain: false})
         }
       }
     }
@@ -618,12 +668,12 @@ function listRoomsForFloor(id, par) {
 // - listUnusedNodes => [[id:2,name:node_name,versio:1.0], [id:3,name:node_name,versio:2.1]]
 
 
-function createBuilding(id, par) {
+function createBuilding(userTopic, id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
     if (entries.length == 1)
     {
       var newJSON = '{"id": "'+id+'", "payload": "Building already exists"}'
-      client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
       return
     }
     dbBuilding = new Object()
@@ -635,11 +685,11 @@ function createBuilding(id, par) {
         //TO DO: if error that row exists then do update
     })
     var newJSON = '{"id": "'+id+'", "payload": "OK"}'
-    client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+    client.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
-function createFloorForBuilding(id, par) {
+function createFloorForBuilding(userTopic, id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
     if (entries.length == 1)
     {
@@ -648,7 +698,7 @@ function createFloorForBuilding(id, par) {
         if (entries[0].floor[f].name == par.floor)
         {
               var newJSON = '{"id": "'+id+'", "payload": "Floor already exists"}'
-              client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+              client.publish(userTopic, newJSON, {qos: 0, retain: false})
               return
         }
       }
@@ -659,12 +709,12 @@ function createFloorForBuilding(id, par) {
       updateCon.$push["floor"] = newFloor
       BuildingDB.update({ building: par.building }, updateCon )
       var newJSON = '{"id": "'+id+'", "payload": "OK"}'
-      client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
   })
 }
 
-function createRoomForFloor(id, par) {
+function createRoomForFloor(userTopic, id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
     for (var n=0; n<entries.length; n++)
     {
@@ -678,7 +728,7 @@ function createRoomForFloor(id, par) {
             if (dbBuilding.floor[f].room[r].name == par.room)
             {
               var newJSON = '{"id": "'+id+'", "payload": "Room already exists"}'
-              client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+              client.publish(userTopic, newJSON, {qos: 0, retain: false})
               return
             }
           }
@@ -689,7 +739,7 @@ function createRoomForFloor(id, par) {
           updateCon.$push["floor."+f+".room"] = newRoom
           BuildingDB.update({ building: par.building, "floor.name": par.floor }, updateCon )
           var newJSON = '{"id": "'+id+'", "payload": "OK"}'
-          client.publish('system/gateway', newJSON, {qos: 0, retain: false})
+          client.publish(userTopic, newJSON, {qos: 0, retain: false})
         }
       }
     }
