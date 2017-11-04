@@ -472,6 +472,9 @@ function handleUserMessage(topic, message) {
       case 'removeNodeFromRoom':
         removeNodeFromRoom(userTopic, msg.id, msg.parameters)
         break
+      case 'getNodeContacts':
+        getNodeContacts(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -805,6 +808,10 @@ function attachNodeToRoom(userTopic, id, par) {
             {
               var newNode = new Object()
               newNode.id = par.nodeid
+              // newNode.contact = new Array()
+              // newNode.contact[0] = new Object()
+              // newNode.contact[0].id = 2
+              // newNode.contact[0].message = 36
 
               var updateCon = {$push:{}}
               updateCon.$push["floor."+f+".room."+r+".node"] = newNode
@@ -850,7 +857,34 @@ function removeNodeFromRoom(userTopic, id, par) {
   })
 }
 
-
+// - getNodeContacts => [{id:"2", type:6}, {id:"3", type: 8}]
+function getNodeContacts(userTopic, id, par) {
+  NodeDB.find({ _id : par.nodeid }, function (err, entries) {
+    if (!err)
+    {
+      if (entries.length > 0)
+      {
+        for (var n=0; n<entries.length; n++)
+        {
+          var dbNode = entries[n]
+          var newJSON = '{"id":"'+id+'", "payload": ['
+          for (var c=0; c<dbNode.contact.length; c++)
+          {
+            for (var m=0; m<dbNode.contact[c].message.length; m++)
+            {
+              newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'"}'
+              if (m < dbNode.contact[c].message.length-1 || c < dbNode.contact.length-1)
+                newJSON += ', '
+              // console.log('%s', newJSON)
+            }
+          }
+          newJSON += ']}'
+          client.publish(userTopic, newJSON, {qos: 0, retain: false})
+        }
+      }
+    }
+  })
+}
 
 // - composeNodeForRoomFromNode // e.g. crete temp sensor for unused temp sensor
 // - getNodeContacts => ["2", "3"]
