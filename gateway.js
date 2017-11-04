@@ -120,8 +120,11 @@ client.on('connect', () => {
   client.subscribe('system/gateway')
   client.subscribe('user/login')
   client.subscribe('system/login')
+  client.subscribe('gateway/in')
   client.subscribe('system/node/?/?/?/set')
   // client.subscribe('gateway')
+  // client.subscribe('user/user1/#')
+  client.subscribe('user/+/in')
 })
 
 client.on('message', (topic, message) => {
@@ -460,6 +463,15 @@ function handleUserMessage(topic, message) {
       case 'listRoomsForFloor':
         listRoomsForFloor(userTopic, msg.id, msg.parameters)
         break
+      case 'listUnusedNodes':
+        listUnusedNodes(userTopic, msg.id, msg.parameters)
+        break
+      case 'attachNodeToRoom':
+        attachNodeToRoom(userTopic, msg.id, msg.parameters)
+        break
+      case 'removeNodeFromRoom':
+        removeNodeFromRoom(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -583,7 +595,7 @@ function listNodes(listall) {
 }
 
 function nodeOTA(nodeid, firmware) {
-    serial.write('TO:' + nodeid + '\n', function () { serial.drain(); });
+    serial.write('TO:' + nodeId + '\n', function () { serial.drain(); });
 }
 
 function readNextFileLine(hexFile, lineNumber) {
@@ -620,6 +632,7 @@ function listBuildings(userTopic, id) {
     }
   })
 }
+
 // - listFloorsForBuilding => ["floor1", "floor2","outside"]
 function listFloorsForBuilding(userTopic, id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
@@ -665,9 +678,6 @@ function listRoomsForFloor(userTopic, id, par) {
 }
 
 // - listAttachedNodesForRoom => ["temp", "hum","trv"]
-// - listUnusedNodes => [[id:2,name:node_name,versio:1.0], [id:3,name:node_name,versio:2.1]]
-
-
 function createBuilding(userTopic, id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
     if (entries.length == 1)
@@ -745,6 +755,102 @@ function createRoomForFloor(userTopic, id, par) {
     }
   })
 }
+
+// - listUnusedNodes => {[id:2,name:node_name,versio:1.0], [id:3,name:node_name,versio:2.1]}
+function listUnusedNodes(userTopic, id, par) {
+  NodeDB.find({ name: { $exists: true }}, function (err, entries) {
+    if (!err)
+    {
+      var newJSON = '';
+      for (var n in entries) {
+        var dbNode = entries[n]
+        BuildingDB.find({ "floor.room.node.id": dbNode._id }, function (err, entries) {
+          if (!err)
+          {
+            if (entries.length == 0 && this.dbNode._id && this.dbNode.name && this.dbNode.version)
+            {
+              //found unlisted node
+              if (newJSON.length)
+                 newJSON += ', '
+              else
+                newJSON = '['
+              newJSON = newJSON + '{"id": "'+this.dbNode._id+'", "name": "'+this.dbNode.name+'", "version": "'+this.dbNode.version+'""}'
+            }
+            if (this.nodesLeft == 0)
+            {
+               newJSON += ']'
+               newJSON = '{"id": "'+id+'", "payload": "'+newJSON+'"}'
+               client.publish(userTopic, newJSON, {qos: 0, retain: false})
+            }
+          }
+        }.bind({dbNode: dbNode, nodesLeft: entries.length-n-1}))
+      }
+    }
+  })
+}
+
+// - attachNodeToRoom
+function attachNodeToRoom(userTopic, id, par) {
+  BuildingDB.find({ building : par.building }, function (err, entries) {
+    for (var n=0; n<entries.length; n++)
+    {
+      var dbBuilding = entries[n]
+      for (var f=0; f<dbBuilding.floor.length; f++)
+      {
+        if (dbBuilding.floor[f].name == par.floor)
+        {
+          for (var r=0; r<dbBuilding.floor[f].room.length; r++)
+          {
+            if (dbBuilding.floor[f].room[r].name == par.room)
+            {
+              var newNode = new Object()
+              newNode.id = par.nodeid
+
+              var updateCon = {$push:{}}
+              updateCon.$push["floor."+f+".room."+r+".node"] = newNode
+              // BuildingDB.update({ building: par.building, "floor.name": par.floor }, updateCon )
+              BuildingDB.update({ "floor.name": par.floor, "floor.room.name": par.room }, updateCon )
+              var newJSON = '{"id": "'+id+'", "payload": "OK"}'
+              client.publish(userTopic, newJSON, {qos: 0, retain: false})
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+// - removeNodeToRoom
+function removeNodeFromRoom(userTopic, id, par) {
+  BuildingDB.find({ building : par.building }, function (err, entries) {
+    for (var n=0; n<entries.length; n++)
+    {
+      var dbBuilding = entries[n]
+      for (var f=0; f<dbBuilding.floor.length; f++)
+      {
+        if (dbBuilding.floor[f].name == par.floor)
+        {
+          for (var r=0; r<dbBuilding.floor[f].room.length; r++)
+          {
+            if (dbBuilding.floor[f].room[r].name == par.room)
+            {
+              var newNode = new Object()
+              newNode.id = par.nodeid
+
+              var updateCon = {$pull:{}}
+              updateCon.$pull["floor."+f+".room."+r+".node"] = newNode
+              BuildingDB.update({ "floor.name": par.floor, "floor.room.name": par.room }, updateCon )
+              var newJSON = '{"id": "'+id+'", "payload": "OK"}'
+              client.publish(userTopic, newJSON, {qos: 0, retain: false})
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+
 
 // - composeNodeForRoomFromNode // e.g. crete temp sensor for unused temp sensor
 // - getNodeContacts => ["2", "3"]
