@@ -75,6 +75,17 @@ serial.open()
 
 NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
+BuildingDB.getAutoId = function (cb) {
+    this.update(
+        { _id: '__autoid__' },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnUpdatedDocs: true },
+        function (err, affected, autoid) { 
+            cb && cb(err, autoid.seq);
+        }
+    );
+    return this;
+};
 
 global.processSerialData = function (data) {
 //  console.log('SERIAL: %s', data)
@@ -625,7 +636,7 @@ function listBuildings(userTopic, id) {
       var listJSON='['
       for (var n=0; n<entries.length; n++)
       {
-        listJSON = listJSON + '"' + entries[n].building + '"'
+        listJSON = listJSON + '{"name":"'+entries[n].building+'", "id":"'+entries[n].id+'"}'
         if (n<entries.length-1)
           listJSON += ","
       }
@@ -636,15 +647,15 @@ function listBuildings(userTopic, id) {
   })
 }
 
-// - listFloorsForBuilding => ["floor1", "floor2","outside"]
+// - listFloorsForBuilding => ["floor1", "floor2", "outside"]
 function listFloorsForBuilding(userTopic, id, par) {
-  BuildingDB.find({ building : par.building }, function (err, entries) {
+  BuildingDB.find({ id : parseInt(par.building_id) }, function (err, entries) {
     if (entries.length == 1)
     {
       var listJSON='['
       for (var f=0; f<entries[0].floor.length; f++)
       {
-        listJSON = listJSON + '"' + entries[0].floor[f].name + '"'
+        listJSON = listJSON + '{"name":"'+entries[0].floor[f].name+'", "id":"'+entries[0].floor[f].id+'"}'
         if (f<entries[0].floor.length-1)
           listJSON += ","
       }
@@ -657,17 +668,18 @@ function listFloorsForBuilding(userTopic, id, par) {
 
 // - listRoomsForFloor => ["guestroom", "bedroom"]
 function listRoomsForFloor(userTopic, id, par) {
-  BuildingDB.find({ building : par.building }, function (err, entries) {
+  BuildingDB.find({ "floor.id": parseInt(par.floor_id) }, function (err, entries) {
     if (entries.length == 1)
     {
       for (var f=0; f<entries[0].floor.length; f++)
       {
-        if (entries[0].floor[f].name == par.floor)
+        if (entries[0].floor[f].id == parseInt(par.floor_id))
         {
           var listJSON='['
           for (var r=0; r<entries[0].floor[f].room.length; r++)
           {
-            listJSON = listJSON + '"' + entries[0].floor[f].room[r].name + '"'
+            // listJSON = listJSON + '"' + entries[0].floor[f].room[r].name + '"'
+            listJSON = listJSON + '{"name":"'+entries[0].floor[f].room[r].name+'", "id":"'+entries[0].floor[f].room[r].id+'"}'
             if (r<entries[0].floor[f].room.length-1)
               listJSON += ","
           }
@@ -689,21 +701,31 @@ function createBuilding(userTopic, id, par) {
       client.publish(userTopic, newJSON, {qos: 0, retain: false})
       return
     }
-    dbBuilding = new Object()
-    dbBuilding.building = par.building
-    dbBuilding.floor = new Array()
-    BuildingDB.insert(dbBuilding, function (err, newEntry) {
-      if (err != null)
-        console.log('ERROR:%s', err)
-        //TO DO: if error that row exists then do update
-    })
-    var newJSON = '{"id": "'+id+'", "payload": "OK"}'
-    client.publish(userTopic, newJSON, {qos: 0, retain: false})
+    BuildingDB.getAutoId(function (err, autoid) {
+      // console.log('id: %s', autoid)
+      dbBuilding = new Object()
+      dbBuilding.building = this.par.building
+      dbBuilding.id = autoid
+      dbBuilding.floor = new Array()
+      var newJSON = '{"id": "'+this.id+'", "payload": "building_id": "'+autoid+'"}'
+      BuildingDB.insert(dbBuilding, function (err, newEntry) {
+        if (!err)
+        {
+          // var newJSON = '{"id": "'+id+'", "payload": "building_id:'+autoid+'"}'
+          client.publish(this.userTopic, this.newJSON, {qos: 0, retain: false})
+        }
+        else
+        {
+          console.log('ERROR:%s', err)
+        }
+      }.bind({newJSON: newJSON, userTopic: userTopic}))
+    }.bind({par: par, userTopic: userTopic, id: id}))
   })
 }
 
 function createFloorForBuilding(userTopic, id, par) {
-  BuildingDB.find({ building : par.building }, function (err, entries) {
+  // console.log('Is building id:%s', par.building_id)
+  BuildingDB.find({ id : parseInt(par.building_id) }, function (err, entries) {
     if (entries.length == 1)
     {
       for (var f=0; f<entries[0].floor.length; f++)
@@ -715,27 +737,32 @@ function createFloorForBuilding(userTopic, id, par) {
               return
         }
       }
-      var newFloor = new Object()
-      newFloor.name = par.floor
-      newFloor.room = new Array()
-      var updateCon = {$push:{}}   
-      updateCon.$push["floor"] = newFloor
-      BuildingDB.update({ building: par.building }, updateCon )
-      var newJSON = '{"id": "'+id+'", "payload": "OK"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      BuildingDB.getAutoId(function (err, autoid) {
+        var newFloor = new Object()
+        newFloor.name = par.floor
+        newFloor.id = autoid
+        newFloor.room = new Array()
+        var updateCon = {$push:{}}   
+        updateCon.$push["floor"] = newFloor
+        BuildingDB.update({ id: parseInt(par.building_id) }, updateCon )
+        var newJSON = '{"id": "'+id+'", "payload": "floor_id": "'+autoid+'"}'
+        client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      })
     }
   })
 }
 
 function createRoomForFloor(userTopic, id, par) {
-  BuildingDB.find({ building : par.building }, function (err, entries) {
-    for (var n=0; n<entries.length; n++)
+  BuildingDB.find({ "floor.id": parseInt(par.floor_id) }, function (err, entries) {
+    if (entries.length > 0)
     {
-      var dbBuilding = entries[n]
+      var dbBuilding = entries[0]
+      // console.log('flr cnt :%s', dbBuilding.floor.length)
       for (var f=0; f<dbBuilding.floor.length; f++)
       {
-        if (dbBuilding.floor[f].name == par.floor)
+        if (dbBuilding.floor[f].id == parseInt(par.floor_id))
         {
+          // console.log('flr id :%s', dbBuilding.floor[f].id)
           for (var r=0; r<dbBuilding.floor[f].room.length; r++)
           {
             if (dbBuilding.floor[f].room[r].name == par.room)
@@ -745,14 +772,17 @@ function createRoomForFloor(userTopic, id, par) {
               return
             }
           }
-          var newRoom = new Object()
-          newRoom.name = par.room
-          newRoom.node = new Array()
-          var updateCon = {$push:{}}
-          updateCon.$push["floor."+f+".room"] = newRoom
-          BuildingDB.update({ building: par.building, "floor.name": par.floor }, updateCon )
-          var newJSON = '{"id": "'+id+'", "payload": "OK"}'
-          client.publish(userTopic, newJSON, {qos: 0, retain: false})
+          BuildingDB.getAutoId(function (err, autoid) {
+            var newRoom = new Object()
+            newRoom.name = par.room
+            newRoom.id = autoid
+            newRoom.node = new Array()
+            var updateCon = {$push:{}}
+            updateCon.$push["floor."+this.f+".room"] = newRoom
+            BuildingDB.update({ "floor.id": parseInt(par.floor_id) }, updateCon )
+            var newJSON = '{"id": "'+id+'", "payload": "room_id": "'+autoid+'"}'
+            client.publish(userTopic, newJSON, {qos: 0, retain: false})
+          }.bind({f:f}))
         }
       }
     }
@@ -764,7 +794,7 @@ function listUnusedNodes(userTopic, id, par) {
   NodeDB.find({ name: { $exists: true }}, function (err, entries) {
     if (!err)
     {
-      var newJSON = '';
+      var newJSON = '[';
       for (var n in entries) {
         var dbNode = entries[n]
         BuildingDB.find({ "floor.room.node.id": dbNode._id }, function (err, entries) {
@@ -775,8 +805,6 @@ function listUnusedNodes(userTopic, id, par) {
               //found unlisted node
               if (newJSON.length)
                  newJSON += ', '
-              else
-                newJSON = '['
               newJSON = newJSON + '{"id": "'+this.dbNode._id+'", "name": "'+this.dbNode.name+'", "version": "'+this.dbNode.version+'""}'
             }
             if (this.nodesLeft == 0)
@@ -794,17 +822,15 @@ function listUnusedNodes(userTopic, id, par) {
 
 // - attachNodeToRoom
 function attachNodeToRoom(userTopic, id, par) {
-  BuildingDB.find({ building : par.building }, function (err, entries) {
+  BuildingDB.find({ "floor.room.id": parseInt(par.room_id) }, function (err, entries) {
     for (var n=0; n<entries.length; n++)
     {
       var dbBuilding = entries[n]
       for (var f=0; f<dbBuilding.floor.length; f++)
       {
-        if (dbBuilding.floor[f].name == par.floor)
-        {
           for (var r=0; r<dbBuilding.floor[f].room.length; r++)
           {
-            if (dbBuilding.floor[f].room[r].name == par.room)
+            if (dbBuilding.floor[f].room[r].id == parseInt(par.room_id))
             {
               var newNode = new Object()
               newNode.id = par.nodeid
@@ -815,13 +841,11 @@ function attachNodeToRoom(userTopic, id, par) {
 
               var updateCon = {$push:{}}
               updateCon.$push["floor."+f+".room."+r+".node"] = newNode
-              // BuildingDB.update({ building: par.building, "floor.name": par.floor }, updateCon )
-              BuildingDB.update({ "floor.name": par.floor, "floor.room.name": par.room }, updateCon )
+              BuildingDB.update({ "floor.room.id": parseInt(par.room_id) }, updateCon )
               var newJSON = '{"id": "'+id+'", "payload": "OK"}'
               client.publish(userTopic, newJSON, {qos: 0, retain: false})
             }
           }
-        }
       }
     }
   })
@@ -829,6 +853,33 @@ function attachNodeToRoom(userTopic, id, par) {
 
 // - removeNodeToRoom
 function removeNodeFromRoom(userTopic, id, par) {
+  BuildingDB.find({ "floor.room.id": parseInt(par.room_id) }, function (err, entries) {
+    for (var n=0; n<entries.length; n++)
+    {
+      var dbBuilding = entries[n]
+      for (var f=0; f<dbBuilding.floor.length; f++)
+      {
+          for (var r=0; r<dbBuilding.floor[f].room.length; r++)
+          {
+            if (dbBuilding.floor[f].room[r].id == parseInt(par.room_id))
+            {
+              var removeNode = new Object()
+              removeNode.id = par.nodeid
+
+              var updateCon = {$pull:{}}
+              updateCon.$pull["floor."+f+".room."+r+".node"] = removeNode
+              BuildingDB.update({ "floor.room.id": parseInt(par.room_id) }, updateCon )
+              var newJSON = '{"id": "'+id+'", "payload": "OK"}'
+              client.publish(userTopic, newJSON, {qos: 0, retain: false})
+            }
+          }
+      }
+    }
+  })
+}
+
+// - removeNodeToRoom
+function removeNodeFromRoom2(userTopic, id, par) {
   BuildingDB.find({ building : par.building }, function (err, entries) {
     for (var n=0; n<entries.length; n++)
     {
