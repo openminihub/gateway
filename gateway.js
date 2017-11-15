@@ -495,6 +495,21 @@ function handleUserMessage(topic, message) {
       case 'deleteAllBuildings':
         deleteAllBuildings(userTopic, msg.id, msg.parameters)
         break
+      case 'createObject':
+        createObject(userTopic, msg.id, msg.parameters)
+        break
+      case 'listObjects':
+        listObjects(userTopic, msg.id, msg.parameters)
+        break
+      case 'removeObject':
+        removeObject(userTopic, msg.id, msg.parameters)
+        break
+      case 'attachNodeToObject':
+        attachNodeToObject(userTopic, msg.id, msg.parameters)
+        break
+      case 'listNodesForObject':
+        listNodesForObject(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -873,13 +888,13 @@ function listUnusedNodes(userTopic, id, par) {
       var newJSON = '[';
       for (var n in entries) {
         var dbNode = entries[n]
-        BuildingDB.find({ "floor.room.node.id": dbNode._id }, function (err, entries) {
+        BuildingDB.find({ "nodes": dbNode._id }, function (err, entries) {
           if (!err)
           {
             if (entries.length == 0 && this.dbNode._id && this.dbNode.name && this.dbNode.version)
             {
               //found unlisted node
-              if (newJSON.length)
+              if (newJSON.length > 1)
                  newJSON += ', '
               newJSON = newJSON + '{"id": "'+this.dbNode._id+'", "name": "'+this.dbNode.name+'", "version": "'+this.dbNode.version+'""}'
             }
@@ -956,7 +971,7 @@ function removeNodeFromRoom(userTopic, id, par) {
 
 // - getNodeContacts => [{id:"2", type:6}, {id:"3", type: 8}]
 function getNodeContacts(userTopic, id, par) {
-  NodeDB.find({ _id : par.nodeid }, function (err, entries) {
+  NodeDB.find({ _id : par.nodeID }, function (err, entries) {
     if (!err)
     {
       if (entries.length > 0)
@@ -1058,9 +1073,98 @@ function setContactName(userTopic, id, par) {
   // })
 }
 
+function createObject(userTopic, id, par) {
+  // BuildingDB.find({ building : par.building }, function (err, entries) {
+    var dbObject = new Object()
+    dbObject.name = par.name
+    dbObject.parentObject = 
+    dbObject.parentObject = (par.parentObject === undefined) ? "" : par.parentObject;
+    dbObject.nodes = new Array()
 
+    BuildingDB.insert(dbObject, function (err, newEntry) {
+      if (!err)
+      {
+        var newJSON = '{"id": "'+id+'", "payload": "true"}'
+      }
+      else
+      {
+        var newJSON = '{"id": "'+id+'", "payload": "false"}'
+      }
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+    })
+  // })
+}
 
+function listObjects(userTopic, id, par) {
+  var objectID = ""
+  if ( par != undefined )
+  {
+    objectID = (par.parentObject === undefined) ? "" : par.parentObject
+  }
+  BuildingDB.find({ parentObject : objectID }, function (err, entries) {
+    if (entries.length > 0)
+    {
+      var payload = [];
+      for (var i=0; i<entries.length; i++)
+      {
+        payload.push({name: entries[i].name, id: entries[i]._id});
+      }
+      var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+    }
+  })
+}
 
+function removeObject(userTopic, id, par) {
+  BuildingDB.remove({_id : par.objectID}, { multi: true }, function (err, numRemoved) {
+    if (numRemoved > 0)
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "true"}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      return
+    }
+    else
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "false"}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      return
+    }
+  })
+}
+
+function attachNodeToObject(userTopic, id, par) {
+  BuildingDB.update({ _id: par.objectID }, { $push: { nodes: par.nodeID } }, {}, function (err, numAffected) {
+    if (!err && numAffected > 0)
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "true"}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+    }
+    else
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "flase"}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+    }
+  })
+}
+
+// - listNodesForRoom => ["1", "23"]
+function listNodesForObject(userTopic, id, par) {
+  BuildingDB.find({ _id: par.objectID }, function (err, entries) {
+    if (entries.length == 1)
+    {
+      var listJSON='{"nodes":['
+      for (var n=0; n<entries[0].nodes.length; n++)
+      {
+        listJSON = listJSON + '"'+entries[0].nodes[n]+'"'
+        if (n<entries[0].nodes.length-1)
+          listJSON += ","
+      }
+      listJSON += ']}'
+      var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+    }
+  })
+}
 
 
 // - getNodeValues => ["22.3"]
