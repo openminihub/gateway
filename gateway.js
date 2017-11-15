@@ -489,6 +489,12 @@ function handleUserMessage(topic, message) {
       case 'listNodesForRoom':
         listNodesForRoom(userTopic, msg.id, msg.parameters)
         break
+      case 'deleteBuilding':
+        deleteBuilding(userTopic, msg.id, msg.parameters)
+        break
+      case 'deleteAllBuildings':
+        deleteAllBuildings(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -738,7 +744,7 @@ function createBuilding(userTopic, id, par) {
       dbBuilding.building = this.par.building
       dbBuilding.id = autoid
       dbBuilding.floor = new Array()
-      var newJSON = '{"id": "'+this.id+'", "payload": "building_id": "'+autoid+'"}'
+      var newJSON = '{"id": "'+this.id+'", "payload": {"building_id": "'+autoid+'"}}'
       BuildingDB.insert(dbBuilding, function (err, newEntry) {
         if (!err)
         {
@@ -776,7 +782,7 @@ function createFloorForBuilding(userTopic, id, par) {
         var updateCon = {$push:{}}   
         updateCon.$push["floor"] = newFloor
         BuildingDB.update({ id: parseInt(par.building_id) }, updateCon )
-        var newJSON = '{"id": "'+id+'", "payload": "floor_id": "'+autoid+'"}'
+        var newJSON = '{"id": "'+id+'", "payload": {"floor_id": "'+autoid+'"}}'
         client.publish(userTopic, newJSON, {qos: 0, retain: false})
       })
     }
@@ -811,11 +817,50 @@ function createRoomForFloor(userTopic, id, par) {
             var updateCon = {$push:{}}
             updateCon.$push["floor."+this.f+".room"] = newRoom
             BuildingDB.update({ "floor.id": parseInt(par.floor_id) }, updateCon )
-            var newJSON = '{"id": "'+id+'", "payload": "room_id": "'+autoid+'"}'
+            var newJSON = '{"id": "'+id+'", "payload": {"room_id": "'+autoid+'"}}'
             client.publish(userTopic, newJSON, {qos: 0, retain: false})
           }.bind({f:f}))
         }
       }
+    }
+  })
+}
+
+function deleteBuilding(userTopic, id, par) {
+  // if (par.building_id.constructor === Array)
+  // {
+  //   console.log('id[0] :%s', par.building_id[0])
+  //   console.log('id.length :%s', par.building_id.length)
+  // }
+  BuildingDB.remove({ id : par.building_id }, {}, function (err, numRemoved) {
+    if (numRemoved == 1)
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "true"}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      return
+    }
+    else
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "false"}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      return
+    }
+  })
+}
+
+function deleteAllBuildings(userTopic, id, par) {
+  BuildingDB.remove({}, { multi: true }, function (err, numRemoved) {
+    if (numRemoved > 0)
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "true"}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      return
+    }
+    else
+    {
+      var newJSON = '{"id": "'+id+'", "payload": "false"}'
+      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      return
     }
   })
 }
@@ -924,7 +969,8 @@ function getNodeContacts(userTopic, id, par) {
           {
             for (var m=0; m<dbNode.contact[c].message.length; m++)
             {
-              newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'"}'
+              // newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'", "msgtype": "'+dbNode.contact[c].message[m].type+'"}'
+              newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'", "msgtype": "'+dbNode.contact[c].message[m].type+'", "msgvalue": "'+dbNode.contact[c].message[m].value+'"}'
               if (m < dbNode.contact[c].message.length-1 || c < dbNode.contact.length-1)
                 newJSON += ', '
               // console.log('%s', newJSON)
@@ -938,10 +984,85 @@ function getNodeContacts(userTopic, id, par) {
   })
 }
 
-// - composeNodeForRoomFromNode // e.g. crete temp sensor for unused temp sensor
-// - getNodeContacts => ["2", "3"]
-// - getNodeContactType => ["29", "1"]
-// - getNodeContactValue => ["22.3"]
+// - getNodeContactValues => ["22.3"]
+// function getNodeContactValues(userTopic, id, par) {
+//   NodeDB.find({ _id : par.nodeid }, function (err, entries) {
+//     if (!err)
+//     {
+//       if (entries.length > 0)
+//       {
+//         for (var n=0; n<entries.length; n++)
+//         {
+//           var dbNode = entries[n]
+//           var newJSON = '{"id":"'+id+'", "payload": ['
+//           for (var c=0; c<dbNode.contact.length; c++)
+//           {
+//             for (var m=0; m<dbNode.contact[c].message.length; m++)
+//             {
+//               newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'", "msgtype": "'+dbNode.contact[c].message[m].type+'", "msgvalue": "'+dbNode.contact[c].message[m].value+'"}'
+//               if (m < dbNode.contact[c].message.length-1 || c < dbNode.contact.length-1)
+//                 newJSON += ', '
+//               // console.log('%s', newJSON)
+//             }
+//           }
+//           newJSON += ']}'
+//           client.publish(userTopic, newJSON, {qos: 0, retain: false})
+//         }
+//       }
+//     }
+//   })
+// }
 
+// - setContactName nodeid, contactid, msgtype, name
+function setContactName(userTopic, id, par) {
+  // NodeDB.find({ _id : par.nodeid }, function (err, entries) {
+  //   if (!err)
+  //   {
+  //     if (entries.length == 1)
+  //     {
+  //       dbNode = entries[0]
+  //       var contactFound = false
+  //       for (var c=0; c<dbNode.contact.length; c++)
+  //       {
+  //         if (dbNode.contact[c].id == par.contactid)
+  //         {
+  //           for (var m=0; m<dbNode.contact[c].message.length; m++)
+  //           {
+  //             if (dbNode.contact[c].message[m].type == par.msgtype)
+  //             {
+  //               BuildingDB.find({ "floor.room.node.id": par.nodeid }, function (err, entries) {
+
+
+  //               if (dbNode.contact[c].message[m].mqtt != message)
+  //               {
+  //                 var oldTopic = dbNode.contact[c].message[m].mqtt
+  //                 var updateCon = {$set:{}}
+  //                 updateCon.$set["contact."+c+".message."+m+".mqtt"] = par.contactname
+  //                 NodeDB.update({ _id: par.nodeid, "contact.id": par.contactid }, updateCon )
+  //                 //change subscription
+  //                 client.subscribe(message+'/set')
+  //                 client.unsubscribe(oldTopic+'/set')
+  //                 //exit loop
+  //                 contactFound = true
+  //                 break
+  //               }
+  //               })
+  //             }
+  //           }
+  //         }
+  //         if (contactFound)
+  //           break
+  //       }
+  //     }
+  //   }
+  // })
+}
+
+
+
+
+
+
+// - getNodeValues => ["22.3"]
 
 //on startup do something
