@@ -18,6 +18,7 @@ var client  = mqtt.connect('mqtt://'+settings.mqtt.server.value+':'+settings.mqt
 var Datastore = require('nedb')
 NodeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.node.value), autoload: true})
 BuildingDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.building.value), autoload: true})
+MessageDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.message.value), autoload: true})
 
 var express     = require('express')
 var app         = express()
@@ -75,17 +76,17 @@ serial.open()
 
 NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
-BuildingDB.getAutoId = function (cb) {
-    this.update(
-        { _id: '__autoid__' },
-        { $inc: { seq: 1 } },
-        { upsert: true, returnUpdatedDocs: true },
-        function (err, affected, autoid) { 
-            cb && cb(err, autoid.seq);
-        }
-    );
-    return this;
-};
+// BuildingDB.getAutoId = function (cb) {
+//     this.update(
+//         { _id: '__autoid__' },
+//         { $inc: { seq: 1 } },
+//         { upsert: true, returnUpdatedDocs: true },
+//         function (err, affected, autoid) { 
+//             cb && cb(err, autoid.seq);
+//         }
+//     );
+//     return this;
+// };
 
 global.processSerialData = function (data) {
 //  console.log('SERIAL: %s', data)
@@ -95,30 +96,19 @@ global.processSerialData = function (data) {
 //MQTT
 client.on('connect', () => {  
   //on startup subscribe to all node topics
-  NodeDB.find({ "contact.message.mqtt": { $exists: true }}, function (err, entries) {
+  MessageDB.find({ "mqtt": { $exists: true }}, function (err, entries) {
     if (!err)
     {
       console.log('==============================');
       console.log('* Subscribing to MQTT topics *');
       console.log('==============================');
-      for (var n in entries) {
-        //node status topics
-        client.subscribe('system/node/'+entries[n]._id+'/status')
-        contact = entries[n].contact
-          for (var c in contact) {
-            message = contact[c].message
-              for (var m in message) {
-                  // node contact message configuration topics
-                  var configNodeTopic = 'system/node/'+entries[n]._id+'/'+contact[c].id+'/'+message[m].type
-                  if (message[m].mqtt) //enabled events only
-                  {
-                    client.subscribe(message[m].mqtt+'/set')
-                    console.log('%s', message[m].mqtt);
-                    // client.publish(configNodeTopic, message[m].mqtt, {qos: 0, retain: false})
-                  }
-                  client.subscribe(configNodeTopic+'/set')
-              }
-          }
+      for (var n in entries)
+      {
+        if (entries[n].mqtt) //enabled events only
+        {
+          client.subscribe(entries[n].mqtt+'/set')
+          console.log('%s', entries[n].mqtt);
+        }
       }
       console.log('==============================');
     }
@@ -166,7 +156,12 @@ function handleOutTopic(rxmessage) {
   var message = rxmessage
   var rssiIdx = rxmessage.indexOf(' [RSSI:') //not found = -1
   if (rssiIdx > 0)
+  {
     message = rxmessage.substr(0, rssiIdx);
+    messageRSSI = rxmessage.substr(rssiIdx+7, rxmessage.length-2-(rssiIdx+7))
+    // console.log('rssi: %s', messageRSSI)
+  }
+  //if FLX?OK then update firmware for OpenNode
   if (message.toString().trim() == 'FLX?OK')
   {
     if (global.nodeTo)
@@ -221,156 +216,77 @@ function handleOutTopic(rxmessage) {
 
   }
 
+  //regular message
   console.log('RX > %s', rxmessage)
 
-  var fndMsg = message.toString().split(';')
-  //search in db for node
-  NodeDB.find({ _id : fndMsg[0] }, function (err, entries) {
-      var trim_msg = message.replace(/(\n|\r)+$/, '')
-      var msg = trim_msg.toString().split(';')
-      if (entries.length == 1)
-      {
-        dbNode = entries[0]
-        var foundContact = false
-        if (msg[1] < 255) //not internal contact
+  //get node networkID
+  // var fndMsg = message.toString().split(';')
+  //Not a valid message
+  // if (fndMsg.length < 5) return false
+  //take off all not valid symbols
+  var trim_msg = message.replace(/(\n|\r)+$/, '')
+  //get node networkID
+  var msg = trim_msg.toString().split(';')
+  //internal-3, presentation-0, set-1, request-2, stream-4
+  switch (msg[2]) {
+    case '0': //presentation
+      var NodeContact = new Object()
+      NodeContact.id = msg[1]
+      NodeContact.type = msg[4]
+      NodeDB.update({ "networkid" : msg[0] }, { $addToSet: { "contact": NodeContact } }, {}, function () {
+      })
+      break
+    case '1': //set
+      MessageDB.find({ "networkid" : msg[0], "contactid": msg[1], "message": msg[4] }, function (err, entries) {
+        console.log('error: %s', err)
+        if (!err)
         {
-          for (var c=0; c<dbNode.contact.length; c++) 
+          console.log('entries: %s', entries.length)
+          if (entries.length==1)
           {
-            if (dbNode.contact[c].id == msg[1])
-            {
-              foundContact = true
-              if (msg[2] == '1') // Update node value (C_SET)
-              {
-                var foundMessage = false
-                for (var i=0; i<dbNode.contact[c].message.length; i++)
-                {
-                  if (dbNode.contact[c].message[i].type == msg[4])
-                  {
-                    foundMessage = true
-                    dbNode.contact[c].message[i].value = msg[5]
-                    dbNode.contact[c].message[i].updated = new Date().getTime()
-                    var updateCon = {$set:{}}   
-                    updateCon.$set["contact."+c+".message."+i+".value"] = msg[5]
-                    updateCon.$set["contact."+c+".message."+i+".updated"] = new Date().getTime()
-                    NodeDB.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
+            console.log('update: %s', entries.length)
+            dbMessage = entries[0]
+            dbMessage.value = msg[5]
+            dbMessage.updated = new Date().getTime()
+            dbMessage.rssi = messageRSSI
+            updateStr = JSON.stringify(dbMessage)
+            MessageDB.update({ _id: dbMessage._id }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, {}, function (err, numReplaced) {   // Callback is optional
+            })
+          }
+          else if (entries==0)
+          {
+            console.log('insert: %s', entries.length)
+            MessageDB.update({ "networkid" : msg[0], "contactid": msg[1], "message": msg[3] }, { "networkid" : msg[0], "contactid": msg[1], "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+            })
+          }
+        }
 
-                    if (dbNode.contact[c].message[i].mqtt)
-                    {
-                      var nodeQOS = 0
-                      var nodeRetain = false
-                      if (dbNode.contact[c].message[i].qos)
-                      {
-                        nodeQOS = dbNode.contact[c].message[i].qos
-                      }
-                      if (dbNode.contact[c].message[i].retain)
-                      {
-                        nodeRetain = dbNode.contact[c].message[i].retain
-                      }
-                      client.publish(dbNode.contact[c].message[i].mqtt, msg[msg.length-1], {qos: nodeQOS, retain: nodeRetain})
-                      //need to improve feature publish events when no payload provided (only 4 variables received)
-                    }
-                    break
-                  }
-                }
-                if (!foundMessage)
-                {
-                  var newMessage = new Object()
-                  newMessage.type = msg[4]
-                  newMessage.value = msg[5]
-                  newMessage.updated = new Date().getTime()
-                  newMessage.mqtt = ""
-                  newMessage.qos = ""
-                  newMessage.retain = ""
-                  var updateCon = {$push:{}}   
-                  updateCon.$push["contact."+c+".message"] = newMessage
-                  NodeDB.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
-                }
-                //publish message type
-                //client.publish('system/node/'+msg[0]+'/'+msg[1]+'/msgtype', msg[4], {qos: 0, retain: false})
-                //publish message value
-                //client.publish('system/node/'+msg[0]+'/'+msg[1]+'/'+msg[4]+'/value', msg[msg.length-1], {qos: 0, retain: false})  //fix for only 4 variables received
-                //subscribe to configuration topic
-                client.subscribe('system/node/'+msg[0]+'/'+msg[1]+'/'+msg[4]+'/set')
-              }
-              if (msg[2]  == '0') // C_PRESENTATION
-              {
-                var updateCon = {$set:{}}   
-                updateCon.$set["contact."+c+".type."] = msg[4]
-                NodeDB.update({ _id: msg[0], "contact.id": msg[1] }, updateCon )
-                client.publish('system/node/'+msg[0]+'/'+msg[1]+'/type', msg[4], {qos: 0, retain: false})
-                break
-              }
-            }
-          }
-          if (!foundContact)
-          {
-            var newContact = new Object()
-            newContact.id = msg[1]
-            newContact.type = msg[4]
-            newContact.message = new Array()
-            var updateCon = {$push:{}}   
-            updateCon.$push["contact"] = newContact
-            NodeDB.update({ _id: msg[0] }, updateCon )
-          }
-        } 
-        else if (msg[1] == 255 && msg[2] == '3') //Internal presentation message
+
+        // console.log('is entries: %s', entries.length)
+        // MessageDB.update({ "networkid" : msg[0], "contactid": msg[1], "message": msg[3] }, { "networkid" : msg[0], "contactid": msg[1], "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+        // console.log('numAffected: %s', numAffected)
+        // console.log('affectedDocuments: %s', JSON.stringify(affectedDocuments))
+        // console.log('upsert: %s', upsert)
+        // })
+      })
+      break
+    case '3':  //internal
+      if (msg[1] == 255) //Internal presentation message
+      {
+        if (msg[4] == '11')  //Name
         {
-          if (msg[4] == '11')  //Name
-          {
-            NodeDB.update({ _id: msg[0]}, { $set: { name: msg[5] } })
-            client.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
-    }
-          if (msg[4] == '12')  //Version
-          {
-            NodeDB.update({ _id: msg[0]}, { $set: { version: msg[5] } })
-            client.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
-          }
+          NodeDB.update({ "networkid" : msg[0] }, { $set: { type: "OpenNode", name: msg[5], } }, { upsert: true })
+          // client.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
+        }
+        if (msg[4] == '12')  //Version
+        {
+          NodeDB.update({ "networkid" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
+          // client.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
         }
       }
-      else
-      {
-        //Node not registered: creating the record in db
-        dbNode = new Object()
-        dbNode._id = msg[0]
-        dbNode.name = ""
-        dbNode.version = ""
-        dbNode.contact = new Array()
-
-        if (msg[2] == '1') // Update node value
-        {
-          dbNode.contact[0] = new Object()
-          dbNode.contact[0].id = msg[1]
-          dbNode.contact[0].type = ""
-          dbNode.contact[0].message = new Array()
-          dbNode.contact[0].message[0] = new Object()
-          dbNode.contact[0].message[0].type = msg[4]
-          dbNode.contact[0].message[0].value = msg[5]
-          dbNode.contact[0].message[0].updated = new Date().getTime()
-          dbNode.contact[0].message[0].mqtt = ""
-          dbNode.contact[0].message[0].qos = ""
-          dbNode.contact[0].message[0].retain = ""
-        }
-        else if (msg[2] == '0')  // Got present message
-        {
-          dbNode.contact[0] = new Object()
-          dbNode.contact[0].id = msg[1]
-          dbNode.contact[0].type=msg[4]
-        }
-        else if (msg[2] == '3') //Got internal message
-        {
-          if (msg[4] == '11')  //Name
-            dbNode.name = msg[5]
-           if (msg[4] == '12')  //Version
-            dbNode.version = msg[5]
-        }
-        // Insert to database
-        NodeDB.insert(dbNode, function (err, newEntry) {
-            if (err != null)
-              console.log('ERROR:%s', err)
-              //TO DO: if error that row exists then do update
-        })
-      }
-  })
+      break
+    default:
+  }
 }
 
 function handleGatewayMessage(topic, message) {
@@ -456,42 +372,12 @@ function handleUserMessage(topic, message) {
     }
     var userTopic = 'user/'+splitTopic[1]+'/out'
     switch (msg.cmd) {
-      case 'createBuilding':
-        createBuilding(userTopic, msg.id, msg.parameters)
-        break
-      case 'createFloorForBuilding':
-        createFloorForBuilding(userTopic, msg.id, msg.parameters)
-        break
-      case 'createRoomForFloor':
-        createRoomForFloor(userTopic, msg.id, msg.parameters)
-        break
-      case 'listBuildings':
-        listBuildings(userTopic, msg.id)
-        break
-      case 'listFloorsForBuilding':
-        listFloorsForBuilding(userTopic, msg.id, msg.parameters)
-        break
-      case 'listRoomsForFloor':
-        listRoomsForFloor(userTopic, msg.id, msg.parameters)
-        break
       case 'listUnusedNodes':
         listUnusedNodes(userTopic, msg.id, msg.parameters)
         break
-      case 'attachNodeToRoom':
-        attachNodeToRoom(userTopic, msg.id, msg.parameters)
-        break
-      case 'removeNodeFromRoom':
-        removeNodeFromRoom(userTopic, msg.id, msg.parameters)
-        break
-      case 'getNodeContacts':
-        getNodeContacts(userTopic, msg.id, msg.parameters)
-        break
-      case 'listNodesForRoom':
-        listNodesForRoom(userTopic, msg.id, msg.parameters)
-        break
-      case 'deleteBuilding':
-        deleteBuilding(userTopic, msg.id, msg.parameters)
-        break
+      // case 'getNodeContacts':
+      //   getNodeContacts(userTopic, msg.id, msg.parameters)
+      //   break
       case 'deleteAllBuildings':
         deleteAllBuildings(userTopic, msg.id, msg.parameters)
         break
@@ -509,6 +395,9 @@ function handleUserMessage(topic, message) {
         break
       case 'listNodesForObject':
         listNodesForObject(userTopic, msg.id, msg.parameters)
+        break
+      case 'getNodeContactValues':
+        getNodeContactValues(userTopic, msg.id, msg.parameters)
         break
       default:
         console.log('No handler for %s %s', topic, message)
@@ -653,216 +542,6 @@ function readNextFileLine(hexFile, lineNumber) {
   }
 }
 
-function listBuildings(userTopic, id) {
-  BuildingDB.find({ "building" : { $exists: true } }, function (err, entries) {
-    if (entries.length > 0)
-    {
-      var listJSON='['
-      for (var n=0; n<entries.length; n++)
-      {
-        listJSON = listJSON + '{"name":"'+entries[n].building+'", "id":"'+entries[n].id+'"}'
-        if (n<entries.length-1)
-          listJSON += ","
-      }
-      listJSON += ']'
-      var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
-    }
-  })
-}
-
-// - listFloorsForBuilding => ["floor1", "floor2", "outside"]
-function listFloorsForBuilding(userTopic, id, par) {
-  BuildingDB.find({ id : parseInt(par.building_id) }, function (err, entries) {
-    if (entries.length == 1)
-    {
-      var listJSON='['
-      for (var f=0; f<entries[0].floor.length; f++)
-      {
-        listJSON = listJSON + '{"name":"'+entries[0].floor[f].name+'", "id":"'+entries[0].floor[f].id+'"}'
-        if (f<entries[0].floor.length-1)
-          listJSON += ","
-      }
-      listJSON += ']'
-      var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
-    }
-  })
-}
-
-// - listRoomsForFloor => ["guestroom", "bedroom"]
-function listRoomsForFloor(userTopic, id, par) {
-  BuildingDB.find({ "floor.id": parseInt(par.floor_id) }, function (err, entries) {
-    if (entries.length == 1)
-    {
-      for (var f=0; f<entries[0].floor.length; f++)
-      {
-        if (entries[0].floor[f].id == parseInt(par.floor_id))
-        {
-          var listJSON='['
-          for (var r=0; r<entries[0].floor[f].room.length; r++)
-          {
-            // listJSON = listJSON + '"' + entries[0].floor[f].room[r].name + '"'
-            listJSON = listJSON + '{"name":"'+entries[0].floor[f].room[r].name+'", "id":"'+entries[0].floor[f].room[r].id+'"}'
-            if (r<entries[0].floor[f].room.length-1)
-              listJSON += ","
-          }
-          listJSON += ']'
-          var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-          client.publish(userTopic, newJSON, {qos: 0, retain: false})
-        }
-      }
-    }
-  })
-}
-
-// - listNodesForRoom => ["1", "23"]
-function listNodesForRoom(userTopic, id, par) {
-  BuildingDB.find({ "floor.room.id": parseInt(par.room_id) }, function (err, entries) {
-    if (entries.length == 1)
-    {
-      var listJSON='['
-      for (var f=0; f<entries[0].floor.length; f++)
-      {
-        for (var r=0; r<entries[0].floor[f].room.length; r++)
-        {
-          if (entries[0].floor[f].room[r].id == parseInt(par.room_id))
-          {
-            for (var n=0; n<entries[0].floor[f].room[r].node.length; r++)
-            {
-              listJSON = listJSON + '{"nodeid":"'+entries[0].floor[f].room[r].node[n].id+'"}'
-              if (n<entries[0].floor[f].room[r].node.length-1)
-                listJSON += ","
-            }
-          }
-        }
-      }
-      listJSON += ']'
-      var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
-    }
-  })
-}
-
-// - listAttachedNodesForRoom => ["temp", "hum","trv"]
-function createBuilding(userTopic, id, par) {
-  BuildingDB.find({ building : par.building }, function (err, entries) {
-    if (entries.length == 1)
-    {
-      var newJSON = '{"id": "'+id+'", "payload": "Building already exists"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
-      return
-    }
-    BuildingDB.getAutoId(function (err, autoid) {
-      // console.log('id: %s', autoid)
-      dbBuilding = new Object()
-      dbBuilding.building = this.par.building
-      dbBuilding.id = autoid
-      dbBuilding.floor = new Array()
-      var newJSON = '{"id": "'+this.id+'", "payload": {"building_id": "'+autoid+'"}}'
-      BuildingDB.insert(dbBuilding, function (err, newEntry) {
-        if (!err)
-        {
-          // var newJSON = '{"id": "'+id+'", "payload": "building_id:'+autoid+'"}'
-          client.publish(this.userTopic, this.newJSON, {qos: 0, retain: false})
-        }
-        else
-        {
-          console.log('ERROR:%s', err)
-        }
-      }.bind({newJSON: newJSON, userTopic: userTopic}))
-    }.bind({par: par, userTopic: userTopic, id: id}))
-  })
-}
-
-function createFloorForBuilding(userTopic, id, par) {
-  // console.log('Is building id:%s', par.building_id)
-  BuildingDB.find({ id : parseInt(par.building_id) }, function (err, entries) {
-    if (entries.length == 1)
-    {
-      for (var f=0; f<entries[0].floor.length; f++)
-      {
-        if (entries[0].floor[f].name == par.floor)
-        {
-              var newJSON = '{"id": "'+id+'", "payload": "Floor already exists"}'
-              client.publish(userTopic, newJSON, {qos: 0, retain: false})
-              return
-        }
-      }
-      BuildingDB.getAutoId(function (err, autoid) {
-        var newFloor = new Object()
-        newFloor.name = par.floor
-        newFloor.id = autoid
-        newFloor.room = new Array()
-        var updateCon = {$push:{}}   
-        updateCon.$push["floor"] = newFloor
-        BuildingDB.update({ id: parseInt(par.building_id) }, updateCon )
-        var newJSON = '{"id": "'+id+'", "payload": {"floor_id": "'+autoid+'"}}'
-        client.publish(userTopic, newJSON, {qos: 0, retain: false})
-      })
-    }
-  })
-}
-
-function createRoomForFloor(userTopic, id, par) {
-  BuildingDB.find({ "floor.id": parseInt(par.floor_id) }, function (err, entries) {
-    if (entries.length > 0)
-    {
-      var dbBuilding = entries[0]
-      // console.log('flr cnt :%s', dbBuilding.floor.length)
-      for (var f=0; f<dbBuilding.floor.length; f++)
-      {
-        if (dbBuilding.floor[f].id == parseInt(par.floor_id))
-        {
-          // console.log('flr id :%s', dbBuilding.floor[f].id)
-          for (var r=0; r<dbBuilding.floor[f].room.length; r++)
-          {
-            if (dbBuilding.floor[f].room[r].name == par.room)
-            {
-              var newJSON = '{"id": "'+id+'", "payload": "Room already exists"}'
-              client.publish(userTopic, newJSON, {qos: 0, retain: false})
-              return
-            }
-          }
-          BuildingDB.getAutoId(function (err, autoid) {
-            var newRoom = new Object()
-            newRoom.name = par.room
-            newRoom.id = autoid
-            newRoom.node = new Array()
-            var updateCon = {$push:{}}
-            updateCon.$push["floor."+this.f+".room"] = newRoom
-            BuildingDB.update({ "floor.id": parseInt(par.floor_id) }, updateCon )
-            var newJSON = '{"id": "'+id+'", "payload": {"room_id": "'+autoid+'"}}'
-            client.publish(userTopic, newJSON, {qos: 0, retain: false})
-          }.bind({f:f}))
-        }
-      }
-    }
-  })
-}
-
-function deleteBuilding(userTopic, id, par) {
-  // if (par.building_id.constructor === Array)
-  // {
-  //   console.log('id[0] :%s', par.building_id[0])
-  //   console.log('id.length :%s', par.building_id.length)
-  // }
-  BuildingDB.remove({ id : par.building_id }, {}, function (err, numRemoved) {
-    if (numRemoved == 1)
-    {
-      var newJSON = '{"id": "'+id+'", "payload": "true"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
-      return
-    }
-    else
-    {
-      var newJSON = '{"id": "'+id+'", "payload": "false"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
-      return
-    }
-  })
-}
-
 function deleteAllBuildings(userTopic, id, par) {
   BuildingDB.remove({}, { multi: true }, function (err, numRemoved) {
     if (numRemoved > 0)
@@ -882,21 +561,49 @@ function deleteAllBuildings(userTopic, id, par) {
 
 // - listUnusedNodes => {[id:2,name:node_name,versio:1.0], [id:3,name:node_name,versio:2.1]}
 function listUnusedNodes(userTopic, id, par) {
+  NodeDB.find({ networkid: { $exists: true }}, function (err, entries) {
+    if (!err)
+    {
+      var payload = [];
+      for (var n in entries)
+      {
+        // console.log('networkid: %s', entries[n].networkid)
+        var dbNode = entries[n]
+        BuildingDB.find({ "nodes": dbNode.networkid }, function (err, entries) {
+          // console.log('entries: %s', entries.length)
+          // console.log('err: %s', err)
+          if (!err && entries.length == 0)
+          {
+            payload.push(dbNode)
+            // console.log('payload: %s', JSON.stringify(payload))
+          }
+          if (this.nodesLeft == 0)
+          {
+            var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+            client.publish(userTopic, newJSON, {qos: 0, retain: false})
+          }
+        }.bind({dbNode: dbNode, nodesLeft: entries.length-n-1}))
+      }
+    }
+  })
+}
+
+function listUnusedNodes2(userTopic, id, par) {
   NodeDB.find({ name: { $exists: true }}, function (err, entries) {
     if (!err)
     {
       var newJSON = '[';
       for (var n in entries) {
         var dbNode = entries[n]
-        BuildingDB.find({ "nodes": dbNode._id }, function (err, entries) {
+        BuildingDB.find({ "nodes": dbNode.networkid }, function (err, entries) {
           if (!err)
           {
-            if (entries.length == 0 && this.dbNode._id && this.dbNode.name && this.dbNode.version)
+            if (entries.length == 0 && this.dbNode.networkid && this.dbNode.name && this.dbNode.version)
             {
               //found unlisted node
               if (newJSON.length > 1)
                  newJSON += ', '
-              newJSON = newJSON + '{"id": "'+this.dbNode._id+'", "name": "'+this.dbNode.name+'", "version": "'+this.dbNode.version+'""}'
+              newJSON = newJSON + '{"id": "'+this.dbNode.networkid+'", "name": "'+this.dbNode.name+'", "version": "'+this.dbNode.version+'""}'
             }
             if (this.nodesLeft == 0)
             {
@@ -911,97 +618,9 @@ function listUnusedNodes(userTopic, id, par) {
   })
 }
 
-// - attachNodeToRoom
-function attachNodeToRoom(userTopic, id, par) {
-  BuildingDB.find({ "floor.room.id": parseInt(par.room_id) }, function (err, entries) {
-    for (var n=0; n<entries.length; n++)
-    {
-      var dbBuilding = entries[n]
-      for (var f=0; f<dbBuilding.floor.length; f++)
-      {
-          for (var r=0; r<dbBuilding.floor[f].room.length; r++)
-          {
-            if (dbBuilding.floor[f].room[r].id == parseInt(par.room_id))
-            {
-              var newNode = new Object()
-              newNode.id = par.nodeid
-              // newNode.contact = new Array()
-              // newNode.contact[0] = new Object()
-              // newNode.contact[0].id = 2
-              // newNode.contact[0].message = 36
-
-              var updateCon = {$push:{}}
-              updateCon.$push["floor."+f+".room."+r+".node"] = newNode
-              BuildingDB.update({ "floor.room.id": parseInt(par.room_id) }, updateCon )
-              var newJSON = '{"id": "'+id+'", "payload": "OK"}'
-              client.publish(userTopic, newJSON, {qos: 0, retain: false})
-            }
-          }
-      }
-    }
-  })
-}
-
-// - removeNodeToRoom
-function removeNodeFromRoom(userTopic, id, par) {
-  BuildingDB.find({ "floor.room.id": parseInt(par.room_id) }, function (err, entries) {
-    for (var n=0; n<entries.length; n++)
-    {
-      var dbBuilding = entries[n]
-      for (var f=0; f<dbBuilding.floor.length; f++)
-      {
-          for (var r=0; r<dbBuilding.floor[f].room.length; r++)
-          {
-            if (dbBuilding.floor[f].room[r].id == parseInt(par.room_id))
-            {
-              var removeNode = new Object()
-              removeNode.id = par.nodeid
-
-              var updateCon = {$pull:{}}
-              updateCon.$pull["floor."+f+".room."+r+".node"] = removeNode
-              BuildingDB.update({ "floor.room.id": parseInt(par.room_id) }, updateCon )
-              var newJSON = '{"id": "'+id+'", "payload": "OK"}'
-              client.publish(userTopic, newJSON, {qos: 0, retain: false})
-            }
-          }
-      }
-    }
-  })
-}
-
 // - getNodeContacts => [{id:"2", type:6}, {id:"3", type: 8}]
-function getNodeContacts(userTopic, id, par) {
-  NodeDB.find({ _id : par.nodeID }, function (err, entries) {
-    if (!err)
-    {
-      if (entries.length > 0)
-      {
-        for (var n=0; n<entries.length; n++)
-        {
-          var dbNode = entries[n]
-          var newJSON = '{"id":"'+id+'", "payload": ['
-          for (var c=0; c<dbNode.contact.length; c++)
-          {
-            for (var m=0; m<dbNode.contact[c].message.length; m++)
-            {
-              // newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'", "msgtype": "'+dbNode.contact[c].message[m].type+'"}'
-              newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'", "msgtype": "'+dbNode.contact[c].message[m].type+'", "msgvalue": "'+dbNode.contact[c].message[m].value+'"}'
-              if (m < dbNode.contact[c].message.length-1 || c < dbNode.contact.length-1)
-                newJSON += ', '
-              // console.log('%s', newJSON)
-            }
-          }
-          newJSON += ']}'
-          client.publish(userTopic, newJSON, {qos: 0, retain: false})
-        }
-      }
-    }
-  })
-}
-
-// - getNodeContactValues => ["22.3"]
-// function getNodeContactValues(userTopic, id, par) {
-//   NodeDB.find({ _id : par.nodeid }, function (err, entries) {
+// function getNodeContacts(userTopic, id, par) {
+//   NodeDB.find({ _id : par.nodeID }, function (err, entries) {
 //     if (!err)
 //     {
 //       if (entries.length > 0)
@@ -1014,6 +633,7 @@ function getNodeContacts(userTopic, id, par) {
 //           {
 //             for (var m=0; m<dbNode.contact[c].message.length; m++)
 //             {
+//               // newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'", "msgtype": "'+dbNode.contact[c].message[m].type+'"}'
 //               newJSON += '{"contactid": "'+dbNode.contact[c].id+'", "contacttype": "'+dbNode.contact[c].type+'", "msgtype": "'+dbNode.contact[c].message[m].type+'", "msgvalue": "'+dbNode.contact[c].message[m].value+'"}'
 //               if (m < dbNode.contact[c].message.length-1 || c < dbNode.contact.length-1)
 //                 newJSON += ', '
@@ -1027,6 +647,54 @@ function getNodeContacts(userTopic, id, par) {
 //     }
 //   })
 // }
+
+// - getNodeContactValues => ["22.3"]
+function getNodeContactValues(userTopic, id, par) {
+  MessageDB.find({ networkid : par.nodeID }, function (err, entries) {
+    if (!err)
+    {
+      if (entries.length > 0)
+      {
+        payload = []
+        for (var n in entries)
+        {
+          payload.push(entries[n])
+        }
+        var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+        client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      }
+    }
+  })
+}
+
+function getNodeDetails(userTopic, id, par) {
+  NodeDB.find({ networkid: { $exists: true }}, function (err, entries) {
+    if (!err)
+    {
+      var payload = [];
+      for (var n in entries)
+      {
+        // console.log('networkid: %s', entries[n].networkid)
+        var dbNode = entries[n]
+        BuildingDB.find({ "nodes": dbNode.networkid }, function (err, entries) {
+          // console.log('entries: %s', entries.length)
+          // console.log('err: %s', err)
+          if (!err && entries.length == 0)
+          {
+            payload.push(dbNode)
+            // console.log('payload: %s', JSON.stringify(payload))
+          }
+          if (this.nodesLeft == 0)
+          {
+            var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+            client.publish(userTopic, newJSON, {qos: 0, retain: false})
+          }
+        }.bind({dbNode: dbNode, nodesLeft: entries.length-n-1}))
+      }
+    }
+  })
+}
+
 
 // - setContactName nodeid, contactid, msgtype, name
 function setContactName(userTopic, id, par) {
@@ -1102,16 +770,20 @@ function listObjects(userTopic, id, par) {
     objectID = (par.parentObject === undefined) ? "" : par.parentObject
   }
   BuildingDB.find({ parentObject : objectID }, function (err, entries) {
+    var payload = [];
     if (entries.length > 0)
     {
-      var payload = [];
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({name: entries[i].name, id: entries[i]._id});
+        payload.push({name: entries[i].name, id: entries[i]._id, nodes: entries[i].nodes});
       }
       var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
+    else
+    {
+      var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+    }
+    client.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
