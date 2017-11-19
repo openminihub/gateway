@@ -14,7 +14,8 @@ var readFile = require('n-readlines')
 nconf.argv().file({ file: path.resolve(__dirname, 'settings.json5'), format: JSON5 })
 settings = nconf.get('settings');
 var mqtt = require('mqtt')
-var client  = mqtt.connect('mqtt://'+settings.mqtt.server.value+':'+settings.mqtt.port.value, {username:settings.mqtt.username.value, password:settings.mqtt.password.value})
+var mqttCloud  = mqtt.connect('mqtt://'+settings.mqtt.server.cloud.name.value+':'+settings.mqtt.server.cloud.port.value, {username:settings.mqtt.server.cloud.username.value, password:settings.mqtt.server.cloud.password.value})
+var mqttLocal  = mqtt.connect('mqtt://'+settings.mqtt.server.local.name.value+':'+settings.mqtt.server.local.port.value, {username:settings.mqtt.server.local.username.value, password:settings.mqtt.server.local.password.value})
 var Datastore = require('nedb')
 NodeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.node.value), autoload: true})
 BuildingDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.building.value), autoload: true})
@@ -76,6 +77,7 @@ serial.open()
 
 NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
+MessageDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 // BuildingDB.getAutoId = function (cb) {
 //     this.update(
 //         { _id: '__autoid__' },
@@ -90,11 +92,17 @@ BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInte
 
 global.processSerialData = function (data) {
 //  console.log('SERIAL: %s', data)
-  handleOutTopic(data)
+  handleOutTopic(data, 'OpenNode')
 }
 
 //MQTT
-client.on('connect', () => {  
+mqttCloud.on('connect', () => {  
+  //on startup subscribe to all node topics
+  mqttCloud.subscribe('user/+/in')
+  console.log('+connection to cloud mqtt OK')
+})
+
+mqttLocal.on('connect', () => {  
   //on startup subscribe to all node topics
   MessageDB.find({ "mqtt": { $exists: true }}, function (err, entries) {
     if (!err)
@@ -106,7 +114,7 @@ client.on('connect', () => {
       {
         if (entries[n].mqtt) //enabled events only
         {
-          client.subscribe(entries[n].mqtt+'/set')
+          mqttCloud.subscribe(entries[n].mqtt+'/set')
           console.log('%s', entries[n].mqtt);
         }
       }
@@ -118,17 +126,34 @@ client.on('connect', () => {
     }
   })
   //system configuration topics
-  client.subscribe('system/gateway')
-  client.subscribe('user/login')
-  client.subscribe('system/login')
-  client.subscribe('gateway/in')
-  client.subscribe('system/node/?/?/?/set')
-  // client.subscribe('gateway')
-  // client.subscribe('user/user1/#')
-  client.subscribe('user/+/in')
+  mqttLocal.subscribe('system/gateway')
+  mqttLocal.subscribe('user/login')
+  mqttLocal.subscribe('system/login')
+  mqttLocal.subscribe('gateway/in')
+  mqttLocal.subscribe('system/node/?/?/?/set')
+  // mqttCloud.subscribe('gateway')
+  // mqttCloud.subscribe('user/user1/#')
+  mqttLocal.subscribe('user/+/in')
+  mqttLocal.subscribe('gateway/node/+/out')
+  console.log('+connection to local mqtt OK')
 })
 
-client.on('message', (topic, message) => {
+mqttCloud.on('message', (topic, message) => {
+  if (message.toString().trim().length > 0)
+  {
+    console.log('MQTT: %s %s', topic, message)
+    stopic = topic.split('/')
+    switch (stopic[0]) {
+      case 'user':
+        return handleUserMessage(topic, message)
+      // default:
+        // return handleSendMessage(topic, message)
+    }
+  }
+  console.log('No handler for topic %s', topic)
+})
+
+mqttLocal.on('message', (topic, message) => {
   if (message.toString().trim().length > 0)
   {
     console.log('MQTT: %s %s', topic, message)
@@ -145,6 +170,8 @@ client.on('message', (topic, message) => {
         }
       case 'user':
         return handleUserMessage(topic, message)
+      case 'gateway':
+        return handleGatewayMessage(topic, message)
       default:
         return handleSendMessage(topic, message)
     }
@@ -152,14 +179,19 @@ client.on('message', (topic, message) => {
   console.log('No handler for topic %s', topic)
 })
 
-function handleOutTopic(rxmessage) {
+function handleOutTopic(rxmessage, nodetype) {
   var message = rxmessage
   var rssiIdx = rxmessage.indexOf(' [RSSI:') //not found = -1
+  var messageRSSI
   if (rssiIdx > 0)
   {
     message = rxmessage.substr(0, rssiIdx);
     messageRSSI = rxmessage.substr(rssiIdx+7, rxmessage.length-2-(rssiIdx+7))
     // console.log('rssi: %s', messageRSSI)
+  }
+  else
+  {
+    messageRSSI=''
   }
   //if FLX?OK then update firmware for OpenNode
   if (message.toString().trim() == 'FLX?OK')
@@ -238,13 +270,13 @@ function handleOutTopic(rxmessage) {
       break
     case '1': //set
       MessageDB.find({ "networkid" : msg[0], "contactid": msg[1], "message": msg[4] }, function (err, entries) {
-        console.log('error: %s', err)
+        // console.log('error: %s', err)
         if (!err)
         {
-          console.log('entries: %s', entries.length)
+          // console.log('entries: %s', entries.length)
           if (entries.length==1)
           {
-            console.log('update: %s', entries.length)
+            // console.log('update: %s', entries.length)
             dbMessage = entries[0]
             dbMessage.value = msg[5]
             dbMessage.updated = new Date().getTime()
@@ -255,8 +287,25 @@ function handleOutTopic(rxmessage) {
           }
           else if (entries==0)
           {
-            console.log('insert: %s', entries.length)
-            MessageDB.update({ "networkid" : msg[0], "contactid": msg[1], "message": msg[3] }, { "networkid" : msg[0], "contactid": msg[1], "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+            // console.log('insert: %s', entries.length)
+            //Find contact type before 1st insert & do insert only if node & contact is presented
+            //This will avoid inserting wrong messages if there is RF network disruption
+            NodeDB.find({ "networkid" : msg[0], "contact.id": msg[1] }, function (err, entries) {
+              if (!err)
+              {
+                if (entries.length==1)
+                {
+                  for (var c in entries[0].contact)
+                  {
+                    if (entries[0].contact[c].id == msg[1])
+                    {
+                      // console.log('Node: %s Contact: %s Type: %s', msg[0], msg[1], entries[0].contact[c].type)
+                      MessageDB.update({ "networkid" : msg[0], "contactid": msg[1], "message": msg[3] }, { "networkid" : msg[0], "contactid": msg[1], "contacttype": entries[0].contact[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+                      })
+                    }
+                  }
+                }
+              }
             })
           }
         }
@@ -275,13 +324,13 @@ function handleOutTopic(rxmessage) {
       {
         if (msg[4] == '11')  //Name
         {
-          NodeDB.update({ "networkid" : msg[0] }, { $set: { type: "OpenNode", name: msg[5], } }, { upsert: true })
-          // client.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
+          NodeDB.update({ "networkid" : msg[0] }, { $set: { type: nodetype, name: msg[5], } }, { upsert: true })
+          // mqttCloud.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
         }
         if (msg[4] == '12')  //Version
         {
           NodeDB.update({ "networkid" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
-          // client.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
+          // mqttCloud.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
         }
       }
       break
@@ -289,7 +338,7 @@ function handleOutTopic(rxmessage) {
   }
 }
 
-function handleGatewayMessage(topic, message) {
+function handleGatewayMessage_OLD(topic, message) {
   // console.log('%s: %s', topic, message)
   var splitTopic = topic.toString().split('/')
   //get node list
@@ -301,12 +350,12 @@ function handleGatewayMessage(topic, message) {
       return console.error(e)
     }
     switch (msg.cmd) {
-      case 'listnew':
-        listNodes(false)
-        break
-      case 'listall':
-        listNodes(false)
-        break
+      // case 'listnew':
+      //   listNodes(false)
+      //   break
+      // case 'listall':
+      //   listNodes(false)
+      //   break
       case 'updateHRFHJsk':
         fs.open('./.updatenow', "wx", function (err, fd) {
           // handle error
@@ -314,15 +363,15 @@ function handleGatewayMessage(topic, message) {
             // handle error
             if (err)
             {
-              client.publish('system/gateway', 'previous update in progress', {qos: 0, retain: false})
+              mqttCloud.publish('system/gateway', 'previous update in progress', {qos: 0, retain: false})
             }
             else
             {
-              client.publish('system/gateway', 'updating', {qos: 0, retain: false})
+              mqttCloud.publish('system/gateway', 'updating', {qos: 0, retain: false})
               const child = execFile('./gateway-update.sh', [''], (error, stdout, stderr) => {
                 if (error)
                 {
-                  client.publish('system/gateway', 'update error', {qos: 0, retain: false})
+                  mqttCloud.publish('system/gateway', 'update error', {qos: 0, retain: false})
                 }
                 console.log(stdout);
               });
@@ -356,10 +405,20 @@ function handleGatewayMessage(topic, message) {
     }
     // console.log('MD5: %s', crypto.createHash('md5').update(msg.username).digest("hex"))
     var userMD5 = crypto.createHash('md5').update(msg.username).digest("hex")
-    client.publish('system/login/'+msg.username, '{"md5": "'+userMD5+'"}', {qos: 0, retain: false})
-    client.subscribe(userMD5+'/in')
+    mqttCloud.publish('system/login/'+msg.username, '{"md5": "'+userMD5+'"}', {qos: 0, retain: false})
+    mqttCloud.subscribe(userMD5+'/in')
   }
 }
+
+function handleGatewayMessage(topic, message) {
+  var splitTopic = topic.toString().split('/')
+  if (splitTopic[1] == 'node' && splitTopic[3] == 'out' && message.length > 0)
+  {
+    // console.log('mqtt->mysensors')
+    handleOutTopic(splitTopic[2]+';'+message, 'ESP')
+  }
+}
+
 
 function handleUserMessage(topic, message) {
   var splitTopic = topic.toString().split('/')
@@ -413,8 +472,8 @@ function handleUserMessage(topic, message) {
       return console.error(e)
     }
     var userMD5 = crypto.createHash('md5').update(msg.username).digest("hex")
-    client.publish('user/login/'+msg.username, '{"md5": "'+userMD5+'"}', {qos: 0, retain: false})
-    client.subscribe('user/'+userMD5+'/in')
+    mqttCloud.publish('user/login/'+msg.username, '{"md5": "'+userMD5+'"}', {qos: 0, retain: false})
+    mqttCloud.subscribe('user/'+userMD5+'/in')
   }
 }
 
@@ -451,8 +510,8 @@ function handleNodeMessage(topic, message) {
                   updateCon.$set["contact."+c+".message."+m+".mqtt"] = message.toString()
                   NodeDB.update({ _id: splitTopic[2], "contact.id": splitTopic[3] }, updateCon )
                   //change subscription
-                  client.subscribe(message+'/set')
-                  client.unsubscribe(oldTopic+'/set')
+                  mqttCloud.subscribe(message+'/set')
+                  mqttCloud.unsubscribe(oldTopic+'/set')
                   //exit loop
                   contactFound = true
                   break
@@ -493,34 +552,6 @@ function handleSendMessage(topic, message) {
   })
 }
 
-function listNodes(listall) {
-    NodeDB.find({ "contact.message.mqtt" : { $exists: true } }, function (err, entries) {
-      if (!err)
-      {
-        if (entries.length > 0)
-        {
-          for (var n=0; n<entries.length; n++)
-          {
-            var dbNode = entries[n]
-            for (var c=0; c<dbNode.contact.length; c++)
-            {
-              for (var m=0; m<dbNode.contact[c].message.length; m++)
-              {
-                if (listall || !dbNode.contact[c].message[m].mqtt)
-                {
-                  var newJSON = '{"nodeid": '+dbNode._id+', "contactid": '+dbNode.contact[c].id+', "contacttype": '+dbNode.contact[c].type+', "msgtype": '+dbNode.contact[c].message[m].type+', "value": "'+dbNode.contact[c].message[m].value+'", "mqtt": "'+dbNode.contact[c].message[m].mqtt+'"}'
-                  console.log('%s', newJSON)
-                  client.publish('system/node', newJSON, {qos: 0, retain: false})
-//                  serial.write(dbNode._id + ';' + dbNode.contact[c].id + ';1;1;' + dbNode.contact[c].message[m].type + ';' + message + '\n', function () { serial.drain(); });
-                }
-              }
-            }
-          }
-        }
-      }
-    })
-}
-
 function nodeOTA(nodeid, firmware) {
     serial.write('TO:' + nodeId + '\n', function () { serial.drain(); });
 }
@@ -542,18 +573,19 @@ function readNextFileLine(hexFile, lineNumber) {
   }
 }
 
+//API
 function deleteAllBuildings(userTopic, id, par) {
   BuildingDB.remove({}, { multi: true }, function (err, numRemoved) {
     if (numRemoved > 0)
     {
       var newJSON = '{"id": "'+id+'", "payload": "true"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       return
     }
     else
     {
       var newJSON = '{"id": "'+id+'", "payload": "false"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       return
     }
   })
@@ -580,37 +612,7 @@ function listUnusedNodes(userTopic, id, par) {
           if (this.nodesLeft == 0)
           {
             var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
-            client.publish(userTopic, newJSON, {qos: 0, retain: false})
-          }
-        }.bind({dbNode: dbNode, nodesLeft: entries.length-n-1}))
-      }
-    }
-  })
-}
-
-function listUnusedNodes2(userTopic, id, par) {
-  NodeDB.find({ name: { $exists: true }}, function (err, entries) {
-    if (!err)
-    {
-      var newJSON = '[';
-      for (var n in entries) {
-        var dbNode = entries[n]
-        BuildingDB.find({ "nodes": dbNode.networkid }, function (err, entries) {
-          if (!err)
-          {
-            if (entries.length == 0 && this.dbNode.networkid && this.dbNode.name && this.dbNode.version)
-            {
-              //found unlisted node
-              if (newJSON.length > 1)
-                 newJSON += ', '
-              newJSON = newJSON + '{"id": "'+this.dbNode.networkid+'", "name": "'+this.dbNode.name+'", "version": "'+this.dbNode.version+'""}'
-            }
-            if (this.nodesLeft == 0)
-            {
-               newJSON += ']'
-               newJSON = '{"id": "'+id+'", "payload": "'+newJSON+'"}'
-               client.publish(userTopic, newJSON, {qos: 0, retain: false})
-            }
+            mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
           }
         }.bind({dbNode: dbNode, nodesLeft: entries.length-n-1}))
       }
@@ -641,7 +643,7 @@ function listUnusedNodes2(userTopic, id, par) {
 //             }
 //           }
 //           newJSON += ']}'
-//           client.publish(userTopic, newJSON, {qos: 0, retain: false})
+//           mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
 //         }
 //       }
 //     }
@@ -650,7 +652,7 @@ function listUnusedNodes2(userTopic, id, par) {
 
 // - getNodeContactValues => ["22.3"]
 function getNodeContactValues(userTopic, id, par) {
-  MessageDB.find({ networkid : par.nodeID }, function (err, entries) {
+  MessageDB.find({ networkid : { $in: par.nodeID } }, function (err, entries) {
     if (!err)
     {
       if (entries.length > 0)
@@ -658,88 +660,55 @@ function getNodeContactValues(userTopic, id, par) {
         payload = []
         for (var n in entries)
         {
-          payload.push(entries[n])
+          // payload.push(entries[n])
+          payload.push({networkid: entries[n].networkid,
+                        contactid: entries[n].contactid,
+                        message: entries[n].message,
+                        value: entries[n].value,
+                        updated: entries[n].updated,
+                        rssi: entries[n].rssi,
+                        id: entries[n]._id
+          });
         }
         var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
-        client.publish(userTopic, newJSON, {qos: 0, retain: false})
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       }
     }
   })
 }
 
-function getNodeDetails(userTopic, id, par) {
-  NodeDB.find({ networkid: { $exists: true }}, function (err, entries) {
-    if (!err)
-    {
-      var payload = [];
-      for (var n in entries)
-      {
-        // console.log('networkid: %s', entries[n].networkid)
-        var dbNode = entries[n]
-        BuildingDB.find({ "nodes": dbNode.networkid }, function (err, entries) {
-          // console.log('entries: %s', entries.length)
-          // console.log('err: %s', err)
-          if (!err && entries.length == 0)
-          {
-            payload.push(dbNode)
-            // console.log('payload: %s', JSON.stringify(payload))
-          }
-          if (this.nodesLeft == 0)
-          {
-            var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
-            client.publish(userTopic, newJSON, {qos: 0, retain: false})
-          }
-        }.bind({dbNode: dbNode, nodesLeft: entries.length-n-1}))
-      }
-    }
-  })
-}
+// function getNodeDetails(userTopic, id, par) {
+//   NodeDB.find({ networkid: { $exists: true }}, function (err, entries) {
+//     if (!err)
+//     {
+//       var payload = [];
+//       for (var n in entries)
+//       {
+//         // console.log('networkid: %s', entries[n].networkid)
+//         var dbNode = entries[n]
+//         BuildingDB.find({ "nodes": dbNode.networkid }, function (err, entries) {
+//           // console.log('entries: %s', entries.length)
+//           // console.log('err: %s', err)
+//           if (!err && entries.length == 0)
+//           {
+//             payload.push(dbNode)
+//             // console.log('payload: %s', JSON.stringify(payload))
+//           }
+//           if (this.nodesLeft == 0)
+//           {
+//             var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+//             mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+//           }
+//         }.bind({dbNode: dbNode, nodesLeft: entries.length-n-1}))
+//       }
+//     }
+//   })
+// }
 
 
 // - setContactName nodeid, contactid, msgtype, name
-function setContactName(userTopic, id, par) {
-  // NodeDB.find({ _id : par.nodeid }, function (err, entries) {
-  //   if (!err)
-  //   {
-  //     if (entries.length == 1)
-  //     {
-  //       dbNode = entries[0]
-  //       var contactFound = false
-  //       for (var c=0; c<dbNode.contact.length; c++)
-  //       {
-  //         if (dbNode.contact[c].id == par.contactid)
-  //         {
-  //           for (var m=0; m<dbNode.contact[c].message.length; m++)
-  //           {
-  //             if (dbNode.contact[c].message[m].type == par.msgtype)
-  //             {
-  //               BuildingDB.find({ "floor.room.node.id": par.nodeid }, function (err, entries) {
-
-
-  //               if (dbNode.contact[c].message[m].mqtt != message)
-  //               {
-  //                 var oldTopic = dbNode.contact[c].message[m].mqtt
-  //                 var updateCon = {$set:{}}
-  //                 updateCon.$set["contact."+c+".message."+m+".mqtt"] = par.contactname
-  //                 NodeDB.update({ _id: par.nodeid, "contact.id": par.contactid }, updateCon )
-  //                 //change subscription
-  //                 client.subscribe(message+'/set')
-  //                 client.unsubscribe(oldTopic+'/set')
-  //                 //exit loop
-  //                 contactFound = true
-  //                 break
-  //               }
-  //               })
-  //             }
-  //           }
-  //         }
-  //         if (contactFound)
-  //           break
-  //       }
-  //     }
-  //   }
-  // })
-}
+// function setContactName(userTopic, id, par) {
+// }
 
 function createObject(userTopic, id, par) {
   // BuildingDB.find({ building : par.building }, function (err, entries) {
@@ -758,7 +727,7 @@ function createObject(userTopic, id, par) {
       {
         var newJSON = '{"id": "'+id+'", "payload": "false"}'
       }
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     })
   // })
 }
@@ -783,22 +752,23 @@ function listObjects(userTopic, id, par) {
     {
       var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
     }
-    client.publish(userTopic, newJSON, {qos: 0, retain: false})
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
 function removeObject(userTopic, id, par) {
-  BuildingDB.remove({_id : par.objectID}, { multi: true }, function (err, numRemoved) {
+  //TODO: get list of objects and delete all at once
+  BuildingDB.remove({_id : { $in: par.objectID } }, { multi: true }, function (err, numRemoved) {
     if (numRemoved > 0)
     {
       var newJSON = '{"id": "'+id+'", "payload": "true"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       return
     }
     else
     {
       var newJSON = '{"id": "'+id+'", "payload": "false"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       return
     }
   })
@@ -809,12 +779,12 @@ function attachNodeToObject(userTopic, id, par) {
     if (!err && numAffected > 0)
     {
       var newJSON = '{"id": "'+id+'", "payload": "true"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
     else
     {
       var newJSON = '{"id": "'+id+'", "payload": "flase"}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
   })
 }
@@ -833,10 +803,22 @@ function listNodesForObject(userTopic, id, par) {
       }
       listJSON += ']}'
       var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-      client.publish(userTopic, newJSON, {qos: 0, retain: false})
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
   })
 }
+
+function mqttPublish(topic, message, options, server) {
+  if (server=='cloud')
+    mqttCloud.publish(topic, message, options)
+  else
+    mqttLocal.publish(topic, message, options)
+}
+ 
+// function mqttCient.subscribe(topic) {
+//   mqttCloud.subscribe(topic)
+//   mqttLocal.subscribe(topic)
+// }
 
 
 // - getNodeValues => ["22.3"]
