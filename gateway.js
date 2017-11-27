@@ -20,8 +20,10 @@ var Datastore = require('nedb')
 NodeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.node.value), autoload: true})
 BuildingDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.building.value), autoload: true})
 MessageDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.message.value), autoload: true})
+DeviceTypeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.devicetype.value), autoload: true})
 DeviceDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.device.value), autoload: true})
-MyDeviceDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.mydevice.value), autoload: true})
+ContactDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contact.value), autoload: true})
+ContactMessageDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contactmessage.value), autoload: true})
 
 var express     = require('express')
 var app         = express()
@@ -80,8 +82,8 @@ serial.open()
 NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 MessageDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
+DeviceTypeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 DeviceDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
-MyDeviceDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 // BuildingDB.getAutoId = function (cb) {
 //     this.update(
 //         { _id: '__autoid__' },
@@ -436,8 +438,8 @@ function handleUserMessage(topic, message) {
     }
     var userTopic = 'user/'+splitTopic[1]+'/out'
     switch (msg.cmd) {
-      case 'listUnusedNodes':
-        listUnusedNodes(userTopic, msg.id, msg.parameters)
+      case 'listUnusedDevices':
+        listUnusedDevices(userTopic, msg.id, msg.parameters)
         break
       // case 'getNodeContacts':
       //   getNodeContacts(userTopic, msg.id, msg.parameters)
@@ -454,26 +456,41 @@ function handleUserMessage(topic, message) {
       case 'removeObject':
         removeObject(userTopic, msg.id, msg.parameters)
         break
-      case 'attachNodeToObject':
-        attachNodeToObject(userTopic, msg.id, msg.parameters)
+      case 'attachDeviceToObject':
+        attachDeviceToObject(userTopic, msg.id, msg.parameters)
         break
-      case 'listNodesForObject':
-        listNodesForObject(userTopic, msg.id, msg.parameters)
-        break
+      // case 'listNodesForObject':
+        // listNodesForObject(userTopic, msg.id, msg.parameters)
+        // break
       case 'getNodeContactValues':
         getNodeContactValues(userTopic, msg.id, msg.parameters)
+        break
+      case 'createDeviceType':
+        createDeviceType(userTopic, msg.id, msg.parameters)
         break
       case 'createDevice':
         createDevice(userTopic, msg.id, msg.parameters)
         break
-      case 'createMyDevice':
-        createMyDevice(userTopic, msg.id, msg.parameters)
+      case 'listDeviceTypes':
+        listDeviceTypes(userTopic, msg.id, msg.parameters)
+        break
+      case 'removeDeviceType':
+        removeDeviceType(userTopic, msg.id, msg.parameters)
         break
       case 'listDevices':
         listDevices(userTopic, msg.id, msg.parameters)
         break
-      case 'listMyDevices':
-        listMyDevices(userTopic, msg.id, msg.parameters)
+      case 'removeDevice':
+        removeDevice(userTopic, msg.id, msg.parameters)
+        break
+      case 'getDeviceValues':
+        getDeviceValues(userTopic, msg.id, msg.parameters)
+        break
+      case 'listContacts':
+        listContacts(userTopic, msg.id, msg.parameters)
+        break
+      case 'listContactMessages':
+        listContactMessages(userTopic, msg.id, msg.parameters)
         break
       default:
         console.log('No handler for %s %s', topic, message)
@@ -610,38 +627,89 @@ function deleteAllBuildings(userTopic, id, par) {
   })
 }
 
-// - listUnusedNodes => {[id:2,name:node_name,versio:1.0], [id:3,name:node_name,versio:2.1]}
-function listUnusedNodes(userTopic, id, par) {
-  NodeDB.find({ node: { $exists: true }}, function (err, entries) {
+function listUnusedDevices(userTopic, id, par) {
+  DeviceDB.find({ device: { $exists: true }}, function (err, entries) {
     if (!err)
     {
-      var payload = [];
+      var payload = []
+      var result = 0
       for (var n in entries)
       {
-        // console.log('networkid: %s', entries[n].networkid)
-        var dbNode = entries[n]
-        BuildingDB.find({ "nodes": dbNode.node }, function (err, entries) {
+        var dbDevice = entries[n]
+        BuildingDB.find({ "devices": dbDevice._id }, function (err, entries) {
+          if (!err)
+          {
+            if (entries.length == 0) //device not attached
+            {
+              payload.push({device: dbDevice.device,
+                            name: dbDevice.name,
+                            messages: dbDevice.messages,
+                            object: dbDevice.object,
+                            id: dbDevice._id
+              });
+              result = 1
+            }
+            if (this.myDevicesLeft == 0)
+            {
+              var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+              mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+            }
+          }
+          else
+          {
+            payload.push({message: "Error searching for device in Places"});
+          }
+        }.bind({dbDevice: dbDevice, myDevicesLeft: entries.length-n-1}))
+      }
+    }
+    else
+    {
+      var payload = []
+      var result = 0
+      payload.push({message: "Error searching devices"});
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    }
+  })
+}
+
+function getDeviceValues(userTopic, id, par) {
+  var findDevices = []
+  if ( par != undefined )
+  {
+    findDevices = (par.devices === undefined) ? findDevices : par.devices
+  }
+  DeviceDB.find({ $or: [{"_id" : { $in: findDevices } }, {"_id" : { $exists: (findDevices.length === 0) ? true : false } }] }, function (err, entries) {
+    if (!err)
+    {
+      var payload = []
+      var result = 1
+      for (var n in entries)
+      {
+        var dbDevice = entries[n]
+        MessageDB.find({ "_id": { $in: dbDevice.messages } }, function (err, entries) { //["mFUIV160p9KFLr0P"]
           // console.log('entries: %s', entries.length)
           // console.log('err: %s', err)
-          if (!err && entries.length == 0)
+          if (!err && entries.length > 0)
           {
-            // payload.push(dbNode)
-            payload.push({node: dbNode.node,
-                          type: dbNode.type,
-                          name: dbNode.name,
-                          version: dbNode.version,
-                          contacts: dbNode.contacts,
-                          id: dbNode._id
+            payload.push({node: entries[0].node,
+                          contact: entries[0].contact,
+                          type: entries[0].type,
+                          message: entries[0].message,
+                          value: entries[0].value,
+                          updated: entries[0].updated,
+                          rssi: entries[0].rssi,
+                          id: entries[0]._id
             });
-
+            result = 1
             // console.log('payload: %s', JSON.stringify(payload))
           }
-          if (this.nodesLeft == 0)
+          if (this.devicesLeft == 0)
           {
-            var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+            var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
             mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
           }
-        }.bind({dbNode: dbNode, nodesLeft: entries.length-n-1}))
+        }.bind({dbDevice: dbDevice, devicesLeft: entries.length-n-1}))
       }
     }
   })
@@ -709,7 +777,7 @@ function getNodeContactValues(userTopic, id, par) {
 //   NodeDB.find({ networkid: { $exists: true }}, function (err, entries) {
 //     if (!err)
 //     {
-//       var payload = [];
+//       var payload = []
 //       for (var n in entries)
 //       {
 //         // console.log('networkid: %s', entries[n].networkid)
@@ -739,102 +807,118 @@ function getNodeContactValues(userTopic, id, par) {
 // }
 
 function createObject(userTopic, id, par) {
-  // BuildingDB.find({ building : par.building }, function (err, entries) {
     var dbObject = new Object()
     dbObject.name = par.name
     // dbObject.parentObject = 
     dbObject.parent = (par.parent === undefined) ? "" : par.parent;
-    dbObject.nodes = new Array()
+    dbObject.devices = new Array()
 
+    var payload = []
+    var result = 0
     BuildingDB.insert(dbObject, function (err, newEntry) {
       if (!err)
       {
-        var newJSON = '{"id": "'+id+'", "payload": "true"}'
+        payload.push({id: newEntry._id});
+        result = 1
       }
       else
       {
-        var newJSON = '{"id": "'+id+'", "payload": "false"}'
+        payload.push({message: "Problem creating new place"});
       }
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
       mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     })
   // })
 }
 
 function listObjects(userTopic, id, par) {
-  var objectID = ""
+  var findObjects = []
   if ( par != undefined )
   {
-    objectID = (par.parent === undefined) ? "" : par.parent
+    findObjects = (par.parent === undefined) ? findObjects : par.parent
   }
-  BuildingDB.find({ parent : objectID }, function (err, entries) {
-    var payload = [];
+  BuildingDB.find({ $or: [{parent : { $in: findObjects} }, {parent : { $exists: (findObjects.length === 0) ? true : false } }] }, function (err, entries) {
+    var payload = []
+    var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({name: entries[i].name, id: entries[i]._id, nodes: entries[i].nodes});
+        payload.push({name: entries[i].name, id: entries[i]._id, devices: entries[i].devices});
+        result = 1
       }
-      var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
     }
     else
     {
-      var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+      payload.push({message: "No result for specified search criteria"});
     }
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
 function removeObject(userTopic, id, par) {
-  //TODO: get list of objects and delete all at once
-  BuildingDB.remove({_id : { $in: par.objects } }, { multi: true }, function (err, numRemoved) {
-    if (numRemoved > 0)
-    {
-      var newJSON = '{"id": "'+id+'", "payload": "true"}'
+  var payload = []
+  var result = 0
+  if (par == undefined || par.objects == undefined)
+  {
+    payload.push({message: "No parameter specified"});
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  }
+  else
+  {
+    BuildingDB.remove({_id : { $in: par.objects } }, { multi: true }, function (err, numRemoved) {
+      if (numRemoved > 0)
+      {
+        payload.push({message: "Place deleted"});
+        result = 1
+      }
+      else
+      {
+        payload.push({message: "Error removing place"});
+      }
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
       mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-      return
-    }
-    else
-    {
-      var newJSON = '{"id": "'+id+'", "payload": "false"}'
-      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-      return
-    }
-  })
+    })
+  }
 }
 
-function attachNodeToObject(userTopic, id, par) {
-  BuildingDB.update({ _id: par.object }, { $push: { nodes: par.node } }, {}, function (err, numAffected) {
+function attachDeviceToObject(userTopic, id, par) {
+  BuildingDB.update({ _id: par.object }, { $push: { devices: par.device } }, {}, function (err, numAffected) {
+    var payload = []
+    var result = 0
     if (!err && numAffected > 0)
     {
-      var newJSON = '{"id": "'+id+'", "payload": "true"}'
-      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      payload.push({message: "Device attached"});
+      result = 1
     }
     else
     {
-      var newJSON = '{"id": "'+id+'", "payload": "flase"}'
-      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      payload.push({message: "Error attaching device to object"});
     }
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
-// - listNodesForRoom => ["1", "23"]
-function listNodesForObject(userTopic, id, par) {
-  BuildingDB.find({ _id: par.object }, function (err, entries) {
-    if (entries.length == 1)
-    {
-      var listJSON='{"nodes":['
-      for (var n=0; n<entries[0].nodes.length; n++)
-      {
-        listJSON = listJSON + '"'+entries[0].nodes[n]+'"'
-        if (n<entries[0].nodes.length-1)
-          listJSON += ","
-      }
-      listJSON += ']}'
-      var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
-      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-    }
-  })
-}
+// function listNodesForObject(userTopic, id, par) {
+//   BuildingDB.find({ _id: par.object }, function (err, entries) {
+//     if (entries.length == 1)
+//     {
+//       var listJSON='{"nodes":['
+//       for (var n=0; n<entries[0].nodes.length; n++)
+//       {
+//         listJSON = listJSON + '"'+entries[0].nodes[n]+'"'
+//         if (n<entries[0].nodes.length-1)
+//           listJSON += ","
+//       }
+//       listJSON += ']}'
+//       var newJSON = '{"id": "'+id+'", "payload": '+listJSON+'}'
+//       mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+//     }
+//   })
+// }
 
 function mqttPublish(topic, message, options, server) {
   if (server=='cloud')
@@ -848,109 +932,234 @@ function mqttPublish(topic, message, options, server) {
 //   mqttLocal.subscribe(topic)
 // }
 
-function createDevice(userTopic, id, par) {
-    var dbDevice = new Object()
-    dbDevice.name = par.name
-    // dbDevice.messages = new Array()
-    dbDevice.messages = par.messages
+function createDeviceType(userTopic, id, par) {
+  var dbDeviceType = new Object()
+  dbDeviceType.name = par.name
+  dbDeviceType.messages = par.messages
 
-    DeviceDB.insert(dbDevice, function (err, newEntry) {
-      var newJSON = ''
-      if (!err)
-      {
-        newJSON = '{"id": "'+id+'", "payload": "true"}'
-      }
-      else
-      {
-        newJSON = '{"id": "'+id+'", "payload": "false"}'
-      }
-      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-    })
-  // })
+  var payload = []
+  var result = 0
+  DeviceTypeDB.insert(dbDeviceType, function (err, newEntry) {
+    var newJSON = ''
+    if (!err)
+    {
+      payload.push({id: newEntry._id});
+      result = 1
+    }
+    else
+    {
+      payload.push({message: "Problem creating device type"});
+    }
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  })
 }
 
-function listDevices(userTopic, id, par) {
+function listDeviceTypes(userTopic, id, par) {
   var findMessages = []
   if ( par != undefined )
   {
     findMessages = (par.messages === undefined) ? findMessages : par.messages
   }
-  DeviceDB.find({ $or: [{messages : { $in: findMessages} }, {messages : { $exists: (findMessages.length === 0) ? true : false } }] }, function (err, entries) {
-    var payload = [];
-    var newJSON = '';
+  DeviceTypeDB.find({ $or: [{messages : { $in: findMessages} }, {messages : { $exists: (findMessages.length === 0) ? true : false } }] }, function (err, entries) {
+    var payload = []
+    var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
         payload.push({name: entries[i].name, messages: entries[i].messages, id: entries[i]._id});
       }
-      newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+      result = 1
     }
     else
     {
-      newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+      payload.push({message: "No result for specified search criteria"});
     }
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
-function createMyDevice(userTopic, id, par) {
-    var dbMyDevice = new Object()
-    dbMyDevice.device = par.device
-    dbMyDevice.name = par.name
-    dbMyDevice.properties = par.properties
-    dbMyDevice.object = par.object
-
-    MyDeviceDB.insert(dbMyDevice, function (err, newEntry) {
-      if (!err)
+function removeDeviceType(userTopic, id, par) {
+  var payload = []
+  var result = 0
+  if (par == undefined || par.devices == undefined)
+  {
+    payload.push({message: "No parameter specified"});
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  }
+  else
+  {
+    DeviceTypeDB.remove({_id : { $in: par.devices } }, { multi: true }, function (err, numRemoved) {
+      if (numRemoved > 0)
       {
-        var newJSON = '{"id": "'+id+'", "payload": "true"}'
+        payload.push({message: "Device type deleted"});
+        result = 1
       }
       else
       {
-        var newJSON = '{"id": "'+id+'", "payload": "false"}'
+        payload.push({message: "Error removing device type"});
       }
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    })
+  }
+}
+
+function createDevice(userTopic, id, par) {
+    var dbDevice = new Object()
+    dbDevice.device = par.device
+    dbDevice.name = par.name
+    dbDevice.messages = par.messages
+    dbDevice.object = par.object
+
+    DeviceDB.insert(dbDevice, function (err, newEntry) {
+      var payload = []
+      var result = 0
+      if (!err)
+      {
+        // BuildingDB.update({ _id: newEntry.object }, { $push: { devices: newEntry._id } }, {}, function (err, numAffected) {
+          // if (!err && numAffected > 0)
+          // {
+            payload.push({id: newEntry._id});
+            result = 1
+          // }
+          // else
+          // {
+            // payload.push({message: "Error adding new device to place"});
+          // }
+          // var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+          // mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+        // })
+      }
+      else
+      {
+        payload.push({message: "Error creating new device"});
+      }
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
       mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     })
   // })
 }
 
-function listMyDevices(userTopic, id, par) {
+function listDevices(userTopic, id, par) {
   var query = new Object()
   if ( par != undefined )
   {
     query.$and = new Array()
     query.$and.push((par.devices  === undefined) ? {device: {$exists : true}} : {device: { $in : par.devices }})
     query.$and.push((par.objects  === undefined) ? {object: {$exists : true}} : {object: { $in : par.objects }})
-    query.$and.push((par.types  === undefined) ? {"properties.type": {$exists : true}} : {"properties.type": { $in : par.types }})
-    query.$and.push((par.messages  === undefined) ? {"properties.message": {$exists : true}} : {"properties.message": { $in : par.messages }})
+    // query.$and.push((par.types  === undefined) ? {"properties.type": {$exists : true}} : {"properties.type": { $in : par.types }})
+    query.$and.push((par.messages  === undefined) ? {messages: {$exists : true}} : {messages: { $in : par.messages }})
   }
   else
   {
     query={device: { $exists: true }}
   }
-  console.log('query: %s', JSON.stringify(query))
-  MyDeviceDB.find( query
+  // console.log('query: %s', JSON.stringify(query))
+  DeviceDB.find( query
                   , function (err, entries) {
-    console.log('error: %s', err)
-    console.log('cnt: %s', entries.length)
-    var payload = [];
+    // console.log('error: %s', err)
+    // console.log('cnt: %s', entries.length)
+    var payload = []
+    var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({device: entries[i].device, name: entries[i].name, object: entries[i].object, properties: entries[i].properties, id: entries[i]._id});
+        payload.push({device: entries[i].device, name: entries[i].name, object: entries[i].object, messages: entries[i].messages, id: entries[i]._id});
       }
-      var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+      result = 1
     }
     else
     {
-      var newJSON = '{"id": "'+id+'", "payload": '+JSON.stringify(payload)+'}'
+      payload.push({message: "No result for specified search criteria"});
     }
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
+function removeDevice(userTopic, id, par) {
+  var payload = []
+  var result = 0
+  if (par == undefined || par.devices == undefined)
+  {
+    payload.push({message: "No parameter specified"});
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  }
+  else
+  {
+    DeviceDB.remove({_id : { $in: par.devices } }, { multi: true }, function (err, numRemoved) {
+      if (numRemoved > 0)
+      {
+        payload.push({message: "Device deleted"});
+        result = 1
+      }
+      else
+      {
+        payload.push({message: "Error removing device"});
+      }
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    })
+  }
+}
+
+function listContacts(userTopic, id, par) {
+  var findContacts = []
+  if ( par != undefined )
+  {
+    findContacts = (par.contacts === undefined) ? findContacts : par.contacts
+  }
+  ContactDB.find({ $or: [{_id : { $in: findContacts} }, {_id : { $exists: (findContacts.length === 0) ? true : false } }] }, function (err, entries) {
+    var payload = []
+    var result = 0
+    if (entries.length > 0)
+    {
+      for (var i=0; i<entries.length; i++)
+      {
+        payload.push({name: entries[i].name, value: entries[i].value, id: entries[i]._id});
+      }
+      result = 1
+    }
+    else
+    {
+      payload.push({message: "No result for specified search criteria"});
+    }
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  })
+}
+
+function listContactMessages(userTopic, id, par) {
+  var findContactMessages = []
+  if ( par != undefined )
+  {
+    findContactMessages = (par.messages === undefined) ? findContactMessages : par.messages
+  }
+  ContactMessageDB.find({ $or: [{_id : { $in: findContactMessages} }, {_id : { $exists: (findContactMessages.length === 0) ? true : false } }] }, function (err, entries) {
+    var payload = []
+    var result = 0
+    if (entries.length > 0)
+    {
+      for (var i=0; i<entries.length; i++)
+      {
+        payload.push({name: entries[i].name, value: entries[i].value, id: entries[i]._id});
+      }
+      result = 1
+    }
+    else
+    {
+      payload.push({message: "No result for specified search criteria"});
+    }
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  })
+}
 
 // - getNodeValues => ["22.3"]
 

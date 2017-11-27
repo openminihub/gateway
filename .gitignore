@@ -1,7 +1,7 @@
 data/building.db
 data/device.db
 data/message.db
-data/mydevice.db
+data/devicetype.db
 data/node.db
 data/users.db
 firmware
