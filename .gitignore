@@ -1,4 +1,9 @@
-data
+data/building.db
+data/device.db
+data/message.db
+data/mydevice.db
+data/node.db
+data/users.db
 firmware
 node_modules
 settings.json5
