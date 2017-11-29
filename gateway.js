@@ -24,44 +24,75 @@ DeviceTypeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.da
 DeviceDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.device.value), autoload: true})
 ContactDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contact.value), autoload: true})
 ContactMessageDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contactmessage.value), autoload: true})
+ActionDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.action.value), autoload: true})
 
-var express     = require('express')
-var app         = express()
-var bodyParser  = require('body-parser')
-var http  = require('http')
-var crypto = require('crypto');
+// var express     = require('express')
+// var app         = express()
+// var bodyParser  = require('body-parser')
+// var http  = require('http')
+// var crypto = require('crypto');
+
+var log = console.log
+console.log = function () {
+  var first_parameter = arguments[0]
+  var other_parameters = Array.prototype.slice.call(arguments, 1)
+
+  function formatConsoleDate (date) {
+    var hour = date.getHours()
+    var minutes = date.getMinutes()
+    var seconds = date.getSeconds()
+    var milliseconds = date.getMilliseconds()
+      return '[' +
+             ((hour < 10) ? '0' + hour: hour) +
+             ':' +
+             ((minutes < 10) ? '0' + minutes: minutes) +
+             ':' +
+             ((seconds < 10) ? '0' + seconds: seconds) +
+             '.' +
+             ('00' + milliseconds).slice(-3) +
+             '] '
+  }
+  log.apply(console, [formatConsoleDate(new Date()) + first_parameter.trim()].concat(other_parameters))
+}
+
+console.log('=========================================');
+console.log('============ GAETWAY STARTUP ============');
+console.log('=========================================');
+
+
+
 
 //global variable for firmware upload
 global.nodeTo = 0
 //global variable for gateway system topic
 global.systempTopic = 'system/gateway'
 
-var port = 8080
+// var port = 8080
 
 // get an instance of the router for api routes
-var apiRoutes = express.Router()
+// var apiRoutes = express.Router()
 
 // use body parser so we can get info from POST and/or URL parameters
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(bodyParser.json())
+// app.use(bodyParser.urlencoded({ extended: false }))
+// app.use(bodyParser.json())
 
 // start server on our defined port
-var server = http.createServer(app).listen(port, function(){
-  console.log("Express server listening on port " + port)
-})
+// var server = http.createServer(app).listen(port, function(){
+//   console.log("Express server listening on port " + port)
+// })
 
 // 
-app.get('/', function(req, res) {
-    res.send('Hello! The API is at http://host:' + port + '/api')
-})
+// app.get('/', function(req, res) {
+//     res.send('Hello! The API is at http://host:' + port + '/api')
+// })
 
 // route to show a random message (GET http://localhost:8080/api/)
-apiRoutes.get('/', function(req, res) {
-  res.json({ message: 'OpenMiniHub API running.' })
-})
+// apiRoutes.get('/', function(req, res) {
+//   res.json({ message: 'OpenMiniHub API running.' })
+// })
 
 // apply the routes to our application with the prefix /api
-app.use('/api', apiRoutes)
+// app.use('/api', apiRoutes)
 
 serial = new serialport(settings.serial.port.value, { baudrate : settings.serial.baud.value, parser: serialport.parsers.readline("\n"), autoOpen:false})
 
@@ -275,25 +306,49 @@ function handleOutTopic(rxmessage, nodetype) {
       })
       break
     case '1': //set
-      MessageDB.find({ "node" : msg[0], "contact": msg[1], "message": msg[4] }, function (err, entries) {
-        // console.log('error: %s', err)
+      // MessageDB.update({ _id: entries[0]._id }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { multi : false }, function (err, numReplaced) {
+      MessageDB.update({ $and: [{"node" : msg[0]}, {"contact": msg[1]}, {"message": msg[4]}] }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
         if (!err)
         {
-          // console.log('entries: %s', entries.length)
+          if (!wasAffected) //The row wasn't updated : Create new entry
+          {
+            //Do insert only if the node is registered
+            NodeDB.find({ "node" : msg[0], "contacts.id": msg[1] }, function (err, entries) {
+              if (!err)
+              {
+                if (entries.length==1)
+                {
+                  for (var c in entries[0].contact)
+                  {
+                    if (entries[0].contact[c].id == msg[1])
+                    {
+                      MessageDB.update({ "node" : msg[0], "contact": msg[1], "message": msg[3] }, { "node" : msg[0], "contact": msg[1], "type": entries[0].contact[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+                      })
+                    }
+                  }
+                }
+              }
+            })
+          }
+          else
+          {
+            //Call automation
+            // console.log('doc_id: %s', affectedDocument._id)
+            callAction(affectedDocument)
+          }
+        }
+      })
+/*
+      MessageDB.find({ "node" : msg[0], "contact": msg[1], "message": msg[4] }, function (err, entries) {
+        if (!err)
+        {
           if (entries.length==1)
           {
-            // console.log('update: %s', entries.length)
-            // dbMessage = entries[0]
-            // dbMessage.value = msg[5]
-            // dbMessage.updated = new Date().getTime()
-            // dbMessage.rssi = messageRSSI
-            // updateStr = JSON.stringify(dbMessage)
             MessageDB.update({ _id: entries[0]._id }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, {}, function (err, numReplaced) {   // Callback is optional
             })
           }
           else if (entries==0)
           {
-            // console.log('insert: %s', entries.length)
             //Find contact type before 1st insert & do insert only if node & contact is presented
             //This will avoid inserting wrong messages if there is RF network disruption
             NodeDB.find({ "node" : msg[0], "contacts.id": msg[1] }, function (err, entries) {
@@ -305,7 +360,6 @@ function handleOutTopic(rxmessage, nodetype) {
                   {
                     if (entries[0].contact[c].id == msg[1])
                     {
-                      // console.log('Node: %s Contact: %s Type: %s', msg[0], msg[1], entries[0].contact[c].type)
                       MessageDB.update({ "node" : msg[0], "contact": msg[1], "message": msg[3] }, { "node" : msg[0], "contact": msg[1], "type": entries[0].contact[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
                       })
                     }
@@ -315,15 +369,8 @@ function handleOutTopic(rxmessage, nodetype) {
             })
           }
         }
-
-
-        // console.log('is entries: %s', entries.length)
-        // MessageDB.update({ "networkid" : msg[0], "contactid": msg[1], "message": msg[3] }, { "networkid" : msg[0], "contactid": msg[1], "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
-        // console.log('numAffected: %s', numAffected)
-        // console.log('affectedDocuments: %s', JSON.stringify(affectedDocuments))
-        // console.log('upsert: %s', upsert)
-        // })
       })
+*/
       break
     case '3':  //internal
       if (msg[1] == 255) //Internal presentation message
@@ -353,7 +400,8 @@ function handleGatewayMessage_OLD(topic, message) {
   {
     try {
       var msg = JSON.parse(message);
-    } catch (e) {
+    } 
+    catch (e) {
       return console.error(e)
     }
     switch (msg.cmd) {
@@ -431,12 +479,17 @@ function handleUserMessage(topic, message) {
   var splitTopic = topic.toString().split('/')
   if (splitTopic[2] == 'in' && message.length > 0)
   {
+    var userTopic = 'user/'+splitTopic[1]+'/out'
     try {
       var msg = JSON.parse(message);
     } catch (e) {
+      var payload = []
+      var result = 0
+      payload.push({message: "Error parsing JSON"});
+      var newJSON = '{"result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       return console.error(e)
     }
-    var userTopic = 'user/'+splitTopic[1]+'/out'
     switch (msg.cmd) {
       case 'listUnusedDevices':
         listUnusedDevices(userTopic, msg.id, msg.parameters)
@@ -1161,6 +1214,55 @@ function listContactMessages(userTopic, id, par) {
   })
 }
 
-// - getNodeValues => ["22.3"]
+function callAction(message) {
+// {"_id":"1","name":"Automation 1","enabled":"1","hide":"0","triggers":[{"type":"state","attribute":"above","entity":"mFUIV160p9KFLr0P","value":"21.0","before":"OFF"}],"conditions":[{"type":"","entity":"","value":""}],"actions":[{"type":"object","attribute":"TURN","entity":"wkor2Xf3h3GQ7vnj","data":"ON"}]}
+  ActionDB.find({ "trigger.entity": message._id }, function (err, entries) {
+    if (!err && entries.length > 0)
+    {
+//      console.log('Action: %s', entries[0].name)
+      switch (entries[0].trigger.type) {
+        case 'state':
+          // return handleUserMessage(topic, message)
+//          console.log('Trigger: %s', JSON.stringify(entries[0].trigger))
+//          console.log('Message: %s', JSON.stringify(message))
+          var aso = new actionStateOperator(entries[0].trigger.attribute)
+          console.log('Trigger result: %s', aso.evaluate(message.value, entries[0].trigger.value))
+          if (aso.evaluate(message.value, entries[0].trigger.value))
+          {
+            if (entries[0].conditions.lenght > 1)
+            {
+              console.log('There are conditions')
+            }
+            console.log('Action: %s', JSON.stringify(entries[0].actions))
+          }
+          break
+        // default:
+          // return handleSendMessage(topic, message)
+        }
+    }
+//    else
+//    {
+//      console.log('error: %s', err)
+//    }
+  })
+}
+
+function actionStateOperator(op) { //you object containing your operator
+    this.operation = op;
+
+    this.evaluate = function evaluate(param1, param2) {
+        switch(this.operation) {
+            case "above":
+                return parseFloat(param1) > parseFloat(param2)
+            case "below":
+                return parseFloat(param1) < parseFloat(param2)
+            case "equal":
+                return (param1 === param2) ? true : false
+            case "notequal":
+                return (param1 === param2) ? false : true
+        }
+    }
+}
+
 
 //on startup do something
