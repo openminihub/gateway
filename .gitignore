@@ -1,12 +1,12 @@
+data/action.db
 data/building.db
 data/device.db
 data/message.db
-data/devicetype.db
 data/node.db
 data/users.db
 firmware
 node_modules
 settings.json5
-logs/*.log
+logs/*
 ssl/*
 setup/gateway-update.service
