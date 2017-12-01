@@ -141,7 +141,7 @@ mqttCloud.on('connect', () => {
 
 mqttLocal.on('connect', () => {  
   //on startup subscribe to all node topics
-  MessageDB.find({ "mqtt": { $exists: true }}, function (err, entries) {
+  MessageDB.find({ node : { $exists: true } }, function (err, entries) {
     if (!err)
     {
       console.log('==============================');
@@ -149,11 +149,9 @@ mqttLocal.on('connect', () => {
       console.log('==============================');
       for (var n in entries)
       {
-        if (entries[n].mqtt) //enabled events only
-        {
-          mqttCloud.subscribe(entries[n].mqtt+'/set')
-          console.log('%s', entries[n].mqtt);
-        }
+        var mqttTopic = 'node/'+entries[n].node+'/'+entries[n].contact+'/'+entries[n].message+'/set'
+        mqttLocal.subscribe(mqttTopic)
+        console.log('%s', mqttTopic);
       }
       console.log('==============================');
     }
@@ -178,13 +176,12 @@ mqttLocal.on('connect', () => {
 mqttCloud.on('message', (topic, message) => {
   if (message.toString().trim().length > 0)
   {
-    console.log('MQTT: %s %s', topic, message)
+    console.log('MQTT < %s %s', topic, message)
     stopic = topic.split('/')
     switch (stopic[0]) {
       case 'user':
         return handleUserMessage(topic, message)
       // default:
-        // return handleSendMessage(topic, message)
     }
   }
   console.log('No handler for topic %s', topic)
@@ -193,7 +190,7 @@ mqttCloud.on('message', (topic, message) => {
 mqttLocal.on('message', (topic, message) => {
   if (message.toString().trim().length > 0)
   {
-    console.log('MQTT: %s %s', topic, message)
+    console.log('MQTT < %s %s', topic, message)
     stopic = topic.split('/')
     switch (stopic[0]) {
       case 'system':
@@ -209,8 +206,9 @@ mqttLocal.on('message', (topic, message) => {
         return handleUserMessage(topic, message)
       case 'gateway':
         return handleGatewayMessage(topic, message)
-      default:
+      case 'node':
         return handleSendMessage(topic, message)
+//      default:
     }
   }
   console.log('No handler for topic %s', topic)
@@ -286,7 +284,7 @@ function handleOutTopic(rxmessage, nodetype) {
   }
 
   //regular message
-  console.log('RX > %s', rxmessage)
+  console.log('RX   > %s', rxmessage)
 
   //get node networkID
   // var fndMsg = message.toString().split(';')
@@ -617,28 +615,19 @@ function handleNodeMessage(topic, message) {
 */
 
 function handleSendMessage(topic, message) {
-  var findTopic = topic.toString().split('/set') //TO DO: remove /set in correct way
-  NodeDB.find({ "contact.message.mqtt" : findTopic[0] }, function (err, entries) {
+  // var trim_msg = topic.replace(/(\n|\r)+$/, '')
+  var tpc = topic.toString().split('/')
+  MessageDB.find({ $and: [{"node" : tpc[1]}, {"contact": tpc[2]}, {"message": tpc[3]}] }, function (err, entries) {
     if (!err)
     {
       if (entries.length > 0)
       {
-        var mqttTopic = topic.toString().split('/set')
-        var dbNode = entries[0]
-        for (var c=0; c<dbNode.contact.length; c++)
-        {
-          for (var m=0; m<dbNode.contact[c].message.length; m++)
-          {
-            if (dbNode.contact[c].message[m].mqtt == mqttTopic[0])
-            {
-              console.log('TX > %s;%s;1;1;%s;%s', dbNode._id, dbNode.contact[c].id, dbNode.contact[c].message[m].type, message)
-              serial.write(dbNode._id + ';' + dbNode.contact[c].id + ';1;1;' + dbNode.contact[c].message[m].type + ';' + message + '\n', function () { serial.drain(); });
-            }
-          }
-        }
+        var txOpenNode = entries[0].node+';'+entries[0].contact+';1;1;'+entries[0].message+';'+this.message+'\n'
+        console.log('TX   > %s', txOpenNode)
+        serial.write(txOpenNode, function () { serial.drain(); });
       }
     }
-  })
+  }.bind({message}))
 }
 
 function nodeOTA(nodeid, firmware) {
@@ -1219,21 +1208,47 @@ function callAction(message) {
   ActionDB.find({ "trigger.entity": message._id }, function (err, entries) {
     if (!err && entries.length > 0)
     {
-//      console.log('Action: %s', entries[0].name)
+      // console.log('INFO : Action: %s', JSON.stringify(entries[0]))
       switch (entries[0].trigger.type) {
         case 'state':
-          // return handleUserMessage(topic, message)
-//          console.log('Trigger: %s', JSON.stringify(entries[0].trigger))
-//          console.log('Message: %s', JSON.stringify(message))
           var aso = new actionStateOperator(entries[0].trigger.attribute)
-          console.log('Trigger result: %s', aso.evaluate(message.value, entries[0].trigger.value))
+          // console.log('INFO : Trigger result: %s', aso.evaluate(message.value, entries[0].trigger.value))
           if (aso.evaluate(message.value, entries[0].trigger.value))
           {
-            if (entries[0].conditions.lenght > 1)
+            if ((entries[0].conditions).length > 0)
             {
               console.log('There are conditions')
+              var conditionResult = true
+              for (var c in entries[0].conditions)
+              {
+                switch (entries[0].conditions[c].type) {
+                case 'state':
+                  MessageDB.find({ "_id" : entries[0].conditions[c].entity }, function (err, entries) {
+                    if (!err && entries.length > 0)
+                    {
+                      aso.operation=this.condition.attribute
+                      // console.log('INFO : msg value: %s', entries[0].value)
+                      // console.log('INFO : cnd value: %s', this.condition.value)
+                      conditionResult = conditionResult && aso.evaluate(entries[0].value, this.condition.value) ? true : false
+                      // console.log('conditionResult: %s', conditionResult)
+                      // console.log('aso.evaluate: %s', aso.evaluate(entries[0].value, this.condition.value))
+                      if (conditionResult && this.conditionsLeft == 0)
+                      {
+                        console.log('INFO : ACTION: %s', JSON.stringify(this.actions))
+                      }
+                    }
+                  }.bind({condition:entries[0].conditions[c], actions:entries[0].actions, message, conditionsLeft: entries[0].conditions.length-c-1}))
+                  break
+                }
+              }
             }
-            console.log('Action: %s', JSON.stringify(entries[0].actions))
+            else
+            {
+              console.log('INFO : Action: %s', JSON.stringify(entries[0].actions))
+              // var mqttTopic = 'node/'+message.node+'/'+message.contact+'/'+message.message+'/set'
+              // mqttLocal.publish(mqttTopic, entries[0].actions[0].data, {qos: 0, retain: false})
+              // sendMessageToNode(entries[0].actions[0].entity, entries[0].actions[0].data)
+            }
           }
           break
         // default:
@@ -1262,6 +1277,42 @@ function actionStateOperator(op) { //you object containing your operator
                 return (param1 === param2) ? false : true
         }
     }
+}
+
+function sendMessageToNode(message, data) {
+  MessageDB.find({ "_id" : message }, function (err, entries) {
+    if (!err)
+    {
+      if (entries.length > 0)
+      {
+        NodeDB.find({ "node" : entries[0].node }, function (err, entries) {
+          if (!err)
+          {
+            if (entries.length > 0)
+            {
+              switch (entries[0].type) {
+                case 'OpenNode':
+                  var txOpenNode = this.dbMessage.node+';'+this.dbMessage.contact+';1;1;'+this.dbMessage.message+';'+this.data+'\n'
+                  console.log('TX > %s', txOpenNode.trim())
+                  serial.write(txOpenNode, function () { serial.drain(); });
+                  break
+                case 'ESP':
+                  var mqttTopic = 'gateway/node/'+this.dbMessage.node+'/in'
+                  var mqttMessage = this.dbMessage.contact+';1;1;'+this.dbMessage.message+';'+this.data
+                  console.log('MQTT > %s %s', mqttTopic, mqttMessage)
+                  mqttLocal.publish(mqttTopic, mqttMessage, {qos: 0, retain: false})
+                  break
+                // default:
+              }
+            }
+          }
+          // var txOpenNode = entries[0].node+';'+entries[0].contact+';1;1;'+entries[0].message+';'+this.data+'\n'
+          // console.log('TX > %s', txOpenNode.trim())
+          // serial.write(txOpenNode, function () { serial.drain(); });
+        }.bind({dbMessage:entries[0], data}))
+      }
+    }
+  }.bind({data}))
 }
 
 
