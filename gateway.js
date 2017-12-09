@@ -25,7 +25,7 @@ DeviceDB = new Datastore({filename : path.join(__dirname, dbDir, settings.databa
 ContactDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contact.value), autoload: true})
 ContactMessageDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contactmessage.value), autoload: true})
 ActionDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.action.value), autoload: true})
-MessageMappingDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.messagemapping.value), autoload: true})
+UserDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.user.value), autoload: true})
 
 // var express     = require('express')
 // var app         = express()
@@ -318,12 +318,14 @@ function handleOutTopic(rxmessage, nodetype) {
               {
                 if (entries.length==1)
                 {
-                  for (var c in entries[0].contact)
+                  console.log('* node found: %s', entries[0].node)
+                  for (var c in entries[0].contacts)
                   {
-                    if (entries[0].contact[c].id == msg[1])
+                    console.log('* verify: %s = %s', entries[0].contacts[c].id, msg[1])
+                    if (entries[0].contacts[c].id == msg[1])
                     {
                       console.log('* message insert')          
-                      MessageDB.update({ $and: [{ "node" : msg[0], "contact": msg[1], "message": msg[3] }] }, { "node" : msg[0], "contact": msg[1], "type": entries[0].contact[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+                      MessageDB.update({ $and: [{ "node" : msg[0], "contact": msg[1], "message": msg[3] }] }, { "node" : msg[0], "contact": msg[1], "type": entries[0].contacts[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
                       })
                     }
                   }
@@ -337,6 +339,7 @@ function handleOutTopic(rxmessage, nodetype) {
             // console.log('doc_id: %s', affectedDocument._id)
             callAction(affectedDocument)
             doMessageMapping(affectedDocument)
+            doDeviceSubscribe(affectedDocument)
           }
         }
       })
@@ -379,14 +382,16 @@ function handleOutTopic(rxmessage, nodetype) {
       {
         if (msg[4] == '29')  //Change - I_HAS_CHANGE
         {
-          console.log('* I_HAS_CHANGE')          
-          MessageDB.find({ "node" : msg[0]}, { _id: 1 }, function (err, entries) {
+          // console.log('* I_HAS_CHANGE')          
+          MessageDB.find({ $and: [{"node": msg[0]}, {changed: "Y"}] }, { _id: 1 }, function (err, entries) {
             if (!err)
             {
-              if (entries.length>1)
+              if (entries.length>0)
               {
-                MessageMappingDB.find({ $or: [{"_id" : { $in: findDevices } }, {"_id" : { $exists: (findDevices.length === 0) ? true : false } }] }, function (err, entries) {
-                })
+                 sendMessageToNode(message, entries.length)
+                 console.log('* I_HAS_CHANGE: %s', entries.length)
+                // MessageMappingDB.find({ $or: [{"_id" : { $in: findDevices } }, {"_id" : { $exists: (findDevices.length === 0) ? true : false } }] }, function (err, entries) {
+                // })
               }
             }
           })
@@ -563,6 +568,9 @@ function handleUserMessage(topic, message) {
         break
       case 'createMessageMapping':
         createMessageMapping(userTopic, msg.id, msg.parameters)
+        break
+      case 'subscribeDevices':
+        subscribeDevices(userTopic, msg.id, msg.parameters)
         break
       default:
         console.log('No handler for %s %s', topic, message)
@@ -906,18 +914,26 @@ function listObjects(userTopic, id, par) {
   BuildingDB.find({ parent : { $in: findObjects} }, function (err, entries) {
     var payload = []
     var result = 0
-    if (entries.length > 0)
+    if (!err)
     {
-      for (var i=0; i<entries.length; i++)
+      if (entries.length > 0)
       {
-        payload.push({name: entries[i].name, parent: entries[i].parent, id: entries[i]._id, devices: entries[i].devices});
+        for (var i=0; i<entries.length; i++)
+        {
+          payload.push({name: entries[i].name, parent: entries[i].parent, id: entries[i]._id, devices: entries[i].devices});
+          result = 1
+        }
+      }
+      else
+      {
+        // payload.push({message: "No result for specified search criteria"});
         result = 1
       }
     }
-    else
-    {
-      payload.push({message: "No result for specified search criteria"});
-    }
+    // else
+    // {
+      // payload.push({message: "Error listing objects"});
+    // }
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
@@ -1040,7 +1056,8 @@ function listDeviceTypes(userTopic, id, par) {
     }
     else
     {
-      payload.push({message: "No result for specified search criteria"});
+      // payload.push({message: "No result for specified search criteria"});
+      result = 1
     }
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1115,7 +1132,7 @@ function listDevices(userTopic, id, par) {
   if ( par != undefined )
   {
     query.$and = new Array()
-    query.$and.push((par.devices  === undefined) ? {device: {$exists : true}} : {device: { $in : par.devices }})
+    query.$and.push((par.devices  === undefined) ? {_id: {$exists : true}} : {_id: { $in : par.devices }})
     query.$and.push((par.objects  === undefined) ? {object: {$exists : true}} : {object: { $in : par.objects }})
     // query.$and.push((par.types  === undefined) ? {"properties.type": {$exists : true}} : {"properties.type": { $in : par.types }})
     query.$and.push((par.messages  === undefined) ? {messages: {$exists : true}} : {messages: { $in : par.messages }})
@@ -1135,13 +1152,14 @@ function listDevices(userTopic, id, par) {
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({device: entries[i].device, name: entries[i].name, object: entries[i].object, messages: entries[i].messages, id: entries[i]._id});
+        payload.push({devicetype: entries[i].device, name: entries[i].name, object: entries[i].object, messages: entries[i].messages, id: entries[i]._id});
       }
       result = 1
     }
     else
     {
-      payload.push({message: "No result for specified search criteria"});
+      result = 1
+      // payload.push({message: "No result for specified search criteria"});
     }
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1194,7 +1212,8 @@ function listContacts(userTopic, id, par) {
     }
     else
     {
-      payload.push({message: "No result for specified search criteria"});
+      result = 1
+      // payload.push({message: "No result for specified search criteria"});
     }
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1220,7 +1239,8 @@ function listContactMessages(userTopic, id, par) {
     }
     else
     {
-      payload.push({message: "No result for specified search criteria"});
+      result = 1
+      // payload.push({message: "No result for specified search criteria"});
     }
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1287,23 +1307,30 @@ function callAction(message) {
 }
 
 function doMessageMapping(message) {
-  MessageMappingDB.find({ "source": message._id }, function (err, entries) {
-    if (!err && entries.length > 0)
-    {
-      for (var m in entries)
+  for (var m in message.mapping)
+  {
+    MessageDB.update({ "_id" : message.mapping[m] }, { $set: { value: message.value, updated: message.updated, changed: "Y" } }, { returnUpdatedDocs : true , multi : false }, function (err, updated, entry) {
+      if (!err)
       {
-        MessageDB.update({ "_id" : entries[m].destination }, { $set: { value: this.message.value, updated: this.message.updated } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
-          if (!err)
-          {
-            if (wasAffected)
-            {
-              MessageMappingDB.update({ "destination": affectedDocument._id }, { $set: { updated : "Y" } }, { multi : false }, function () {
-                console.log('* Message mapping done')
-              })
-            }
-          }
-        })
+        if (updated)
+        {
+          console.log('* Message mapping done')
+        }
       }
+    })
+  }
+}
+
+function doDeviceSubscribe(message) {
+  UserDB.find({messages: message._id }, function (err, entries) {
+    for(var u in entries)
+    {
+      console.log('* %s has subscription', entries[u].user)
+      var payload = []
+      payload.push({value: this.message.value, updated: this.message.updated, id: this.message._id});
+      var result = 1
+      var newJSON = '{"id":"'+0+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish('user/'+entries[u].user+'/out', newJSON, {qos: 0, retain: false})
     }
   }.bind({message}))
 }
@@ -1327,6 +1354,14 @@ function actionStateOperator(op) { //you object containing your operator
 }
 
 function sendMessageToNode(message, data) {
+  if (message.indexOf(';'))
+  {
+    var txOpenNode = message+data+'\n'
+    console.log('TX > %s', txOpenNode.trim())
+    serial.write(txOpenNode, function () { serial.drain(); });
+  }
+  else
+  {
   MessageDB.find({ "_id" : message }, function (err, entries) {
     if (!err)
     {
@@ -1360,31 +1395,54 @@ function sendMessageToNode(message, data) {
       }
     }
   }.bind({data}))
+  }
 }
 
 function createMessageMapping(userTopic, id, par) {
-  var dbMessageMapping = new Object()
-  dbMessageMapping.source = par.source
-  dbMessageMapping.destination = par.destination
-  dbMessageMapping.updated = 'Y'
-
-  MessageMappingDB.insert(dbMessageMapping, function (err, newEntry) {
+  MessageDB.update({ "_id" : par.source }, { $addToSet: { "mapping": par.destination } }, { returnUpdatedDocs : true , multi : false }, function (err, wasUpdated, updatedDocument) {
     var payload = []
     var result = 0
     if (!err)
     {
-      payload.push({id: newEntry._id});
-      result = 1
+      if (wasUpdated)
+      {
+        payload.push({message: "Mapping done"});
+        result = 1
+      }
     }
-    else
+    if (!result)
     {
-      payload.push({message: "Error creating new device"});
+      payload.push({message: "Error mapping device"});
     }
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
+function subscribeDevices(userTopic, id, par) {
+  var splitTopic = userTopic.toString().split('/')
+  DeviceDB.find({"_id" : { $in: par.devices } }, function (err, entries) {
+    var payload = []
+    var result = 0
+    var deviceMessages = []
+    for (var d in entries)
+    {
+      deviceMessages = deviceMessages.concat(entries[d].messages)
+      if (d == entries.length-1)
+      {
+        UserDB.update({ "user" : this.user }, { $set: {"messages": deviceMessages} }, { upsert: true }, function () {
+        })
+      }
+    }
+    payload.push({message: "Mapping done"});
+    result = 1
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  }.bind({user:splitTopic[1]}))
+
+}
+
 
 
 //on startup do something
+// handleOutTopic('19;255;3;1;29;', 'OpenNode')
