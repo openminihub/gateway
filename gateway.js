@@ -305,6 +305,16 @@ function handleOutTopic(rxmessage, nodetype) {
       })
       break
     case '1': //set
+      if (msg.length > 5)
+      {
+        var updateCon = {$set:{ "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }}
+      }
+      else
+      {
+        var updateCon = {$set:{ "updated": new Date().getTime(), "rssi": messageRSSI }}
+      }
+      // console.log('* updateCon: %s', JSON.stringify(updateCon))
+
       // MessageDB.update({ _id: entries[0]._id }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { multi : false }, function (err, numReplaced) {
       MessageDB.update({ $and: [{"node" : msg[0]}, {"contact": msg[1]}, {"message": msg[4]}] }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
         if (!err)
@@ -392,6 +402,10 @@ function handleOutTopic(rxmessage, nodetype) {
                  console.log('* I_HAS_CHANGE: %s', entries.length)
                 // MessageMappingDB.find({ $or: [{"_id" : { $in: findDevices } }, {"_id" : { $exists: (findDevices.length === 0) ? true : false } }] }, function (err, entries) {
                 // })
+                for(var m in entries)
+                {
+                  sendMessageToNode(entries[m]._id, entries[m].value)
+                }
               }
             }
           })
@@ -653,7 +667,7 @@ function handleSendMessage(topic, message) {
       {
         var txOpenNode = entries[0].node+';'+entries[0].contact+';1;1;'+entries[0].message+';'+this.message+'\n'
         console.log('TX   > %s', txOpenNode)
-        serial.write(txOpenNode, function () { serial.drain(); });
+        // serial.write(txOpenNode, function () { serial.drain(); });
       }
     }
   }.bind({message}))
@@ -1329,7 +1343,7 @@ function doDeviceSubscribe(message) {
       var payload = []
       payload.push({value: this.message.value, updated: this.message.updated, id: this.message._id});
       var result = 1
-      var newJSON = '{"id":"'+0+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      var newJSON = '{"id":"'+-1+'", "cmd":"deviceValueUpdate", "result":'+result+', "payload":'+JSON.stringify(payload)+'}'
       mqttCloud.publish('user/'+entries[u].user+'/out', newJSON, {qos: 0, retain: false})
     }
   }.bind({message}))
@@ -1354,9 +1368,10 @@ function actionStateOperator(op) { //you object containing your operator
 }
 
 function sendMessageToNode(message, data) {
-  if (message.indexOf(';'))
+  // console.log('index: %s', message.indexOf(';'))
+  if (message.indexOf(';') > 0)
   {
-    var txOpenNode = message+data+'\n'
+    var txOpenNode = message.replace(/(\n|\r)+$/, '')+data+'\n'
     console.log('TX > %s', txOpenNode.trim())
     serial.write(txOpenNode, function () { serial.drain(); });
   }
@@ -1367,6 +1382,7 @@ function sendMessageToNode(message, data) {
     {
       if (entries.length > 0)
       {
+        console.log('message: %s', JSON.stringify(entries[0]))
         NodeDB.find({ "node" : entries[0].node }, function (err, entries) {
           if (!err)
           {
@@ -1374,7 +1390,7 @@ function sendMessageToNode(message, data) {
             {
               switch (entries[0].type) {
                 case 'OpenNode':
-                  var txOpenNode = this.dbMessage.node+';'+this.dbMessage.contact+';1;1;'+this.dbMessage.message+';'+this.data+'\n'
+                  var txOpenNode = this.dbMessage.node+';'+this.dbMessage.contact+';1;1;'+this.dbMessage.message+';'+this.dbMessage.value+'\n' //+this.data+'\n'
                   console.log('TX > %s', txOpenNode.trim())
                   serial.write(txOpenNode, function () { serial.drain(); });
                   break
