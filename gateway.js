@@ -27,11 +27,34 @@ ContactMessageDB = new Datastore({filename : path.join(__dirname, dbDir, setting
 ActionDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.action.value), autoload: true})
 UserDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.user.value), autoload: true})
 
+var Influx = require('influx')
 // var express     = require('express')
 // var app         = express()
 // var bodyParser  = require('body-parser')
 // var http  = require('http')
 // var crypto = require('crypto');
+
+const influx = new Influx.InfluxDB({
+  host: 'localhost',
+  database: 'openminihub',
+  schema: [
+    {
+      measurement: 'message',
+      fields: {
+        node: Influx.FieldType.STRING,
+        contact: Influx.FieldType.STRING,
+        type: Influx.FieldType.STRING,
+        message: Influx.FieldType.STRING,
+        value: Influx.FieldType.STRING,
+        updated: Influx.FieldType.INTEGER
+      // }
+      },
+      tags: [
+        'host'
+      ]
+    }
+  ]
+})
 
 var log = console.log
 console.log = function () {
@@ -350,6 +373,7 @@ function handleOutTopic(rxmessage, nodetype) {
             callAction(affectedDocument)
             doMessageMapping(affectedDocument)
             doDeviceSubscribe(affectedDocument)
+            doSaveHistory(affectedDocument)
           }
         }
       })
@@ -1349,6 +1373,19 @@ function doDeviceSubscribe(message) {
   }.bind({message}))
 }
 
+
+function doSaveHistory(message) {
+    influx.writePoints([
+      {
+        measurement: 'message',
+        // tags: { host: os.hostname() },
+        tags: { host: "kakis" },
+        fields: { node: message.node, contact: message.contact, type: message.type, message: message.message, value: message.value, updated: message.updated }
+      }
+    ]).catch(err => {
+      console.error(`Error saving data to InfluxDB! ${err.stack}`)
+    })
+}
 
 function actionStateOperator(op) { //you object containing your operator
     this.operation = op;
