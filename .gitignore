@@ -4,6 +4,7 @@ data/device.db
 data/message.db
 data/node.db
 data/users.db
+data/devicetype.db
 firmware
 node_modules
 settings.json5
