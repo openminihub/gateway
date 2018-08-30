@@ -40,7 +40,7 @@ sudo mkdir -p $GATEWAY_DIR    #main dir where gateway app lives
 cd $GATEWAY_DIR || exit
 git init
 git remote add origin https://github.com/openminihub/gateway.git
-git pull origin master
+git pull origin development
 sudo npm install --unsafe-perm --build-from-source
 sudo npm cache verify    #clear any caches/incomplete installs
 sudo mkdir $GATEWAY_DIR/logs -p
