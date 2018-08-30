@@ -6,6 +6,7 @@
   "repository": "https://github.com/OpenMiniHub/gateway.git",
   "author": "Martins Ierags",
   "homepage": "http://openminihub.com/gateway",
+  "license": "GPL-3.0",
   "dependencies": {
     "body-parser": "^1.15.2",
     "fs": "0.0.1-security",
@@ -16,9 +17,9 @@
     "mqtt": "^2.0.1",
     "n-readlines": "^0.2.7",
     "nconf": "^0.8.4",
-    "nedb": "^1.8.0",
+    "nedb": "^1.8",
     "node-schedule": "^1.2.5",
-    "serialport": "^4.0.3"
+    "serialport": "~6.2.1"
   },
   "scripts": {
     "start": "node gateway.js"
