@@ -44,6 +44,9 @@ git pull origin development
 sudo npm install --unsafe-perm --build-from-source
 sudo npm cache verify    #clear any caches/incomplete installs
 sudo mkdir $GATEWAY_DIR/logs -p
+if [ ! -f $GATEWAY_DIR/settings.json5 ]; then
+  cp -p settings.json5.example settings.json5
+fi
 
 #create db and empty placeholders so chown pi will override root permissions
 sudo mkdir $GATEWAY_DIR/data -p
