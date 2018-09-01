@@ -1393,11 +1393,11 @@ function doSaveHistory(message) {
       {
         measurement: 'message',
         // tags: { host: os.hostname() },
-        tags: { host: "kakis" },
+        tags: { host: "localhost" },
         fields: { node: message.node, contact: message.contact, type: message.type, message: message.message, value: message.value, updated: message.updated }
       }
-    ]).catch(err => {
-      console.error(`Error saving data to InfluxDB! ${err.stack}`)
+    ]).catch(error => {
+      console.error(`Error saving data to InfluxDB: ${error.message}`)
     })
 }
 
