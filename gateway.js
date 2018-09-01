@@ -6,7 +6,7 @@
 var nconf = require('nconf')                                   //https://github.com/indexzero/nconf
 var JSON5 = require('json5')                                   //https://github.com/aseemk/json5
 var path = require('path')
-var serialport = require('serialport')
+var SerialPort = require('serialport')
 var dbDir = 'data'
 var fs = require("fs")
 const execFile = require('child_process').execFile
@@ -118,10 +118,14 @@ global.systempTopic = 'system/gateway'
 // apply the routes to our application with the prefix /api
 // app.use('/api', apiRoutes)
 
-//serial = new serialport(settings.serial.port.value, { baudrate : settings.serial.baud.value, parser: serialport.parsers.readline("\n"), autoOpen:false})
-var serial = new serialport(settings.serial.port.value, {baudRate : settings.serial.baud.value});
-var Readline = serialport.parsers.Readline;
+var serial = new SerialPort(settings.serial.port.value, {baudRate : settings.serial.baud.value, autoOpen: false}, function (error) {
+  if (error) {
+    return console.log('SerialPort Error: ', error.message);
+  }
+});
+var Readline = SerialPort.parsers.Readline;
 var serialParser = new Readline();
+serial.pipe(serialParser);
 
 serial.on('error', function serialErrorHandler(error) {
     //Send serial error messages to console.
@@ -135,7 +139,14 @@ serial.on('close', function serialCloseHandler(error) {
 
 serialParser.on('data', function(data) { processSerialData(data) })
 
-serial.open()
+serial.open(function (error) {
+  if (error) {
+    return console.log('Error opening serial port: ', error.message);
+  }
+  else {
+    console.log('Successfully opened serial port: %s', settings.serial.port.value);
+  }
+});
 
 NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
