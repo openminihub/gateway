@@ -31,6 +31,14 @@ sudo apt-get -y install git minicom
 echo -e "${CYAN}************* STEP: Installing Mosquitto MQTT *************${NC}"
 sudo apt-get -y install mosquitto mosquitto-clients
 
+echo -e "${CYAN}************* STEP: Installing InfluxDB *************${NC}"
+sudo apt install apt-transport-https
+curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
+codename=$(lsb_release -a|grep "Codename:"|awk -F':' '{print $2}')
+echo "deb https://repos.influxdata.com/debian ${codename} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+sudo apt update
+sudo apt-get install influxdb
+
 #install NodeJS
 echo -e "${CYAN}************* STEP: Installing NodeJS *************${NC}"
 sudo wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/master/Install-Node.sh | sudo bash
