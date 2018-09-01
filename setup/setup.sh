@@ -36,20 +36,20 @@ echo -e "${CYAN}************* STEP: Installing NodeJS *************${NC}"
 sudo wget -O - https://raw.githubusercontent.com/audstanley/NodeJs-Raspberry-Pi/master/Install-Node.sh | sudo bash
 
 echo -e "${CYAN}************* STEP: Setup Gateway app & dependencies *************${NC}"
-sudo mkdir -p $GATEWAY_DIR    #main dir where gateway app lives
+mkdir -p $GATEWAY_DIR    #main dir where gateway app lives
 cd $GATEWAY_DIR || exit
 git init
 git remote add origin https://github.com/openminihub/gateway.git
 git pull origin development
 sudo npm install --unsafe-perm --build-from-source
 sudo npm cache verify    #clear any caches/incomplete installs
-sudo mkdir $GATEWAY_DIR/logs -p
+mkdir $GATEWAY_DIR/logs -p
 if [ ! -f $GATEWAY_DIR/settings.json5 ]; then
   cp -p settings.json5.example settings.json5
 fi
 
 #create db and empty placeholders so chown pi will override root permissions
-sudo mkdir $GATEWAY_DIR/data -p
+mkdir $GATEWAY_DIR/data -p
 touch $GATEWAY_DIR/data/action.db
 touch $GATEWAY_DIR/data/building.db
 touch $GATEWAY_DIR/data/contact.db
@@ -63,7 +63,7 @@ touch $GATEWAY_DIR/data/user.db
 #create self signed certificate
 #WARNING: must do this *AFTER* the gateway app was git-cloned
 echo -e "${CYAN}************* STEP: Create self signed HTTPS certificate (5 year) *************${NC}"
-sudo mkdir $GATEWAY_DIR/data/secure -p
+mkdir $GATEWAY_DIR/data/secure -p
 sudo openssl req -new -x509 -nodes -days 1825 -newkey rsa:2048 -out $GATEWAY_DIR/ssl/server.crt -keyout $GATEWAY_DIR/ssl/server.key -subj "/C=LV/L=Marupe/O=OpenMiniHub/OU=IoT/CN=openminihub.com"
 sudo chown -R pi:pi $GATEWAY_DIR
 
