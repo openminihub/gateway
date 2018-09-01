@@ -38,6 +38,7 @@ codename=$(lsb_release -a|grep "Codename:"|awk -F':' '{print $2}')
 echo "deb https://repos.influxdata.com/debian ${codename} stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
 sudo apt update
 sudo apt-get install influxdb
+sudo systemctl start influxdb
 
 #install NodeJS
 echo -e "${CYAN}************* STEP: Installing NodeJS *************${NC}"
