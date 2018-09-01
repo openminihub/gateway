@@ -70,6 +70,11 @@ touch $GATEWAY_DIR/data/message.db
 touch $GATEWAY_DIR/data/node.db
 touch $GATEWAY_DIR/data/user.db
 
+#create influxdb database
+influx <<EOD
+create database openminihub
+EOD
+
 #create self signed certificate
 #WARNING: must do this *AFTER* the gateway app was git-cloned
 echo -e "${CYAN}************* STEP: Create self signed HTTPS certificate (5 year) *************${NC}"
