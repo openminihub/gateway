@@ -9,7 +9,7 @@ YLW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-GATEWAY_DIR='/home/pi/gateway/'
+GATEWAY_DIR='/home/pi/gateway'
 
 echo -e "${GRN}#########################################################################${NC}"
 echo -e "${GRN}#                    OpenMiniHub Gateway Setup                          #${NC}"
@@ -63,8 +63,10 @@ touch $GATEWAY_DIR/data/user.db
 #create self signed certificate
 #WARNING: must do this *AFTER* the gateway app was git-cloned
 echo -e "${CYAN}************* STEP: Create self signed HTTPS certificate (5 year) *************${NC}"
-mkdir $GATEWAY_DIR/data/secure -p
+mkdir $GATEWAY_DIR/ssl -p
 sudo openssl req -new -x509 -nodes -days 1825 -newkey rsa:2048 -out $GATEWAY_DIR/ssl/server.crt -keyout $GATEWAY_DIR/ssl/server.key -subj "/C=LV/L=Marupe/O=OpenMiniHub/OU=IoT/CN=openminihub.com"
+
+#fix owenrship issues if they exists
 sudo chown -R pi:pi $GATEWAY_DIR
 
 echo -e "${CYAN}************* STEP: Disable GPIO serial console *************${NC}"
