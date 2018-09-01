@@ -118,7 +118,10 @@ global.systempTopic = 'system/gateway'
 // apply the routes to our application with the prefix /api
 // app.use('/api', apiRoutes)
 
-serial = new serialport(settings.serial.port.value, { baudrate : settings.serial.baud.value, parser: serialport.parsers.readline("\n"), autoOpen:false})
+//serial = new serialport(settings.serial.port.value, { baudrate : settings.serial.baud.value, parser: serialport.parsers.readline("\n"), autoOpen:false})
+var serial = new serialport(settings.serial.port.value, {baudRate : settings.serial.baud.value});
+var Readline = serialport.parsers.Readline;
+var serialParser = new Readline();
 
 serial.on('error', function serialErrorHandler(error) {
     //Send serial error messages to console.
@@ -130,7 +133,7 @@ serial.on('close', function serialCloseHandler(error) {
     process.exit(1)
 })
 
-serial.on('data', function(data) { processSerialData(data) })
+serialParser.on('data', function(data) { processSerialData(data) })
 
 serial.open()
 
