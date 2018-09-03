@@ -90,6 +90,9 @@ sudo raspi-config nonint do_serial 1
 echo -e "${CYAN}************* STEP: Enable GPIO serial port *************${NC}"
 sudo sed -i -e 's/enable_uart=0/enable_uart=1/g' -e 'enable_uart=1' /boot/config.txt
 
+echo -e "${CYAN}************* STEP: Swtich GPIO serial port to PL011 *************${NC}"
+echo "dtoverlay=pi3-miniuart-bt"|sudo tee -a /boot/config.txt
+
 echo -e "${CYAN}************* STEP: Configuring logrotate *************${NC}"
 sudo echo "#this is used by logrotate and should be placed in /etc/logrotate.d/
 #rotate the gateway logs and keep a limit of how many are archived
