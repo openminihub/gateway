@@ -1,3 +1,4 @@
+{"_id":0,"value":"V_TEMP","name":"Temperature","contacts":[]}
 {"_id":1,"value":"V_HUM","name":"Humidity","contacts":[]}
 {"_id":2,"value":"V_STATUS","name":"Status","contacts":[]}
 {"_id":3,"value":"V_PERCENTAGE","name":"Percentage value 0-100 (%)","contacts":[]}
