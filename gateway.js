@@ -624,6 +624,9 @@ function handleUserMessage(topic, message) {
       case 'subscribeDevices':
         subscribeDevices(userTopic, msg.id, msg.parameters)
         break
+      case 'listNodes':
+        listNodes(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -834,6 +837,33 @@ function getDeviceValues(userTopic, id, par) {
             mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
           }
         }.bind({dbDevice: dbDevice, devicesLeft: entries.length-n-1}))
+      }
+    }
+  })
+}
+
+function listNodes(userTopic, id, par) {
+  NodeDB.find({ node: { $exists: true }}, function (err, entries) {
+    if (!err)
+    {
+      if (entries.length > 0)
+      {
+        payload = []
+        var result = 1
+        for (var n in entries)
+        {
+          // payload.push(entries[n])
+          // {"node":"23","type":"OpenNode","name":"DHT22-Light","_id":"5WjH550VTrdemYhn","version":"1.3","contacts":[{"id":"1","type":"6"},{"id":"2","type":"7"}]}
+          payload.push({node: entries[n].node,
+                        type: entries[n].type,
+                        name: entries[n].name,
+                        version: entries[n].version,
+                        contacts: entries[n].contacts,
+                        id: entries[n]._id
+          });
+        }
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       }
     }
   })
