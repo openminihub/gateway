@@ -627,6 +627,12 @@ function handleUserMessage(topic, message) {
       case 'listNodes':
         listNodes(userTopic, msg.id, msg.parameters)
         break
+      case 'getContacts':
+        getContacts(userTopic, msg.id, msg.parameters)
+        break
+      case 'getContactMessages':
+        getContactMessages(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -859,6 +865,54 @@ function listNodes(userTopic, id, par) {
                         name: entries[n].name,
                         version: entries[n].version,
                         contacts: entries[n].contacts,
+                        id: entries[n]._id
+          });
+        }
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      }
+    }
+  })
+}
+
+function getContacts(userTopic, id, par) {
+  ContactDB.find({ _id: { $exists: true }}, function (err, entries) {
+    if (!err)
+    {
+      if (entries.length > 0)
+      {
+        payload = []
+        var result = 1
+        for (var n in entries)
+        {
+          // payload.push(entries[n])
+          // {"_id":1,"value":"S_MOTION","name":"Motion sensor","data":[]}
+          payload.push({value: entries[n].value,
+                        name: entries[n].name,
+                        id: entries[n]._id
+          });
+        }
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      }
+    }
+  })
+}
+
+function getContactMessages(userTopic, id, par) {
+  ContactMessageDB.find({ _id: { $exists: true }}, function (err, entries) {
+    if (!err)
+    {
+      if (entries.length > 0)
+      {
+        payload = []
+        var result = 1
+        for (var n in entries)
+        {
+          // payload.push(entries[n])
+          // {"_id":1,"value":"V_HUM","name":"Humidity","contacts":[]}
+          payload.push({value: entries[n].value,
+                        name: entries[n].name,
                         id: entries[n]._id
           });
         }
