@@ -564,6 +564,9 @@ function handleUserMessage(topic, message) {
       return console.error(e)
     }
     switch (msg.cmd) {
+      case 'updateGateway':
+        updateGateway(userTopic, msg.id, msg.parameters)
+        break
       case 'listUnusedDevices':
         listUnusedDevices(userTopic, msg.id, msg.parameters)
         break
@@ -1531,7 +1534,7 @@ function subscribeDevices(userTopic, id, par) {
         })
       }
     }
-    payload.push({message: "Mapping done"});
+    payload.push({message: "Mapping done"})
     result = 1
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1539,6 +1542,41 @@ function subscribeDevices(userTopic, id, par) {
 
 }
 
+function updateGateway(userTopic, id, par) {
+  var payload = []
+  payload.push({id: newEntry._id});
+  var result = 0
+  fs.open('./.updatenow', "wx", function (err, fd) {
+    // handle error
+    fs.close(fd, function (err) {
+      if (err)
+      {
+        payload.push({message: "Previous update in progress"})
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      }
+      else
+      {
+        const child = execFile('./gateway-update.sh', [''], (error, stdout, stderr) => {
+          if (!err)
+          {
+            result = 1
+            payload.push({message: "Starting gateway update..."})
+            var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+            mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+          }
+          else
+          {
+            payload.push({message: "Problem executing gateway update"})
+            var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+            mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+          }
+          console.log(stdout);
+        })
+      }
+    })
+  })
+}
 
 
 //on startup do something
