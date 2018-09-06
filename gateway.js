@@ -627,12 +627,6 @@ function handleUserMessage(topic, message) {
       case 'listNodes':
         listNodes(userTopic, msg.id, msg.parameters)
         break
-      case 'getContacts':
-        getContacts(userTopic, msg.id, msg.parameters)
-        break
-      case 'getContactMessages':
-        getContactMessages(userTopic, msg.id, msg.parameters)
-        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -875,54 +869,6 @@ function listNodes(userTopic, id, par) {
   })
 }
 
-function getContacts(userTopic, id, par) {
-  ContactDB.find({ _id: { $exists: true }}, function (err, entries) {
-    if (!err)
-    {
-      if (entries.length > 0)
-      {
-        payload = []
-        var result = 1
-        for (var n in entries)
-        {
-          // payload.push(entries[n])
-          // {"_id":1,"value":"S_MOTION","name":"Motion sensor","data":[]}
-          payload.push({value: entries[n].value,
-                        name: entries[n].name,
-                        id: entries[n]._id
-          });
-        }
-        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-      }
-    }
-  })
-}
-
-function getContactMessages(userTopic, id, par) {
-  ContactMessageDB.find({ _id: { $exists: true }}, function (err, entries) {
-    if (!err)
-    {
-      if (entries.length > 0)
-      {
-        payload = []
-        var result = 1
-        for (var n in entries)
-        {
-          // payload.push(entries[n])
-          // {"_id":1,"value":"V_HUM","name":"Humidity","contacts":[]}
-          payload.push({value: entries[n].value,
-                        name: entries[n].name,
-                        id: entries[n]._id
-          });
-        }
-        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-      }
-    }
-  })
-}
-
 // - getNodeContacts => [{id:"2", type:6}, {id:"3", type: 8}]
 // function getNodeContacts(userTopic, id, par) {
 //   NodeDB.find({ _id : par.node }, function (err, entries) {
@@ -1153,7 +1099,7 @@ function mqttPublish(topic, message, options, server) {
 function createDeviceType(userTopic, id, par) {
   var dbDeviceType = new Object()
   dbDeviceType.name = par.name
-  dbDeviceType.messages = par.messages
+  dbDeviceType.contacts = par.contacts
 
   var payload = []
   var result = 0
@@ -1174,19 +1120,19 @@ function createDeviceType(userTopic, id, par) {
 }
 
 function listDeviceTypes(userTopic, id, par) {
-  var findMessages = []
+  var findContacts = []
   if ( par != undefined )
   {
-    findMessages = (par.messages === undefined) ? findMessages : par.messages
+    findContacts = (par.contacts === undefined) ? findContacts : par.contacts
   }
-  DeviceTypeDB.find({ $or: [{messages : { $in: findMessages} }, {messages : { $exists: (findMessages.length === 0) ? true : false } }] }, function (err, entries) {
+  DeviceTypeDB.find({ $or: [{contacts : { $in: findContacts} }, {contacts : { $exists: (findContacts.length === 0) ? true : false } }] }, function (err, entries) {
     var payload = []
     var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({name: entries[i].name, messages: entries[i].messages, id: entries[i]._id});
+        payload.push({name: entries[i].name, contacts: entries[i].contacts, id: entries[i]._id});
       }
       result = 1
     }
@@ -1231,7 +1177,7 @@ function createDevice(userTopic, id, par) {
     var dbDevice = new Object()
     dbDevice.device = par.device
     dbDevice.name = par.name
-    dbDevice.messages = par.messages
+    dbDevice.contacts = par.contacts
     dbDevice.object = par.object
 
     DeviceDB.insert(dbDevice, function (err, newEntry) {
