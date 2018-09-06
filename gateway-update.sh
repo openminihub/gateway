@@ -1,6 +1,6 @@
 #!/bin/bash
 # Usage:
-#   ./gateway-update.sh.sh [parent_directory] 
+#   ./gateway-update.sh.sh [parent_directory]
 #   example usage:
 #       ./gateway-update.sh /home/pi/gateway
 
@@ -13,11 +13,9 @@ updateRepo() {
     echo "Updating Repo: $dir with url: $repo_url"
     echo "Starting update in $PWD"
 
-    main_branch="master" 
-
     # reseting the local changes and update the repo
-    echo -e "\ncalling: git fetch & reset"
-    (git fetch --all && git reset --hard)
+    echo -e "\nExecuting: git fetch & reset"
+    (git fetch --all && git reset --hard origin/development)
 
     echo ""
 }
@@ -26,15 +24,16 @@ dir_to_update=${1}
 log_dir=~/gateway/logs/gateway.sys.log
 
 if [ -z "$dir_to_update" ] ; then
-    echo "Updating current directory"
     dir_to_update=$PWD
-fi 
+fi
 
 if [ -f "${dir_to_update}/.updatenow" ] ; then
+    echo "Updating ${dir_to_update}"
     updateRepo $dir_to_update >> $log_dir
     rm -rf ${dir_to_update}/.updatenow
     echo "OpenMiniHub gateway has been updated" >> $log_dir
-    mosquitto_pub -h localhost -p 1883 -u pi -P raspberry -t system/gateway -m updated
     echo "Restarting gateway.service" >> $log_dir
-    sudo systemctl restart gateway.service >> $log_dir
+    sudo systemctl restart gateway.service
+else
+    echo "Update not initiated from APP"
 fi
