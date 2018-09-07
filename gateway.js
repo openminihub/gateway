@@ -372,7 +372,7 @@ function handleOutTopic(rxmessage, nodetype) {
                       MessageDB.update({ "nodeid" : this.entries[0]._id, "contactid": msg[1], "msgtype": msg[4] }, { "nodeid" : this.entries[0]._id, "contactid": msg[1], "contacttype": this.entries[0].contacts[c].type, "msgtype": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                         if (numAffected)
                         {
-                          console.log('doc_id: %s', affectedDocument._id)
+                          // console.log('doc_id: %s', affectedDocument._id)
                           callAction(affectedDocument)
                           doMessageMapping(affectedDocument)
                           doDeviceSubscribe(affectedDocument)
@@ -677,8 +677,8 @@ function handleUserMessage(topic, message) {
       case 'listContactTypes':
         listContactTypes(userTopic, msg.id, msg.parameters)
         break
-      case 'listContactMessages':
-        listContactMessages(userTopic, msg.id, msg.parameters)
+      case 'listMessageTypes':
+        listMessageTypes(userTopic, msg.id, msg.parameters)
         break
       case 'createMessageMapping':
         createMessageMapping(userTopic, msg.id, msg.parameters)
@@ -1367,13 +1367,13 @@ function listContactTypes(userTopic, id, par) {
   })
 }
 
-function listContactMessages(userTopic, id, par) {
-  var findContactMessages = []
+function listMessageTypes(userTopic, id, par) {
+  var findMessageTypes = []
   if ( par != undefined )
   {
-    findContactMessages = (par.messages === undefined) ? findContactMessages : par.messages
+    findMessageTypes = (par.msgtype === undefined) ? findMessageTypes : par.msgtype
   }
-  ContactMessageDB.find({ $or: [{_id : { $in: findContactMessages} }, {_id : { $exists: (findContactMessages.length === 0) ? true : false } }] }, function (err, entries) {
+  ContactMessageDB.find({ $or: [{_id : { $in: findMessageTypes} }, {_id : { $exists: (findMessageTypes.length === 0) ? true : false } }] }, function (err, entries) {
     var payload = []
     var result = 0
     if (entries.length > 0)
