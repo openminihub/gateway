@@ -1220,15 +1220,14 @@ function listDevices(userTopic, id, par) {
     query.$and.push((par.devices  === undefined) ? {_id: {$exists : true}} : {_id: { $in : par.devices }})
     query.$and.push((par.objects  === undefined) ? {object: {$exists : true}} : {object: { $in : par.objects }})
     // query.$and.push((par.types  === undefined) ? {"properties.type": {$exists : true}} : {"properties.type": { $in : par.types }})
-    query.$and.push((par.messages  === undefined) ? {messages: {$exists : true}} : {messages: { $in : par.messages }})
+    query.$and.push((par.contacts  === undefined) ? {contacts: {$exists : true}} : {contacts: { $in : par.contacts }})
   }
   else
   {
     query={device: { $exists: true }}
   }
   // console.log('query: %s', JSON.stringify(query))
-  DeviceDB.find( query
-                  , function (err, entries) {
+  DeviceDB.find( query, function (err, entries) {
     // console.log('error: %s', err)
     // console.log('cnt: %s', entries.length)
     var payload = []
@@ -1237,7 +1236,11 @@ function listDevices(userTopic, id, par) {
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({devicetype: entries[i].device, name: entries[i].name, object: entries[i].object, messages: entries[i].messages, id: entries[i]._id});
+        payload.push({devicetype: entries[i].device, 
+                      name: entries[i].name, 
+                      object: entries[i].object, 
+                      contacts: entries[i].contacts, 
+                      id: entries[i]._id});
       }
       result = 1
     }
