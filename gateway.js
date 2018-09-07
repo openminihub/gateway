@@ -41,10 +41,10 @@ const influx = new Influx.InfluxDB({
     {
       measurement: 'message',
       fields: {
-        node: Influx.FieldType.STRING,
-        contact: Influx.FieldType.STRING,
+        nodeid: Influx.FieldType.STRING,
+        contactid: Influx.FieldType.STRING,
         type: Influx.FieldType.STRING,
-        message: Influx.FieldType.STRING,
+        msgtype: Influx.FieldType.STRING,
         value: Influx.FieldType.STRING,
         updated: Influx.FieldType.INTEGER
       // }
@@ -338,20 +338,77 @@ function handleOutTopic(rxmessage, nodetype) {
       var NodeContact = new Object()
       NodeContact.id = msg[1]
       NodeContact.type = msg[4]
-      NodeDB.update({ "node" : msg[0] }, { $addToSet: { "contacts": NodeContact } }, {}, function () {
+      NodeDB.update({ "networkid" : msg[0] }, { $addToSet: { "contacts": NodeContact } }, {}, function () {
       })
       break
     case '1': //set
-      if (msg.length > 5)
-      {
-        var updateCon = {$set:{ "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }}
-      }
-      else
-      {
-        var updateCon = {$set:{ "updated": new Date().getTime(), "rssi": messageRSSI }}
-      }
+      // if (msg.length > 5)
+      // {
+      //   var updateCon = {$set:{ "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }}
+      // }
+      // else
+      // {
+      //   var updateCon = {$set:{ "updated": new Date().getTime(), "rssi": messageRSSI }}
+      // }
       // console.log('* updateCon: %s', JSON.stringify(updateCon))
 
+      // console.log('* find is node networkid: %s registered', msg[0])          
+      NodeDB.find({ $and: [{ "networkid" : msg[0], "contacts.id": msg[1]}] }, function (err, entries) {
+        if (!err)
+        {
+          if (entries.length==1)
+          {
+            // console.log('* node networkid %s found', entries[0].networkid)
+            MessageDB.update({ $and: [{"nodeid" : entries[0]._id}, {"contactid": msg[1]}, {"msgtype": msg[4]}] }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
+              if (!err)
+              {
+                if (!wasAffected) //The row wasn't updated : Create new entry
+                {
+                  // console.log('node contacts cnt: %s', this.entries[0].contacts.length)
+                  for (var c in this.entries[0].contacts)
+                  {
+                    if (this.entries[0].contacts[c].id == msg[1])
+                    {
+                      MessageDB.update({ "nodeid" : this.entries[0]._id, "contactid": msg[1], "msgtype": msg[4] }, { "nodeid" : this.entries[0]._id, "contactid": msg[1], "contacttype": this.entries[0].contacts[c].type, "msgtype": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+                        if (numAffected)
+                        {
+                          callAction(affectedDocument)
+                          doMessageMapping(affectedDocument)
+                          doDeviceSubscribe(affectedDocument)
+                          doSaveHistory(affectedDocument)
+                        }
+                      })
+                    }
+                  }
+                }
+                else
+                {
+                  //Call automation
+                  // console.log('doc_id: %s', affectedDocument._id)
+                  callAction(affectedDocument)
+                  doMessageMapping(affectedDocument)
+                  doDeviceSubscribe(affectedDocument)
+                  doSaveHistory(affectedDocument)
+                }
+              }
+              else
+              {
+                  console.log('* MessageDB was not updated. node_id: %s', entries[0]._id)
+              }
+            }.bind({entries}))
+          }
+          else
+          {
+            console.log('* Node is not registered. Node.networkid: %s Node.contact: %s', msg[0], msg[1])
+          }
+        }
+        else
+        {
+          console.log('* Error searching in NodeDB: %s', err)
+        }
+      })
+
+/*
       // MessageDB.update({ _id: entries[0]._id }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { multi : false }, function (err, numReplaced) {
       MessageDB.update({ $and: [{"node" : msg[0]}, {"contact": msg[1]}, {"message": msg[4]}] }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
         if (!err)
@@ -359,20 +416,20 @@ function handleOutTopic(rxmessage, nodetype) {
           if (!wasAffected) //The row wasn't updated : Create new entry
           {
             //Do insert only if the node is registered
-            console.log('* find node: %s', msg[0])          
-            NodeDB.find({ $and: [{ "node" : msg[0], "contacts.id": msg[1]}] }, function (err, entries) {
+            console.log('* find node networkid: %s', msg[0])          
+            NodeDB.find({ $and: [{ "networkid" : msg[0], "contacts.id": msg[1]}] }, function (err, entries) {
               if (!err)
               {
                 if (entries.length==1)
                 {
-                  console.log('* node found: %s', entries[0].node)
+                  console.log('* node networkid found: %s', entries[0].node)
                   for (var c in entries[0].contacts)
                   {
                     console.log('* verify: %s = %s', entries[0].contacts[c].id, msg[1])
                     if (entries[0].contacts[c].id == msg[1])
                     {
                       console.log('* message insert')          
-                      MessageDB.update({ $and: [{ "node" : msg[0], "contact": msg[1], "message": msg[3] }] }, { "node" : msg[0], "contact": msg[1], "type": entries[0].contacts[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+                      MessageDB.update({ $and: [{ "networkid" : msg[0], "contact": msg[1], "message": msg[3] }] }, { "networkid" : msg[0], "contact": msg[1], "type": entries[0].contacts[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
                       })
                     }
                   }
@@ -391,6 +448,7 @@ function handleOutTopic(rxmessage, nodetype) {
           }
         }
       })
+*/
 /*
       MessageDB.find({ "node" : msg[0], "contact": msg[1], "message": msg[4] }, function (err, entries) {
         if (!err)
@@ -431,7 +489,7 @@ function handleOutTopic(rxmessage, nodetype) {
         if (msg[4] == '29')  //Change - I_HAS_CHANGE
         {
           // console.log('* I_HAS_CHANGE')          
-          MessageDB.find({ $and: [{"node": msg[0]}, {changed: "Y"}] }, { _id: 1 }, function (err, entries) {
+          MessageDB.find({ $and: [{"networkid": msg[0]}, {changed: "Y"}] }, { _id: 1 }, function (err, entries) {
             if (!err)
             {
               if (entries.length>0)
@@ -450,12 +508,12 @@ function handleOutTopic(rxmessage, nodetype) {
         }
         if (msg[4] == '11')  //Name - I_SKETCH_NAME
         {
-          NodeDB.update({ "node" : msg[0] }, { $set: { type: nodetype, name: msg[5], } }, { upsert: true })
+          NodeDB.update({ "networkid" : msg[0] }, { $set: { type: nodetype, name: msg[5], } }, { upsert: true })
           // mqttCloud.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
         }
         if (msg[4] == '12')  //Version - I_SKETCH_VERSION
         {
-          NodeDB.update({ "node" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
+          NodeDB.update({ "networkid" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
           //TODO if maxversion == undefined then set to *
           // mqttCloud.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
         }
@@ -615,8 +673,8 @@ function handleUserMessage(topic, message) {
       case 'getDeviceValues':
         getDeviceValues(userTopic, msg.id, msg.parameters)
         break
-      case 'listContacts':
-        listContacts(userTopic, msg.id, msg.parameters)
+      case 'listContactTypes':
+        listContactTypes(userTopic, msg.id, msg.parameters)
         break
       case 'listContactMessages':
         listContactMessages(userTopic, msg.id, msg.parameters)
@@ -846,7 +904,7 @@ function getDeviceValues(userTopic, id, par) {
 }
 
 function listNodes(userTopic, id, par) {
-  NodeDB.find({ node: { $exists: true }}, function (err, entries) {
+  NodeDB.find({ networkid: { $exists: true }}, function (err, entries) {
     if (!err)
     {
       if (entries.length > 0)
@@ -857,7 +915,7 @@ function listNodes(userTopic, id, par) {
         {
           // payload.push(entries[n])
           // {"node":"23","type":"OpenNode","name":"DHT22-Light","_id":"5WjH550VTrdemYhn","version":"1.3","contacts":[{"id":"1","type":"6"},{"id":"2","type":"7"}]}
-          payload.push({node: entries[n].node,
+          payload.push({networkid: entries[n].networkid,
                         type: entries[n].type,
                         name: entries[n].name,
                         version: entries[n].version,
@@ -968,7 +1026,7 @@ function createObject(userTopic, id, par) {
     var dbObject = new Object()
     dbObject.name = par.name
     // dbObject.parentObject = 
-    dbObject.parent = (par.parent === undefined) ? "" : par.parent;
+    dbObject.parentid = (par.parentid === undefined) ? "" : par.parentid;
     dbObject.devices = new Array()
 
     var payload = []
@@ -993,10 +1051,10 @@ function listObjects(userTopic, id, par) {
   var findObjects = [""]
   if ( par != undefined )
   {
-    findObjects = (par.parent === undefined) ? findObjects : par.parent
+    findObjects = (par.parentid === undefined) ? findObjects : par.parentid
   }
   // BuildingDB.find({ $or: [{parent : { $in: findObjects} }, {parent : { $exists: (findObjects.length === 0) ? true : false } }] }, function (err, entries) {
-  BuildingDB.find({ parent : { $in: findObjects} }, function (err, entries) {
+  BuildingDB.find({ parentid : { $in: findObjects} }, function (err, entries) {
     var payload = []
     var result = 0
     if (!err)
@@ -1005,7 +1063,7 @@ function listObjects(userTopic, id, par) {
       {
         for (var i=0; i<entries.length; i++)
         {
-          payload.push({name: entries[i].name, parent: entries[i].parent, id: entries[i]._id, devices: entries[i].devices});
+          payload.push({name: entries[i].name, parentid: entries[i].parentid, devices: entries[i].devices, id: entries[i]._id});
           result = 1
         }
       }
@@ -1027,7 +1085,7 @@ function listObjects(userTopic, id, par) {
 function removeObject(userTopic, id, par) {
   var payload = []
   var result = 0
-  if (par == undefined || par.objects == undefined)
+  if (par == undefined || par.id == undefined)
   {
     payload.push({message: "No parameter specified"});
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
@@ -1035,7 +1093,7 @@ function removeObject(userTopic, id, par) {
   }
   else
   {
-    BuildingDB.remove({_id : { $in: par.objects } }, { multi: true }, function (err, numRemoved) {
+    BuildingDB.remove({_id : { $in: par.id } }, { multi: true }, function (err, numRemoved) {
       if (numRemoved > 0)
       {
         payload.push({message: "Place deleted"});
@@ -1102,7 +1160,7 @@ function mqttPublish(topic, message, options, server) {
 function createDeviceType(userTopic, id, par) {
   var dbDeviceType = new Object()
   dbDeviceType.name = par.name
-  dbDeviceType.contacts = par.contacts
+  dbDeviceType.contacttype = par.contacttype
 
   var payload = []
   var result = 0
@@ -1123,19 +1181,19 @@ function createDeviceType(userTopic, id, par) {
 }
 
 function listDeviceTypes(userTopic, id, par) {
-  var findContacts = []
+  var findContactType = []
   if ( par != undefined )
   {
-    findContacts = (par.contacts === undefined) ? findContacts : par.contacts
+    findContactType = (par.contacttype === undefined) ? findContactType : par.contacttype
   }
-  DeviceTypeDB.find({ $or: [{contacts : { $in: findContacts} }, {contacts : { $exists: (findContacts.length === 0) ? true : false } }] }, function (err, entries) {
+  DeviceTypeDB.find({ $or: [{contacttype : { $in: findContactType} }, {contacttype : { $exists: (findContactType.length === 0) ? true : false } }] }, function (err, entries) {
     var payload = []
     var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({name: entries[i].name, contacts: entries[i].contacts, id: entries[i]._id});
+        payload.push({name: entries[i].name, contacttype: entries[i].contacttype, id: entries[i]._id});
       }
       result = 1
     }
@@ -1152,7 +1210,7 @@ function listDeviceTypes(userTopic, id, par) {
 function removeDeviceType(userTopic, id, par) {
   var payload = []
   var result = 0
-  if (par == undefined || par.devices == undefined)
+  if (par == undefined || par.id == undefined)
   {
     payload.push({message: "No parameter specified"});
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
@@ -1160,7 +1218,7 @@ function removeDeviceType(userTopic, id, par) {
   }
   else
   {
-    DeviceTypeDB.remove({_id : { $in: par.devices } }, { multi: true }, function (err, numRemoved) {
+    DeviceTypeDB.remove({_id : { $in: par.id } }, { multi: true }, function (err, numRemoved) {
       if (numRemoved > 0)
       {
         payload.push({message: "Device type deleted"});
@@ -1178,10 +1236,10 @@ function removeDeviceType(userTopic, id, par) {
 
 function createDevice(userTopic, id, par) {
     var dbDevice = new Object()
-    dbDevice.device = par.device
+    dbDevice.devicetypeid = par.devicetypeid
     dbDevice.name = par.name
-    dbDevice.contacts = par.contacts
-    dbDevice.object = par.object
+    dbDevice.objectid = par.objectid
+    dbDevice.contact = par.contact
 
     DeviceDB.insert(dbDevice, function (err, newEntry) {
       var payload = []
@@ -1217,14 +1275,14 @@ function listDevices(userTopic, id, par) {
   if ( par != undefined )
   {
     query.$and = new Array()
-    query.$and.push((par.devices  === undefined) ? {_id: {$exists : true}} : {_id: { $in : par.devices }})
-    query.$and.push((par.objects  === undefined) ? {object: {$exists : true}} : {object: { $in : par.objects }})
+    query.$and.push((par.devicetypeid  === undefined) ? {devicetypeid: {$exists : true}} : {devicetypeid: { $in : par.devicetypeid }})
+    query.$and.push((par.objectid  === undefined) ? {objectid: {$exists : true}} : {objectid: { $in : par.objectid }})
     // query.$and.push((par.types  === undefined) ? {"properties.type": {$exists : true}} : {"properties.type": { $in : par.types }})
-    query.$and.push((par.contacts  === undefined) ? {contacts: {$exists : true}} : {contacts: { $in : par.contacts }})
+    query.$and.push((par.contacttype  === undefined) ? {contact : {contacttype: {$exists : true}}} : {contact : {contacttype: { $in : par.contacttype }}})
   }
   else
   {
-    query={device: { $exists: true }}
+    query={devicetypeid: { $exists: true }}
   }
   // console.log('query: %s', JSON.stringify(query))
   DeviceDB.find( query, function (err, entries) {
@@ -1257,7 +1315,7 @@ function listDevices(userTopic, id, par) {
 function removeDevice(userTopic, id, par) {
   var payload = []
   var result = 0
-  if (par == undefined || par.devices == undefined)
+  if (par == undefined || par.id == undefined)
   {
     payload.push({message: "No parameter specified"});
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
@@ -1265,7 +1323,7 @@ function removeDevice(userTopic, id, par) {
   }
   else
   {
-    DeviceDB.remove({_id : { $in: par.devices } }, { multi: true }, function (err, numRemoved) {
+    DeviceDB.remove({_id : { $in: par.id } }, { multi: true }, function (err, numRemoved) {
       if (numRemoved > 0)
       {
         payload.push({message: "Device deleted"});
@@ -1281,13 +1339,13 @@ function removeDevice(userTopic, id, par) {
   }
 }
 
-function listContacts(userTopic, id, par) {
-  var findContacts = []
+function listContactTypes(userTopic, id, par) {
+  var findContactTypes = []
   if ( par != undefined )
   {
-    findContacts = (par.contacts === undefined) ? findContacts : par.contacts
+    findContactTypes = (par.contacttypes === undefined) ? findContactTypes : par.contacttypes
   }
-  ContactDB.find({ $or: [{_id : { $in: findContacts} }, {_id : { $exists: (findContacts.length === 0) ? true : false } }] }, function (err, entries) {
+  ContactDB.find({ $or: [{_id : { $in: findContactTypes} }, {_id : { $exists: (findContactTypes.length === 0) ? true : false } }] }, function (err, entries) {
     var payload = []
     var result = 0
     if (entries.length > 0)
@@ -1430,7 +1488,7 @@ function doSaveHistory(message) {
         measurement: 'message',
         // tags: { host: os.hostname() },
         tags: { host: "localhost" },
-        fields: { node: message.node, contact: message.contact, type: message.type, message: message.message, value: message.value, updated: message.updated }
+        fields: { nodeid: message.node, contactid: message.contact, type: message.type, msgtype: message.message, value: message.value, updated: message.updated }
       }
     ]).catch(error => {
       console.error(`Error saving data to InfluxDB: ${error.message}`)
@@ -1470,7 +1528,7 @@ function sendMessageToNode(message, data) {
       if (entries.length > 0)
       {
         console.log('message: %s', JSON.stringify(entries[0]))
-        NodeDB.find({ "node" : entries[0].node }, function (err, entries) {
+        NodeDB.find({ _id : entries[0].nodeid }, function (err, entries) {
           if (!err)
           {
             if (entries.length > 0)
