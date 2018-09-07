@@ -369,9 +369,10 @@ function handleOutTopic(rxmessage, nodetype) {
                   {
                     if (this.entries[0].contacts[c].id == msg[1])
                     {
-                      MessageDB.update({ "nodeid" : this.entries[0]._id, "contactid": msg[1], "msgtype": msg[4] }, { "nodeid" : this.entries[0]._id, "contactid": msg[1], "contacttype": this.entries[0].contacts[c].type, "msgtype": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+                      MessageDB.update({ "nodeid" : this.entries[0]._id, "contactid": msg[1], "msgtype": msg[4] }, { "nodeid" : this.entries[0]._id, "contactid": msg[1], "contacttype": this.entries[0].contacts[c].type, "msgtype": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                         if (numAffected)
                         {
+                          console.log('doc_id: %s', affectedDocument._id)
                           callAction(affectedDocument)
                           doMessageMapping(affectedDocument)
                           doDeviceSubscribe(affectedDocument)
