@@ -43,7 +43,7 @@ const influx = new Influx.InfluxDB({
       fields: {
         nodeid: Influx.FieldType.STRING,
         contactid: Influx.FieldType.STRING,
-        type: Influx.FieldType.STRING,
+        contacttype: Influx.FieldType.STRING,
         msgtype: Influx.FieldType.STRING,
         value: Influx.FieldType.STRING,
         updated: Influx.FieldType.INTEGER
@@ -1488,7 +1488,7 @@ function doSaveHistory(message) {
         measurement: 'message',
         // tags: { host: os.hostname() },
         tags: { host: "localhost" },
-        fields: { nodeid: message.node, contactid: message.contact, type: message.type, msgtype: message.message, value: message.value, updated: message.updated }
+        fields: { nodeid: message.nodeid, contactid: message.contactid, contacttype: message.contacttype, msgtype: message.msgtype, value: message.value, updated: message.updated }
       }
     ]).catch(error => {
       console.error(`Error saving data to InfluxDB: ${error.message}`)
