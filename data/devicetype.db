@@ -1,4 +1,4 @@
-{"name":"TRV","contacts":["6","29"],"_id":"BsikGu0syPzoOxZI"}
-{"name":"Relay","contacts":["3"],"_id":"Qo7Yn3W65fdHB8M8"}
-{"name":"Humidity","contacts":["7"],"_id":"b8IjDWs3w6kQcJHd"}
-{"name":"Temperature","contacts":["6"],"_id":"lQCL68Y0L8dBBlrG"}
+{"name":"TRV","contacttype":["6","29"],"_id":"BsikGu0syPzoOxZI"}
+{"name":"Relay","contacttype":["3"],"_id":"Qo7Yn3W65fdHB8M8"}
+{"name":"Humidity","contacttype":["7"],"_id":"b8IjDWs3w6kQcJHd"}
+{"name":"Temperature","contacttype":["6"],"_id":"lQCL68Y0L8dBBlrG"}
