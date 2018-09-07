@@ -30,7 +30,8 @@ fi
 if [ -f "${dir_to_update}/.updatenow" ] ; then
     echo "Updating ${dir_to_update}"
     updateRepo $dir_to_update >> $log_dir
-    rm -rf ${dir_to_update}/.updatenow
+    mv ${dir_to_update}/.updatenow ${dir_to_update}/.updatedone
+    echo "Gateway update done" >> ${dir_to_update}/.updatedone
     echo "OpenMiniHub gateway has been updated" >> $log_dir
     echo "Restarting gateway.service" >> $log_dir
     sudo systemctl restart gateway.service

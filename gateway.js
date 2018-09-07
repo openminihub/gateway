@@ -1606,40 +1606,69 @@ function subscribeDevices(userTopic, id, par) {
 
 function updateGateway(userTopic, id, par) {
   var payload = []
-  payload.push({id: newEntry._id});
   var result = 0
-  fs.open('./.updatenow', "wx", function (err, fd) {
-    // handle error
-    fs.close(fd, function (err) {
-      if (err)
-      {
-        payload.push({message: "Previous update in progress"})
-        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-      }
-      else
-      {
-        const child = execFile('./gateway-update.sh', [''], (error, stdout, stderr) => {
-          if (!err)
-          {
-            result = 1
-            payload.push({message: "Starting gateway update..."})
-            var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-            mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-          }
-          else
-          {
-            payload.push({message: "Problem executing gateway update"})
-            var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-            mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-          }
-          console.log(stdout);
-        })
-      }
-    })
+  fs.readFile('./.updatenow', function(err, data) {
+    //TO DO: handle old file
+    if (!err)
+    {
+      payload.push({message: "Previous update in progress"})
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    }
+    else
+    {
+      fs.writeFile('./.updatenow', userTopic+'\n'+id+'\n', function (err) {
+        if (!err)
+        {
+          const child = execFile('./gateway-update.sh', [''], (err, stdout, stderr) => {
+            if (!err)
+            {
+              result = 1
+              payload.push({message: "Starting gateway update..."})
+              var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+              mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+            }
+            else
+            {
+              fs.unlink('./.updatenow', function (err) {
+                if (err) console.log('Error deleting GW update lockfile!')
+              });
+              payload.push({message: "Problem executing gateway update"})
+              var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+              mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+            }
+            console.log(stdout);
+          })
+        }
+      })
+    }
   })
 }
 
+function isStartupAfterUpdate() {
+  fs.readFile('./.updatedone', 'utf8', function read(err, data) {
+    if (!err)
+    {  
+      var filecontent = data
+      lines = filecontent.split('\n')
+      if (lines.length > 2)
+      {
+        var payload = []
+        var result = 1
+        payload.push({message: lines[2]})
+        var newJSON = '{"id":"'+lines[1]+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(lines[0], newJSON, {qos: 0, retain: false})
+      }
+      fs.unlink('./.updatedone', function (err) {
+        if (err) console.log('Error deleting GW update.done lockfile!')
+      });
+    }
+    else
+    {
+      console.log('Error opening file: %s', err)
+    }
+  });
+}
 
 //on startup do something
-// handleOutTopic('19;255;3;1;29;', 'OpenNode')
+isStartupAfterUpdate()
