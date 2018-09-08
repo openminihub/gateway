@@ -1,12 +1,4 @@
 {"_id":"1","value":"S_MOTION","name":"Motion sensor","data":[]}
-{"_id":"2","value":"S_SMOKE","name":"Smoke sensor","data":[]}
-{"_id":"3","value":"S_BINARY","name":"Binary light or relay","data":[]}
-{"_id":"4","value":"S_DIMMER","name":"Dimmable light or fan device","data":[]}
-{"_id":"5","value":"S_COVER","name":"Blinds or window cover","data":[]}
-{"_id":"6","value":"S_TEMP","name":"Temperature sensor","data":[]}
-{"_id":"7","value":"S_HUM","name":"Humidity sensor","data":[]}
-{"_id":"8","value":"S_BARO","name":"Barometer sensor","data":[]}
-{"_id":"9","value":"S_WIND","name":"Wind sensor","data":[]}
 {"_id":"10","value":"S_RAIN","name":"Rain sensor","data":[]}
 {"_id":"11","value":"S_UV","name":"UV sensor","data":[]}
 {"_id":"12","value":"S_WEIGHT","name":"Personal scale sensor","data":[]}
@@ -17,6 +9,7 @@
 {"_id":"17","value":"S_ARDUINO_NODE","name":"Used (internally) for presenting a non-repeating Arduino node","data":[]}
 {"_id":"18","value":"S_ARDUINO_REPEATER_NODE","name":"Used (internally) for presenting a repeating Arduino node","data":[]}
 {"_id":"19","value":"S_LOCK","name":"Lock device","data":[]}
+{"_id":"2","value":"S_SMOKE","name":"Smoke sensor","data":[]}
 {"_id":"20","value":"S_IR","name":"IR device","data":[]}
 {"_id":"21","value":"S_WATER","name":"Water meter","data":[]}
 {"_id":"22","value":"S_AIR_QUALITY","name":"Air quality sensor","data":[]}
@@ -27,6 +20,7 @@
 {"_id":"27","value":"S_RGBW_LIGHT","name":"RGB light with an additional White component","data":[]}
 {"_id":"28","value":"S_COLOR_SENSOR","name":"Color sensor","data":[]}
 {"_id":"29","value":"S_HVAC","name":"Thermostat/HVAC device","data":[]}
+{"_id":"3","value":"S_BINARY","name":"Binary light or relay","data":[]}
 {"_id":"30","value":"S_MULTIMETER","name":"Multimeter device","data":[]}
 {"_id":"31","value":"S_SPRINKLER","name":"Sprinkler","data":[]}
 {"_id":"32","value":"S_WATER_LEAK","name":"Water leak sensor","data":[]}
@@ -37,3 +31,9 @@
 {"_id":"37","value":"S_GAS","name":"Gas meter","data":[]}
 {"_id":"38","value":"S_GPS","name":"GPS Sensor","data":[]}
 {"_id":"39","value":"S_WATER_QUALITY","name":"Water quality sensor","data":[]}
+{"_id":"4","value":"S_DIMMER","name":"Dimmable light or fan device","data":[]}
+{"_id":"5","value":"S_COVER","name":"Blinds or window cover","data":[]}
+{"_id":"6","value":"S_TEMP","name":"Temperature sensor","data":[]}
+{"_id":"7","value":"S_HUM","name":"Humidity sensor","data":[]}
+{"_id":"8","value":"S_BARO","name":"Barometer sensor","data":[]}
+{"_id":"9","value":"S_WIND","name":"Wind sensor","data":[]}
