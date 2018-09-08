@@ -1276,10 +1276,10 @@ function listDevices(userTopic, id, par) {
   if ( par != undefined )
   {
     query.$and = new Array()
-    query.$and.push((par.devicetypeid  === undefined) ? {devicetypeid: {$exists : true}} : {devicetypeid: { $in : par.devicetypeid }})
-    query.$and.push((par.objectid  === undefined) ? {objectid: {$exists : true}} : {objectid: { $in : par.objectid }})
+    query.$and.push((par.devicetypeid  === undefined || par.devicetypeid === null) ? {devicetypeid: {$exists : true}} : {devicetypeid: { $in : par.devicetypeid }})
+    query.$and.push((par.objectid  === undefined || par.objectid === null) ? {objectid: {$exists : true}} : {objectid: { $in : par.objectid }})
     // query.$and.push((par.types  === undefined) ? {"properties.type": {$exists : true}} : {"properties.type": { $in : par.types }})
-    query.$and.push((par.contacttype  === undefined) ? {contact : {contacttype: {$exists : true}}} : {contact : {contacttype: { $in : par.contacttype }}})
+    query.$and.push((par.contacttype  === undefined || par.contacttype === null) ? {contact : {contacttype: {$exists : true}}} : {contact : {contacttype: { $in : par.contacttype }}})
   }
   else
   {
