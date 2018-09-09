@@ -1273,17 +1273,20 @@ function createDevice(userTopic, id, par) {
 
 function listDevices(userTopic, id, par) {
   var query = new Object()
-  if ( par != undefined )
+  if (par == undefined)
   {
-    query.$and = new Array()
-    query.$and.push((par.devicetypeid  === undefined || par.devicetypeid === null) ? {devicetypeid: {$exists : true}} : {devicetypeid: { $in : par.devicetypeid }})
-    query.$and.push((par.objectid  === undefined || par.objectid === null) ? {objectid: {$exists : true}} : {objectid: { $in : par.objectid }})
-    // query.$and.push((par.types  === undefined) ? {"properties.type": {$exists : true}} : {"properties.type": { $in : par.types }})
-    query.$and.push((par.contacttype  === undefined || par.contacttype === null) ? {contact : {contacttype: {$exists : true}}} : {contact : {contacttype: { $in : par.contacttype }}})
+    query={devicetypeid: { $exists: true }}
+  }
+  else if (isEmptyObject(par))
+  {
+    query={devicetypeid: { $exists: true }}
   }
   else
   {
-    query={devicetypeid: { $exists: true }}
+    query.$and = new Array()
+    query.$and.push((par.devicetypeid === undefined) || isEmptyObject(par.devicetypeid) ? {devicetypeid: {$exists : true}} : {devicetypeid: { $in : par.devicetypeid }})
+    query.$and.push((par.objectid === undefined) || isEmptyObject(par.objectid) ? {objectid: {$exists : true}} : {objectid: { $in : par.objectid }})
+    query.$and.push((par.contacttype === undefined) || isEmptyObject(par.contacttype) ? {"contact.contacttype": {$exists : true}} : {"contact.contacttype": { $in : par.contacttype }})
   }
   // console.log('query: %s', JSON.stringify(query))
   DeviceDB.find( query, function (err, entries) {
@@ -1295,10 +1298,10 @@ function listDevices(userTopic, id, par) {
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({devicetype: entries[i].device, 
+        payload.push({devicetypeid: entries[i].device, 
                       name: entries[i].name, 
-                      object: entries[i].object, 
-                      contacts: entries[i].contacts, 
+                      objectid: entries[i].object, 
+                      contact: entries[i].contact, 
                       id: entries[i]._id});
       }
       result = 1
@@ -1665,9 +1668,13 @@ function isStartupAfterUpdate() {
     }
     else
     {
-      console.log('Error opening file: %s', err)
+      console.log('No first run after updete (missing file: %s)', err)
     }
   });
+}
+
+function isEmptyObject(obj) {
+  return Object.keys(obj).length === 0
 }
 
 //on startup do something
