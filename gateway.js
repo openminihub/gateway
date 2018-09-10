@@ -862,12 +862,12 @@ function listUnusedDevices(userTopic, id, par) {
 }
 
 function getDeviceValues(userTopic, id, par) {
-  var findDevices = []
+  var findDevice = []
   if ( par != undefined )
   {
-    findDevices = (par.devices === undefined) ? findDevices : par.devices
+    findDevice = (par.device === undefined) ? findDevice : par.device
   }
-  DeviceDB.find({ $or: [{"_id" : { $in: findDevices } }, {"_id" : { $exists: (findDevices.length === 0) ? true : false } }] }, function (err, entries) {
+  DeviceDB.find({ $or: [{"_id" : { $in: findDevice } }, {"_id" : { $exists: (findDevice.length === 0) ? true : false } }] }, function (err, entries) {
     if (!err)
     {
       var payload = []
@@ -875,30 +875,34 @@ function getDeviceValues(userTopic, id, par) {
       for (var n in entries)
       {
         var dbDevice = entries[n]
-        MessageDB.find({ "_id": { $in: dbDevice.messages } }, function (err, entries) { //["mFUIV160p9KFLr0P"]
-          // console.log('entries: %s', entries.length)
-          // console.log('err: %s', err)
-          if (!err && entries.length > 0)
-          {
-            payload.push({device: this.dbDevice._id,
-                          //node: entries[0].node,
-                          //contact: entries[0].contact,
-                          type: entries[0].type,
-                          message: entries[0].message,
-                          value: entries[0].value,
-                          updated: entries[0].updated,
-                          rssi: entries[0].rssi,
-                          id: entries[0]._id
-            });
-            result = 1
-            // console.log('payload: %s', JSON.stringify(payload))
-          }
-          if (this.devicesLeft == 0)
-          {
-            var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-            mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-          }
-        }.bind({dbDevice: dbDevice, devicesLeft: entries.length-n-1}))
+        for (var c in dbDevice.contact)
+        {
+          MessageDB.find({ $and: [{ "nodeid" : dbDevice.contact[c].nodeid, "contactid": dbDevice.contact[c].contactid}] }, function (err, entries) { //["mFUIV160p9KFLr0P"]
+            // console.log('entries: %s', entries.length)
+            // console.log('err: %s', err)
+            if (!err && entries.length > 0)
+            {
+              payload.push({devicetypeid: this.dbDevice._id,
+                            objectid: this.dbDevice.objectid,
+                            nodeid: entries[0].nodeid,
+                            contactid: entries[0].contactid,
+                            contacttype: entries[0].contacttype,
+                            msgtype: entries[0].msgtype,
+                            value: entries[0].value,
+                            updated: entries[0].updated,
+                            rssi: entries[0].rssi,
+                            id: entries[0]._id
+              });
+              result = 1
+              // console.log('payload: %s', JSON.stringify(payload))
+            }
+            if (this.devicesLeft == 0)
+            {
+              var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+              mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+            }
+          }.bind({dbDevice: dbDevice, devicesLeft: entries.length-n-1}))
+        }
       }
     }
   })
