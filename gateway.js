@@ -862,12 +862,20 @@ function listUnusedDevices(userTopic, id, par) {
 }
 
 function getDeviceValues(userTopic, id, par) {
-  var findDevice = []
-  if ( par != undefined )
+  var query = new Object()
+  if (par == undefined)
   {
-    findDevice = (par.device === undefined) ? findDevice : par.device
+    query={"_id": { $exists: true }}
   }
-  DeviceDB.find({ $or: [{"_id" : { $in: findDevice } }, {"_id" : { $exists: (findDevice.length === 0) ? true : false } }] }, function (err, entries) {
+  else if (isEmptyObject(par))
+  {
+    query={"_id": { $exists: true }}
+  }
+  else
+  {
+    query=((par.device === undefined) || isEmptyObject(par.device) ? {"_id": {$exists : true}} : {"_id": { $in : par.device }})
+  }
+  DeviceDB.find( query, function (err, entries) {
     if (!err)
     {
       var payload = []
