@@ -21,9 +21,9 @@ NodeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database
 BuildingDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.building.value), autoload: true})
 MessageDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.message.value), autoload: true})
 DeviceTypeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.devicetype.value), autoload: true})
-DeviceDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.device.value), autoload: true})
-ContactDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contact.value), autoload: true})
-ContactMessageDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contactmessage.value), autoload: true})
+// DeviceDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.device.value), autoload: true})
+// ContactDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.contact.value), autoload: true})
+MessageTypeDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.messagetype.value), autoload: true})
 ActionDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.action.value), autoload: true})
 UserDB = new Datastore({filename : path.join(__dirname, dbDir, settings.database.user.value), autoload: true})
 
@@ -151,8 +151,8 @@ serial.open(function (error) {
 NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 MessageDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
-DeviceTypeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
-DeviceDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
+// DeviceTypeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
+// DeviceDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 // BuildingDB.getAutoId = function (cb) {
 //     this.update(
 //         { _id: '__autoid__' },
@@ -259,7 +259,7 @@ function handleOutTopic(rxmessage, nodetype) {
   if (rssiIdx > 0)
   {
     message = rxmessage.substr(0, rssiIdx);
-    messageRSSI = rxmessage.substr(rssiIdx+7, rxmessage.length-2-(rssiIdx+7))
+    messageRSSI = parseInt(rxmessage.substr(rssiIdx+7, rxmessage.length-2-(rssiIdx+7)))
     // console.log('rssi: %s', messageRSSI)
   }
   else
@@ -335,10 +335,10 @@ function handleOutTopic(rxmessage, nodetype) {
   //internal-3, presentation-0, set-1, request-2, stream-4
   switch (msg[2]) {
     case '0': //presentation
-      var NodeContact = new Object()
-      NodeContact.id = msg[1]
-      NodeContact.type = msg[4]
-      NodeDB.update({ "networkid" : msg[0] }, { $addToSet: { "contacts": NodeContact } }, {}, function () {
+      var NodeDevice = new Object()
+      NodeDevice.id = parseInt(msg[1])
+      NodeDevice.type = parseInt(msg[4])
+      NodeDB.update({ "_id" : msg[0] }, { $addToSet: { "devices": NodeDevice } }, {}, function () {
       })
       break
     case '1': //set
@@ -352,8 +352,9 @@ function handleOutTopic(rxmessage, nodetype) {
       // }
       // console.log('* updateCon: %s', JSON.stringify(updateCon))
 
+/*
       // console.log('* find is node networkid: %s registered', msg[0])          
-      NodeDB.find({ $and: [{ "networkid" : msg[0], "contacts.id": msg[1]}] }, function (err, entries) {
+      NodeDB.find({ $and: [{ "networkid" : msg[0], "devices.id": msg[1]}] }, function (err, entries) {
         if (!err)
         {
           if (entries.length==1)
@@ -408,32 +409,40 @@ function handleOutTopic(rxmessage, nodetype) {
           console.log('* Error searching in NodeDB: %s', err)
         }
       })
+*/
 
-/*
-      // MessageDB.update({ _id: entries[0]._id }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { multi : false }, function (err, numReplaced) {
-      MessageDB.update({ $and: [{"node" : msg[0]}, {"contact": msg[1]}, {"message": msg[4]}] }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
+      MessageDB.update({ $and: [{"nodeid" : msg[0]}, {"deviceid": parseInt(msg[1])}, {"msgtype": parseInt(msg[4])}] }, { $set: { "msgvalue": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
         if (!err)
         {
           if (!wasAffected) //The row wasn't updated : Create new entry
           {
             //Do insert only if the node is registered
-            console.log('* find node networkid: %s', msg[0])          
-            NodeDB.find({ $and: [{ "networkid" : msg[0], "contacts.id": msg[1]}] }, function (err, entries) {
+            // console.log('* find node id: %s', msg[0])          
+            NodeDB.find({ $and: [{ "_id" : msg[0], "devices.id": parseInt(msg[1])}] }, function (err, entries) {
               if (!err)
               {
                 if (entries.length==1)
                 {
-                  console.log('* node networkid found: %s', entries[0].node)
-                  for (var c in entries[0].contacts)
-                  {
-                    console.log('* verify: %s = %s', entries[0].contacts[c].id, msg[1])
-                    if (entries[0].contacts[c].id == msg[1])
-                    {
-                      console.log('* message insert')          
-                      MessageDB.update({ $and: [{ "networkid" : msg[0], "contact": msg[1], "message": msg[3] }] }, { "networkid" : msg[0], "contact": msg[1], "type": entries[0].contacts[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+                  // console.log('* node networkid found: %s', entries[0].node)
+                  // console.log('device id: %s', entries[0].devices.indexOf(parseInt(msg[1])))
+                  // imageList.map(function (img) { return img.value; }).indexOf(200);
+                  // console.log('device id: %s, index: %s', msg[1], entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(msg[1]) ) )
+                  var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(msg[1]) )
+                  // for (var d in entries[0].devices)
+                  // {
+                    // Let's find the node's device id to get its type
+                    // if (entries[0].devices[d].id == parseInt(msg[1]))
+                    // {
+                      // console.log('* message insert')
+                      // MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[d].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                      MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                        callAction(affectedDocument)
+                        doMessageMapping(affectedDocument)
+                        doDeviceSubscribe(affectedDocument)
+                        doSaveHistory(affectedDocument)
                       })
-                    }
-                  }
+                    // }
+                  // }
                 }
               }
             })
@@ -449,7 +458,7 @@ function handleOutTopic(rxmessage, nodetype) {
           }
         }
       })
-*/
+
 /*
       MessageDB.find({ "node" : msg[0], "contact": msg[1], "message": msg[4] }, function (err, entries) {
         if (!err)
@@ -490,7 +499,7 @@ function handleOutTopic(rxmessage, nodetype) {
         if (msg[4] == '29')  //Change - I_HAS_CHANGE
         {
           // console.log('* I_HAS_CHANGE')          
-          MessageDB.find({ $and: [{"networkid": msg[0]}, {changed: "Y"}] }, { _id: 1 }, function (err, entries) {
+          MessageDB.find({ $and: [{"nodeid": msg[0]}, {changed: "Y"}] }, { _id: 1 }, function (err, entries) {
             if (!err)
             {
               if (entries.length>0)
@@ -509,12 +518,12 @@ function handleOutTopic(rxmessage, nodetype) {
         }
         if (msg[4] == '11')  //Name - I_SKETCH_NAME
         {
-          NodeDB.update({ "networkid" : msg[0] }, { $set: { type: nodetype, name: msg[5], } }, { upsert: true })
+          NodeDB.update({ "_id" : msg[0] }, { $set: { type: nodetype, name: msg[5], } }, { upsert: true })
           // mqttCloud.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
         }
         if (msg[4] == '12')  //Version - I_SKETCH_VERSION
         {
-          NodeDB.update({ "networkid" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
+          NodeDB.update({ "_id" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
           //TODO if maxversion == undefined then set to *
           // mqttCloud.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
         }
@@ -626,9 +635,9 @@ function handleUserMessage(topic, message) {
       case 'updateGateway':
         updateGateway(userTopic, msg.id, msg.parameters)
         break
-      case 'listUnusedDevices':
-        listUnusedDevices(userTopic, msg.id, msg.parameters)
-        break
+      // case 'listUnusedDevices':
+      //   listUnusedDevices(userTopic, msg.id, msg.parameters)
+      //   break
       // case 'getNodeContacts':
       //   getNodeContacts(userTopic, msg.id, msg.parameters)
       //   break
@@ -653,29 +662,29 @@ function handleUserMessage(topic, message) {
       case 'getNodeContactValues':
         getNodeContactValues(userTopic, msg.id, msg.parameters)
         break
-      case 'createDeviceType':
-        createDeviceType(userTopic, msg.id, msg.parameters)
-        break
-      case 'createDevice':
-        createDevice(userTopic, msg.id, msg.parameters)
-        break
-      case 'listDeviceTypes':
-        listDeviceTypes(userTopic, msg.id, msg.parameters)
-        break
-      case 'removeDeviceType':
-        removeDeviceType(userTopic, msg.id, msg.parameters)
-        break
+      // case 'createDeviceType':
+      //   createDeviceType(userTopic, msg.id, msg.parameters)
+      //   break
+      // case 'createDevice':
+      //   createDevice(userTopic, msg.id, msg.parameters)
+      //   break
+      // case 'listDeviceTypes':
+      //   listDeviceTypes(userTopic, msg.id, msg.parameters)
+      //   break
+      // case 'removeDeviceType':
+      //   removeDeviceType(userTopic, msg.id, msg.parameters)
+      //   break
       case 'listDevices':
         listDevices(userTopic, msg.id, msg.parameters)
         break
-      case 'removeDevice':
-        removeDevice(userTopic, msg.id, msg.parameters)
-        break
+      // case 'removeDevice':
+      //   removeDevice(userTopic, msg.id, msg.parameters)
+      //   break
       case 'getDeviceValues':
         getDeviceValues(userTopic, msg.id, msg.parameters)
         break
-      case 'listContactTypes':
-        listContactTypes(userTopic, msg.id, msg.parameters)
+      case 'listDeviceTypes':
+        listDeviceTypes(userTopic, msg.id, msg.parameters)
         break
       case 'listMessageTypes':
         listMessageTypes(userTopic, msg.id, msg.parameters)
@@ -814,7 +823,7 @@ function deleteAllBuildings(userTopic, id, par) {
     }
   })
 }
-
+/*
 function listUnusedDevices(userTopic, id, par) {
   DeviceDB.find({ device: { $exists: true }}, function (err, entries) {
     if (!err)
@@ -860,60 +869,46 @@ function listUnusedDevices(userTopic, id, par) {
     }
   })
 }
-
+*/
 function getDeviceValues(userTopic, id, par) {
+  console.log('par: %s', JSON.stringify(par))
   var query = new Object()
-  if (par == undefined)
+  if (isEmptyObject(par))
   {
-    query={"_id": { $exists: true }}
+    par = new Object()
   }
-  else if (isEmptyObject(par))
+  // console.log('query: %s', JSON.stringify(query))
+  for (var d in par)
   {
-    query={"_id": { $exists: true }}
-  }
-  else
-  {
-    query=((par.device === undefined) || isEmptyObject(par.device) ? {"_id": {$exists : true}} : {"_id": { $in : par.device }})
-  }
-  DeviceDB.find( query, function (err, entries) {
-    if (!err)
-    {
-      var payload = []
-      var result = 1
-      for (var n in entries)
+    var payload = []
+    var result = 1
+    query = (par.lenght === 0) ? {"_id": {$exists : true}} : {$and: [{ "nodeid": par[d].nodeid }, { "deviceid": par[d].deviceid }]}
+    MessageDB.find(query, function (err, entries) {
+      if (!err)
       {
-        var dbDevice = entries[n]
-        for (var c in dbDevice.contact)
+        var messages = new Array()
+        for (var n in entries)
         {
-          MessageDB.find({ $and: [{ "nodeid" : dbDevice.contact[c].nodeid, "contactid": dbDevice.contact[c].contactid}] }, function (err, entries) { //["mFUIV160p9KFLr0P"]
-            // console.log('entries: %s', entries.length)
-            // console.log('err: %s', err)
-            if (!err && entries.length > 0)
-            {
-              payload.push({devicetypeid: this.dbDevice._id,
-                            objectid: this.dbDevice.objectid,
-                            nodeid: entries[0].nodeid,
-                            contactid: entries[0].contactid,
-                            contacttype: entries[0].contacttype,
-                            msgtype: entries[0].msgtype,
-                            value: entries[0].value,
-                            updated: entries[0].updated,
-                            rssi: entries[0].rssi,
-                            id: entries[0]._id
-              });
-              result = 1
-              // console.log('payload: %s', JSON.stringify(payload))
-            }
-            if (this.devicesLeft == 0)
-            {
-              var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-              mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-            }
-          }.bind({dbDevice: dbDevice, devicesLeft: entries.length-n-1}))
+          messages.push({msgtype: entries[n].msgtype,
+                         msgvalue: entries[n].msgvalue,
+                         updated: entries[n].updated,
+                         rssi: entries[n].rssi,
+                         id: entries[n]._id
+          });
+        }
+        payload.push({nodeid: entries[n].nodeid,
+                      deviceid: entries[n].deviceid,
+                      devicetype: entries[n].devicetype,
+                      messages: messages
+        });
+        if (this.devicesLeft == 0)
+        {
+          var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+          mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
         }
       }
-    }
-  })
+    }.bind({devicesLeft: par.length-d-1}))
+  }
 }
 
 function listNodes(userTopic, id, par) {
@@ -928,11 +923,10 @@ function listNodes(userTopic, id, par) {
         {
           // payload.push(entries[n])
           // {"node":"23","type":"OpenNode","name":"DHT22-Light","_id":"5WjH550VTrdemYhn","version":"1.3","contacts":[{"id":"1","type":"6"},{"id":"2","type":"7"}]}
-          payload.push({networkid: entries[n].networkid,
-                        type: entries[n].type,
+          payload.push({type: entries[n].type,
                         name: entries[n].name,
                         version: entries[n].version,
-                        contacts: entries[n].contacts,
+                        devices: entries[n].devices,
                         id: entries[n]._id
           });
         }
@@ -1170,6 +1164,7 @@ function mqttPublish(topic, message, options, server) {
 //   mqttLocal.subscribe(topic)
 // }
 
+/*
 function createDeviceType(userTopic, id, par) {
   var dbDeviceType = new Object()
   dbDeviceType.name = par.name
@@ -1192,7 +1187,8 @@ function createDeviceType(userTopic, id, par) {
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
-
+*/
+/*
 function listDeviceTypes(userTopic, id, par) {
   var findContactType = []
   if ( par != undefined )
@@ -1219,7 +1215,8 @@ function listDeviceTypes(userTopic, id, par) {
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
-
+*/
+/*
 function removeDeviceType(userTopic, id, par) {
   var payload = []
   var result = 0
@@ -1246,7 +1243,8 @@ function removeDeviceType(userTopic, id, par) {
     })
   }
 }
-
+*/
+/*
 function createDevice(userTopic, id, par) {
     var dbDevice = new Object()
     dbDevice.devicetypeid = par.devicetypeid
@@ -1282,26 +1280,45 @@ function createDevice(userTopic, id, par) {
     })
   // })
 }
+*/
 
 function listDevices(userTopic, id, par) {
   var query = new Object()
-  if (par == undefined)
+  if (isEmptyObject(par))
   {
-    query={devicetypeid: { $exists: true }}
-  }
-  else if (isEmptyObject(par))
-  {
-    query={devicetypeid: { $exists: true }}
+    query={"_id": { $exists: true }}
+    listDeviceCondition = "1 == 1"
   }
   else
   {
+    listDeviceCondition = ""
     query.$and = new Array()
-    query.$and.push((par.devicetypeid === undefined) || isEmptyObject(par.devicetypeid) ? {devicetypeid: {$exists : true}} : {devicetypeid: { $in : par.devicetypeid }})
-    query.$and.push((par.objectid === undefined) || isEmptyObject(par.objectid) ? {objectid: {$exists : true}} : {objectid: { $in : par.objectid }})
-    query.$and.push((par.contacttype === undefined) || isEmptyObject(par.contacttype) ? {"contact.contacttype": {$exists : true}} : {"contact.contacttype": { $in : par.contacttype }})
+    if (!isEmptyObject(par.devicetype))
+    {
+        query.$and.push({"devices.type": { $in : par.devicetype }})
+        andCondition = (listDeviceCondition.length === 0) ? "" : " && "
+        listDeviceCondition = listDeviceCondition + andCondition + "par.devicetype.includes(device.type)"
+    }
+    if (!isEmptyObject(par.objectid))
+    {
+      if (par.objectid[0] == null)
+      { //List devices not assigned to places
+        query.$and.push({"devices.objectid": { $exists : false }})
+        andCondition = (listDeviceCondition.length === 0) ? "" : " && "
+        listDeviceCondition = listDeviceCondition + andCondition + "par.objectid == undefined"
+      }
+      else
+      { //List places assigned to places
+        query.$and.push({"devices.objectid": { $in : par.objectid }})
+        andCondition = (listDeviceCondition.length === 0) ? "" : " && "
+        listDeviceCondition = listDeviceCondition + andCondition + "par.objectid.includes(device.objectid)"
+      }
+    }
+    listDeviceCondition = (listDeviceCondition.length === 0) ? "1 == 1" : listDeviceCondition
   }
   // console.log('query: %s', JSON.stringify(query))
-  DeviceDB.find( query, function (err, entries) {
+  // console.log('condition: %s', listDeviceCondition)
+  NodeDB.find( query, function (err, entries) {
     // console.log('error: %s', err)
     // console.log('cnt: %s', entries.length)
     var payload = []
@@ -1310,11 +1327,15 @@ function listDevices(userTopic, id, par) {
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({devicetypeid: entries[i].device, 
-                      name: entries[i].name, 
-                      objectid: entries[i].object, 
-                      contact: entries[i].contact, 
-                      id: entries[i]._id});
+        for (var d in entries[i].devices)
+        {
+          device = entries[i].devices[d]
+          device.nodeid = entries[i]._id
+          if (eval(listDeviceCondition))
+          {
+            payload.push(device)
+          }
+        }
       }
       result = 1
     }
@@ -1323,11 +1344,12 @@ function listDevices(userTopic, id, par) {
       result = 1
       // payload.push({message: "No result for specified search criteria"});
     }
+    console.log('pld: %s', JSON.stringify(payload))
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
-
+/*
 function removeDevice(userTopic, id, par) {
   var payload = []
   var result = 0
@@ -1354,21 +1376,21 @@ function removeDevice(userTopic, id, par) {
     })
   }
 }
-
-function listContactTypes(userTopic, id, par) {
-  var findContactTypes = []
+*/
+function listDeviceTypes(userTopic, id, par) {
+  var listDeviceTypes = []
   if ( par != undefined )
   {
-    findContactTypes = (par.contacttypes === undefined) ? findContactTypes : par.contacttypes
+    listDeviceTypes = (isEmptyObject(par.types)) ? listDeviceTypes : par.types
   }
-  ContactDB.find({ $or: [{_id : { $in: findContactTypes} }, {_id : { $exists: (findContactTypes.length === 0) ? true : false } }] }, function (err, entries) {
+  DeviceTypeDB.find({ $or: [{_id : { $in: listDeviceTypes} }, {_id : { $exists: (listDeviceTypes.length === 0) ? true : false } }] }, function (err, entries) {
     var payload = []
     var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({name: entries[i].name, value: entries[i].value, id: entries[i]._id});
+        payload.push({name: entries[i].name, value: entries[i].value, type: entries[i]._id});
       }
       result = 1
     }
@@ -1388,14 +1410,14 @@ function listMessageTypes(userTopic, id, par) {
   {
     findMessageTypes = (par.msgtype === undefined) ? findMessageTypes : par.msgtype
   }
-  ContactMessageDB.find({ $or: [{_id : { $in: findMessageTypes} }, {_id : { $exists: (findMessageTypes.length === 0) ? true : false } }] }, function (err, entries) {
+  MessageTypeDB.find({ $or: [{_id : { $in: findMessageTypes} }, {_id : { $exists: (findMessageTypes.length === 0) ? true : false } }] }, function (err, entries) {
     var payload = []
     var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({name: entries[i].name, value: entries[i].value, id: entries[i]._id});
+        payload.push({name: entries[i].name, value: entries[i].value, type: entries[i]._id});
       }
       result = 1
     }
@@ -1680,13 +1702,14 @@ function isStartupAfterUpdate() {
     }
     else
     {
-      console.log('No first run after updete (missing file: %s)', err)
+      console.log('No first run after update (%s)', err)
     }
   });
 }
 
 function isEmptyObject(obj) {
-  return Object.keys(obj).length === 0
+  return ((obj === undefined) || Object.keys(obj).length === 0 ? 1 : 0)
+  // return Object.keys(obj).length === 0
 }
 
 //on startup do something
