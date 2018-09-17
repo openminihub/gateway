@@ -62,11 +62,10 @@ fi
 mkdir $GATEWAY_DIR/data -p
 touch $GATEWAY_DIR/data/action.db
 touch $GATEWAY_DIR/data/building.db
-touch $GATEWAY_DIR/data/contact.db
-touch $GATEWAY_DIR/data/contactmessage.db
 touch $GATEWAY_DIR/data/device.db
-touch $GATEWAY_DIR/data/devicetype.db
+#touch $GATEWAY_DIR/data/devicetype.db
 touch $GATEWAY_DIR/data/message.db
+#touch $GATEWAY_DIR/data/msgtype.db
 touch $GATEWAY_DIR/data/node.db
 touch $GATEWAY_DIR/data/user.db
 
