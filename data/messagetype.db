@@ -1,0 +1,56 @@
+{"_id":1,"value":"V_HUM","name":"Humidity","contacts":[]}
+{"_id":2,"value":"V_STATUS","name":"Status","contacts":[]}
+{"_id":3,"value":"V_PERCENTAGE","name":"Percentage value 0-100 (%)","contacts":[]}
+{"_id":4,"value":"V_PRESSURE","name":"Atmospheric Pressure","contacts":[]}
+{"_id":5,"value":"V_FORECAST","name":"Whether forecast","contacts":[]}
+{"_id":6,"value":"V_RAIN","name":"Amount of rain","contacts":[]}
+{"_id":7,"value":"V_RAINRATE","name":"Rate of rain","contacts":[]}
+{"_id":8,"value":"V_WIND","name":"Wind speed","contacts":[]}
+{"_id":9,"value":"V_GUST","name":"Gust","contacts":[]}
+{"_id":10,"value":"V_DIRECTION","name":"Wind direction 0-360 (degrees)","contacts":[]}
+{"_id":11,"value":"V_UV","name":"UV light level","contacts":[]}
+{"_id":12,"value":"V_WEIGHT","name":"Weight","contacts":[]}
+{"_id":13,"value":"V_DISTANCE","name":"Distance","contacts":[]}
+{"_id":14,"value":"V_IMPEDANCE","name":"Impedance","contacts":[]}
+{"_id":15,"value":"V_ARMED","name":"Aremd","contacts":[]}
+{"_id":16,"value":"V_TRIPPED","name":"Tripped","contacts":[]}
+{"_id":17,"value":"V_WATT","name":"Power in W","contacts":[]}
+{"_id":18,"value":"V_KWH","name":"Accumulated number of KWH for a power meter","contacts":[]}
+{"_id":19,"value":"V_SCENE_ON","name":"Turn on a scene","contacts":[]}
+{"_id":20,"value":"V_SCENE_OFF","name":"Turn of a scene","contacts":[]}
+{"_id":21,"value":"V_HVAC_FLOW_STATE","name":"HVAC flow state (Off, HeatOn, CoolOn, or AutoChangeOver)","contacts":[]}
+{"_id":22,"value":"V_HVAC_SPEED","name":"HVAC speed","contacts":[]}
+{"_id":23,"value":"V_LIGHT_LEVEL","name":"Uncalibrated light level. 0-100 (%)","contacts":[]}
+{"_id":24,"value":"V_VAR1","name":"VAR1","contacts":[]}
+{"_id":25,"value":"V_VAR2","name":"VAR2","contacts":[]}
+{"_id":26,"value":"V_VAR3","name":"VAR3","contacts":[]}
+{"_id":27,"value":"V_VAR4","name":"VAR4","contacts":[]}
+{"_id":28,"value":"V_VAR5","name":"VAR5","contacts":[]}
+{"_id":29,"value":"V_UP","name":"Window covering. Up","contacts":[]}
+{"_id":30,"value":"V_DOWN","name":"Window covering. Down","contacts":[]}
+{"_id":31,"value":"V_STOP","name":"Window covering. Stop","contacts":[]}
+{"_id":32,"value":"V_IR_SEND","name":"Send out an IR-command","contacts":[]}
+{"_id":33,"value":"V_IR_RECEIVE","name":"This message contains a received IR-command","contacts":[]}
+{"_id":34,"value":"V_FLOW","name":"Flow of water (in meter)","contacts":[]}
+{"_id":35,"value":"V_VOLUME","name":"Water volume","contacts":[]}
+{"_id":36,"value":"V_LOCK_STATUS","name":"Set or get lock status. 1=Locked","contacts":[]}
+{"_id":37,"value":"V_LEVEL","name":"Level","contacts":[]}
+{"_id":38,"value":"V_VOLTAGE","name":"Voltage","contacts":[]}
+{"_id":39,"value":"V_CURRENT","name":"Current","contacts":[]}
+{"_id":40,"value":"V_RGB","name":"RGB value","contacts":[]}
+{"_id":41,"value":"V_RGBW","name":"RGBW value. Sent as ASCII hex: RRGGBBWW","contacts":[]}
+{"_id":42,"value":"V_ID","name":"Used for sending in sensors hardware ids (i.e. OneWire DS1820b)","contacts":[]}
+{"_id":43,"value":"V_UNIT_PREFIX","name":"Allows sensors to send in a string representing the unit prefix to be displayed in GUI","contacts":[]}
+{"_id":44,"value":"V_HVAC_SETPOINT_COOL","name":"HVAC cool setpoint","contacts":[]}
+{"_id":45,"value":"V_HVAC_SETPOINT_HEAT","name":"HVAC heat setpoint","contacts":[]}
+{"_id":46,"value":"V_HVAC_FLOW_MODE","name":"Flow mode for HVAC (Auto, On, Off, Frost, Periodic)","contacts":[]}
+{"_id":47,"value":"V_TEXT","name":"Text message to display on LCD or controller device","contacts":[]}
+{"_id":48,"value":"V_CUSTOM","name":"Custom messages used for controller/inter node specific commands","contacts":[]}
+{"_id":49,"value":"V_POSITION","name":"GPS position and altitude. Payload: latitude;longitude;altitude(m)","contacts":[]}
+{"_id":50,"value":"V_IR_RECORD","name":"Record IR codes S_IR for playback","contacts":[]}
+{"_id":51,"value":"V_PH","name":"Water quality: PH","contacts":[]}
+{"_id":52,"value":"V_ORP","name":"Water quality: : ORP","contacts":[]}
+{"_id":53,"value":"V_EC","name":"Water quality: EC","contacts":[]}
+{"_id":54,"value":"V_VAR","name":"Power sensor VAR","contacts":[]}
+{"_id":55,"value":"V_VA","name":"Power sensor VA","contacts":[]}
+{"_id":56,"value":"V_POWER_FACTOR","name":"Power factor","contacts":[]}
