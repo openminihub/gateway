@@ -42,15 +42,15 @@ const influx = new Influx.InfluxDB({
       measurement: 'message',
       fields: {
         nodeid: Influx.FieldType.STRING,
-        contactid: Influx.FieldType.STRING,
-        contacttype: Influx.FieldType.STRING,
+        deviceid: Influx.FieldType.STRING,
+        devicetype: Influx.FieldType.STRING,
         msgtype: Influx.FieldType.STRING,
-        value: Influx.FieldType.STRING,
+        msgvalue: Influx.FieldType.STRING,
         updated: Influx.FieldType.INTEGER
       // }
       },
       tags: [
-        'host'
+        'omh'
       ]
     }
   ]
@@ -1526,7 +1526,7 @@ function doSaveHistory(message) {
         measurement: 'message',
         // tags: { host: os.hostname() },
         tags: { host: "localhost" },
-        fields: { nodeid: message.nodeid, contactid: message.contactid, contacttype: message.contacttype, msgtype: message.msgtype, value: message.value, updated: message.updated }
+        fields: { nodeid: message.nodeid, deviceid: message.deviceid, devicetype: message.devicetype, msgtype: message.msgtype, msgvalue: message.msgvalue, updated: message.updated }
       }
     ]).catch(error => {
       console.error(`Error saving data to InfluxDB: ${error.message}`)
