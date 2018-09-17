@@ -29,14 +29,8 @@
       devicetype: {
         value: "devicetype.db"
       },
-      device: {
-        value: "device.db"
-      },
-      contact: {
-        value: "contact.db"
-      },
-      contactmessage: {
-        value: "contactmessage.db"
+      messagetype: {
+        value: "messagetype.db"
       },
       action: {
         value: "action.db"
