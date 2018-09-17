@@ -42,15 +42,15 @@ const influx = new Influx.InfluxDB({
       measurement: 'message',
       fields: {
         nodeid: Influx.FieldType.STRING,
-        deviceid: Influx.FieldType.STRING,
-        devicetype: Influx.FieldType.STRING,
-        msgtype: Influx.FieldType.STRING,
+        deviceid: Influx.FieldType.INTEGER,
+        devicetype: Influx.FieldType.INTEGER,
+        msgtype: Influx.FieldType.INTEGER,
         msgvalue: Influx.FieldType.STRING,
         updated: Influx.FieldType.INTEGER
       // }
       },
       tags: [
-        'omh'
+        'host'
       ]
     }
   ]
