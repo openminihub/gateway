@@ -34,24 +34,23 @@ var Influx = require('influx')
 // var http  = require('http')
 // var crypto = require('crypto');
 
+
 const influx = new Influx.InfluxDB({
   host: 'localhost',
   database: 'openminihub',
   schema: [
     {
-      measurement: 'message',
+      measurement: 'devicemessage',
+      tags: [
+        'nodeid',
+        'deviceid',
+        'devicetype',
+        'msgtype'
+      ],
       fields: {
-        nodeid: Influx.FieldType.STRING,
-        deviceid: Influx.FieldType.INTEGER,
-        devicetype: Influx.FieldType.INTEGER,
-        msgtype: Influx.FieldType.INTEGER,
         msgvalue: Influx.FieldType.STRING,
         updated: Influx.FieldType.INTEGER
-      // }
-      },
-      tags: [
-        'host'
-      ]
+      }
     }
   ]
 })
@@ -1523,10 +1522,9 @@ function doDeviceSubscribe(message) {
 function doSaveHistory(message) {
     influx.writePoints([
       {
-        measurement: 'message',
-        // tags: { host: os.hostname() },
-        tags: { host: "localhost" },
-        fields: { nodeid: message.nodeid, deviceid: message.deviceid, devicetype: message.devicetype, msgtype: message.msgtype, msgvalue: message.msgvalue, updated: message.updated }
+        measurement: 'devicemessage',
+        tags: { nodeid: message.nodeid, deviceid: message.deviceid, devicetype: message.devicetype, msgtype: message.msgtype },
+        fields: { msgvalue: message.msgvalue, updated: message.updated }
       }
     ]).catch(error => {
       console.error(`Error saving data to InfluxDB: ${error.message}`)
