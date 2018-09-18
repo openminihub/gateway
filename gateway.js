@@ -911,7 +911,7 @@ function getDeviceValues(userTopic, id, par) {
 }
 
 function listNodes(userTopic, id, par) {
-  NodeDB.find({ networkid: { $exists: true }}, function (err, entries) {
+  NodeDB.find({ "_id": { $exists: true }}, function (err, entries) {
     if (!err)
     {
       if (entries.length > 0)
