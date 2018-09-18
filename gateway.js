@@ -40,7 +40,7 @@ const influx = new Influx.InfluxDB({
   database: 'openminihub',
   schema: [
     {
-      measurement: 'devicemessage',
+      measurement: 'message',
       tags: [
         'nodeid',
         'deviceid',
@@ -48,8 +48,8 @@ const influx = new Influx.InfluxDB({
         'msgtype'
       ],
       fields: {
-        msgvalue: Influx.FieldType.STRING,
-        updated: Influx.FieldType.INTEGER
+        msgvalue_str: Influx.FieldType.STRING,
+        msgvalue_flt: Influx.FieldType.FLOAT
       }
     }
   ]
@@ -655,6 +655,9 @@ function handleUserMessage(topic, message) {
       case 'attachDeviceToObject':
         attachDeviceToObject(userTopic, msg.id, msg.parameters)
         break
+      case 'dettachDeviceToObject':
+        dettachDeviceToObject(userTopic, msg.id, msg.parameters)
+        break
       // case 'listNodesForObject':
         // listNodesForObject(userTopic, msg.id, msg.parameters)
         // break
@@ -870,7 +873,7 @@ function listUnusedDevices(userTopic, id, par) {
 }
 */
 function getDeviceValues(userTopic, id, par) {
-  console.log('par: %s', JSON.stringify(par))
+  // console.log('par: %s', JSON.stringify(par))
   var query = new Object()
   if (isEmptyObject(par))
   {
@@ -889,7 +892,7 @@ function getDeviceValues(userTopic, id, par) {
         for (var n in entries)
         {
           messages.push({msgtype: entries[n].msgtype,
-                         msgvalue: entries[n].msgvalue,
+                         msgvalue: (parseFloat(entries[n].msgvalue) === NaN) ? entries[n].msgvalue : parseFloat(entries[n].msgvalue),
                          updated: entries[n].updated,
                          rssi: entries[n].rssi,
                          id: entries[n]._id
@@ -1116,7 +1119,32 @@ function removeObject(userTopic, id, par) {
 }
 
 function attachDeviceToObject(userTopic, id, par) {
-  BuildingDB.update({ _id: par.object }, { $push: { devices: par.device } }, {}, function (err, numAffected) {
+  NodeDB.find({ $and: [{ "_id" : par.nodeid, "devices.id": par.deviceid}] }, function (err, entries) {
+    if (!err)
+    {
+      if (entries.length==1)
+      {
+        var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(par.deviceid) )).toString()
+        NodeDB.update({ $and: [{ "_id": par.nodeid }, { "devices.id": par.deviceid }] }, { $set: { ['devices.'+deviceIndex+'.objectid']: par.objectid } }, {}, function (err, numAffected) {
+          var payload = []
+          var result = 0
+          if (!err && numAffected > 0)
+          {
+            payload.push({message: "Device attached"});
+            result = 1
+          }
+          else
+          {
+            payload.push({message: "Error attaching device to object"});
+          }
+          var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+          mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+        })
+      }
+    }
+  })
+/*
+  BuildingDB.update({ _id: par.object }, { $push: { devices: {par.nodeid, par.deviceid} } }, {}, function (err, numAffected) {
     var payload = []
     var result = 0
     if (!err && numAffected > 0)
@@ -1131,8 +1159,35 @@ function attachDeviceToObject(userTopic, id, par) {
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
+*/
 }
 
+function dettachDeviceToObject(userTopic, id, par) {
+  NodeDB.find({ $and: [{ "_id" : par.nodeid, "devices.id": par.deviceid}] }, function (err, entries) {
+    if (!err)
+    {
+      if (entries.length==1)
+      {
+        var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(par.deviceid) )).toString()
+        NodeDB.update({ $and: [{ "_id": par.nodeid }, { "devices.id": par.deviceid }] }, { $unset: { ['devices.'+deviceIndex+'.objectid']: true } }, {}, function (err, numAffected) {
+          var payload = []
+          var result = 0
+          if (!err && numAffected > 0)
+          {
+            payload.push({message: "Device dettached"});
+            result = 1
+          }
+          else
+          {
+            payload.push({message: "Error dettaching device from object"});
+          }
+          var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+          mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+        })
+      }
+    }
+  })
+}
 // function listNodesForObject(userTopic, id, par) {
 //   BuildingDB.find({ _id: par.object }, function (err, entries) {
 //     if (entries.length == 1)
@@ -1306,8 +1361,14 @@ function listDevices(userTopic, id, par) {
         andCondition = (listDeviceCondition.length === 0) ? "" : " && "
         listDeviceCondition = listDeviceCondition + andCondition + "par.objectid == undefined"
       }
+      else if (par.objectid[0] == 'all')
+      { //List all devices assigned to places
+        query.$and.push({"devices.objectid": { $exists : true }})
+        andCondition = (listDeviceCondition.length === 0) ? "" : " && "
+        listDeviceCondition = listDeviceCondition + andCondition + "par.objectid !== undefined"
+      }
       else
-      { //List places assigned to places
+      { //List devices assigned to requested places
         query.$and.push({"devices.objectid": { $in : par.objectid }})
         andCondition = (listDeviceCondition.length === 0) ? "" : " && "
         listDeviceCondition = listDeviceCondition + andCondition + "par.objectid.includes(device.objectid)"
@@ -1520,11 +1581,23 @@ function doDeviceSubscribe(message) {
 
 
 function doSaveHistory(message) {
+    var msgvalue_flt = parseFloat(message.msgvalue)
+    if (msgvalue_flt == NaN)
+    {
+      var msgvalue_str = message.msgvalue
+      msgvalue_flt = undefined
+    }
+    else
+    {
+      var msgvalue_str = undefined
+    }
     influx.writePoints([
       {
-        measurement: 'devicemessage',
+        measurement: 'message',
         tags: { nodeid: message.nodeid, deviceid: message.deviceid, devicetype: message.devicetype, msgtype: message.msgtype },
-        fields: { msgvalue: message.msgvalue, updated: message.updated }
+        fields: { msgvalue_str: msgvalue_str,
+                  msgvalue_flt: msgvalue_flt
+        }
       }
     ]).catch(error => {
       console.error(`Error saving data to InfluxDB: ${error.message}`)
