@@ -643,20 +643,20 @@ function handleUserMessage(topic, message) {
       case 'deleteAllBuildings':
         deleteAllBuildings(userTopic, msg.id, msg.parameters)
         break
-      case 'createObject':
-        createObject(userTopic, msg.id, msg.parameters)
+      case 'createPlace':
+        createPlace(userTopic, msg.id, msg.parameters)
         break
-      case 'listObjects':
-        listObjects(userTopic, msg.id, msg.parameters)
+      case 'listPlaces':
+        listPlaces(userTopic, msg.id, msg.parameters)
         break
-      case 'removeObject':
-        removeObject(userTopic, msg.id, msg.parameters)
+      case 'removePlace':
+        removePlace(userTopic, msg.id, msg.parameters)
         break
-      case 'attachDeviceToObject':
-        attachDeviceToObject(userTopic, msg.id, msg.parameters)
+      case 'attachDeviceToPlace':
+        attachDeviceToPlace(userTopic, msg.id, msg.parameters)
         break
-      case 'dettachDeviceToObject':
-        dettachDeviceToObject(userTopic, msg.id, msg.parameters)
+      case 'detachDeviceFromPlace':
+        detachDeviceFromPlace(userTopic, msg.id, msg.parameters)
         break
       // case 'listNodesForObject':
         // listNodesForObject(userTopic, msg.id, msg.parameters)
@@ -1031,16 +1031,16 @@ function getNodeContactValues(userTopic, id, par) {
 // function setContactName(userTopic, id, par) {
 // }
 
-function createObject(userTopic, id, par) {
-    var dbObject = new Object()
-    dbObject.name = par.name
-    // dbObject.parentObject = 
-    dbObject.parentid = (par.parentid === undefined) ? "" : par.parentid;
-    dbObject.devices = new Array()
+function createPlace(userTopic, id, par) {
+    var dbPlace = new Object()
+    dbPlace.name = par.name
+    // dbPlace.parentPlace = 
+    dbPlace.parentid = (par.parentid === undefined) ? "" : par.parentid;
+    dbPlace.devices = new Array()
 
     var payload = []
     var result = 0
-    BuildingDB.insert(dbObject, function (err, newEntry) {
+    BuildingDB.insert(dbPlace, function (err, newEntry) {
       if (!err)
       {
         payload.push({id: newEntry._id});
@@ -1056,14 +1056,14 @@ function createObject(userTopic, id, par) {
   // })
 }
 
-function listObjects(userTopic, id, par) {
-  var findObjects = [""]
+function listPlaces(userTopic, id, par) {
+  var findPlaces = [""]
   if ( par != undefined )
   {
-    findObjects = (par.parentid === undefined) ? findObjects : par.parentid
+    findPlaces = (par.parentid === undefined) ? findPlaces : par.parentid
   }
-  // BuildingDB.find({ $or: [{parent : { $in: findObjects} }, {parent : { $exists: (findObjects.length === 0) ? true : false } }] }, function (err, entries) {
-  BuildingDB.find({ parentid : { $in: findObjects} }, function (err, entries) {
+  // BuildingDB.find({ $or: [{parent : { $in: findPlaces} }, {parent : { $exists: (findPlaces.length === 0) ? true : false } }] }, function (err, entries) {
+  BuildingDB.find({ parentid : { $in: findPlaces} }, function (err, entries) {
     var payload = []
     var result = 0
     if (!err)
@@ -1084,14 +1084,14 @@ function listObjects(userTopic, id, par) {
     }
     // else
     // {
-      // payload.push({message: "Error listing objects"});
+      // payload.push({message: "Error listing places"});
     // }
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
 }
 
-function removeObject(userTopic, id, par) {
+function removePlace(userTopic, id, par) {
   var payload = []
   var result = 0
   if (par == undefined || par.id == undefined)
@@ -1118,14 +1118,14 @@ function removeObject(userTopic, id, par) {
   }
 }
 
-function attachDeviceToObject(userTopic, id, par) {
+function attachDeviceToPlace(userTopic, id, par) {
   NodeDB.find({ $and: [{ "_id" : par.nodeid, "devices.id": par.deviceid}] }, function (err, entries) {
     if (!err)
     {
       if (entries.length==1)
       {
         var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(par.deviceid) )).toString()
-        NodeDB.update({ $and: [{ "_id": par.nodeid }, { "devices.id": par.deviceid }] }, { $set: { ['devices.'+deviceIndex+'.objectid']: par.objectid } }, {}, function (err, numAffected) {
+        NodeDB.update({ $and: [{ "_id": par.nodeid }, { "devices.id": par.deviceid }] }, { $set: { ['devices.'+deviceIndex+'.placeid']: par.placeid } }, {}, function (err, numAffected) {
           var payload = []
           var result = 0
           if (!err && numAffected > 0)
@@ -1135,7 +1135,7 @@ function attachDeviceToObject(userTopic, id, par) {
           }
           else
           {
-            payload.push({message: "Error attaching device to object"});
+            payload.push({message: "Error attaching device to place"});
           }
           var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
           mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1144,7 +1144,7 @@ function attachDeviceToObject(userTopic, id, par) {
     }
   })
 /*
-  BuildingDB.update({ _id: par.object }, { $push: { devices: {par.nodeid, par.deviceid} } }, {}, function (err, numAffected) {
+  BuildingDB.update({ _id: par.place }, { $push: { devices: {par.nodeid, par.deviceid} } }, {}, function (err, numAffected) {
     var payload = []
     var result = 0
     if (!err && numAffected > 0)
@@ -1154,7 +1154,7 @@ function attachDeviceToObject(userTopic, id, par) {
     }
     else
     {
-      payload.push({message: "Error attaching device to object"});
+      payload.push({message: "Error attaching device to place"});
     }
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1162,24 +1162,24 @@ function attachDeviceToObject(userTopic, id, par) {
 */
 }
 
-function dettachDeviceToObject(userTopic, id, par) {
+function detachDeviceFromPlace(userTopic, id, par) {
   NodeDB.find({ $and: [{ "_id" : par.nodeid, "devices.id": par.deviceid}] }, function (err, entries) {
     if (!err)
     {
       if (entries.length==1)
       {
         var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(par.deviceid) )).toString()
-        NodeDB.update({ $and: [{ "_id": par.nodeid }, { "devices.id": par.deviceid }] }, { $unset: { ['devices.'+deviceIndex+'.objectid']: true } }, {}, function (err, numAffected) {
+        NodeDB.update({ $and: [{ "_id": par.nodeid }, { "devices.id": par.deviceid }] }, { $unset: { ['devices.'+deviceIndex+'.placeid']: true } }, {}, function (err, numAffected) {
           var payload = []
           var result = 0
           if (!err && numAffected > 0)
           {
-            payload.push({message: "Device dettached"});
+            payload.push({message: "Device detached"});
             result = 1
           }
           else
           {
-            payload.push({message: "Error dettaching device from object"});
+            payload.push({message: "Error detaching device from place"});
           }
           var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
           mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1188,8 +1188,8 @@ function dettachDeviceToObject(userTopic, id, par) {
     }
   })
 }
-// function listNodesForObject(userTopic, id, par) {
-//   BuildingDB.find({ _id: par.object }, function (err, entries) {
+// function listNodesForPlace(userTopic, id, par) {
+//   BuildingDB.find({ _id: par.place }, function (err, entries) {
 //     if (entries.length == 1)
 //     {
 //       var listJSON='{"nodes":['
@@ -1303,7 +1303,7 @@ function createDevice(userTopic, id, par) {
     var dbDevice = new Object()
     dbDevice.devicetypeid = par.devicetypeid
     dbDevice.name = par.name
-    dbDevice.objectid = par.objectid
+    dbDevice.placeid = par.placeid
     dbDevice.contact = par.contact
 
     DeviceDB.insert(dbDevice, function (err, newEntry) {
@@ -1311,7 +1311,7 @@ function createDevice(userTopic, id, par) {
       var result = 0
       if (!err)
       {
-        // BuildingDB.update({ _id: newEntry.object }, { $push: { devices: newEntry._id } }, {}, function (err, numAffected) {
+        // BuildingDB.update({ _id: newEntry.place }, { $push: { devices: newEntry._id } }, {}, function (err, numAffected) {
           // if (!err && numAffected > 0)
           // {
             payload.push({id: newEntry._id});
@@ -1353,25 +1353,25 @@ function listDevices(userTopic, id, par) {
         andCondition = (listDeviceCondition.length === 0) ? "" : " && "
         listDeviceCondition = listDeviceCondition + andCondition + "par.devicetype.includes(device.type)"
     }
-    if (!isEmptyObject(par.objectid))
+    if (!isEmptyObject(par.placeid))
     {
-      if (par.objectid[0] == null)
+      if (par.placeid[0] == null)
       { //List devices not assigned to places
-        query.$and.push({"devices.objectid": { $exists : false }})
+        query.$and.push({"devices.placeid": { $exists : false }})
         andCondition = (listDeviceCondition.length === 0) ? "" : " && "
-        listDeviceCondition = listDeviceCondition + andCondition + "par.objectid == undefined"
+        listDeviceCondition = listDeviceCondition + andCondition + "par.placeid == undefined"
       }
-      else if (par.objectid[0] == 'all')
+      else if (par.placeid[0] == 'all')
       { //List all devices assigned to places
-        query.$and.push({"devices.objectid": { $exists : true }})
+        query.$and.push({"devices.placeid": { $exists : true }})
         andCondition = (listDeviceCondition.length === 0) ? "" : " && "
-        listDeviceCondition = listDeviceCondition + andCondition + "par.objectid !== undefined"
+        listDeviceCondition = listDeviceCondition + andCondition + "par.placeid !== undefined"
       }
       else
       { //List devices assigned to requested places
-        query.$and.push({"devices.objectid": { $in : par.objectid }})
+        query.$and.push({"devices.placeid": { $in : par.placeid }})
         andCondition = (listDeviceCondition.length === 0) ? "" : " && "
-        listDeviceCondition = listDeviceCondition + andCondition + "par.objectid.includes(device.objectid)"
+        listDeviceCondition = listDeviceCondition + andCondition + "par.placeid.includes(device.placeid)"
       }
     }
     listDeviceCondition = (listDeviceCondition.length === 0) ? "1 == 1" : listDeviceCondition
@@ -1604,7 +1604,7 @@ function doSaveHistory(message) {
     })
 }
 
-function actionStateOperator(op) { //you object containing your operator
+function actionStateOperator(op) { //your object containing your operator
     this.operation = op;
 
     this.evaluate = function evaluate(param1, param2) {
