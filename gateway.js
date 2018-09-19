@@ -661,9 +661,9 @@ function handleUserMessage(topic, message) {
       // case 'listNodesForObject':
         // listNodesForObject(userTopic, msg.id, msg.parameters)
         // break
-      case 'getNodeContactValues':
-        getNodeContactValues(userTopic, msg.id, msg.parameters)
-        break
+      // case 'getNodeContactValues':
+      //   getNodeContactValues(userTopic, msg.id, msg.parameters)
+      //   break
       // case 'createDeviceType':
       //   createDeviceType(userTopic, msg.id, msg.parameters)
       //   break
@@ -969,6 +969,7 @@ function listNodes(userTopic, id, par) {
 //   })
 // }
 
+/*
 // - getNodeContactValues => ["22.3"]
 function getNodeContactValues(userTopic, id, par) {
   MessageDB.find({ node : { $in: par.nodes } }, function (err, entries) {
@@ -997,6 +998,7 @@ function getNodeContactValues(userTopic, id, par) {
     }
   })
 }
+*/
 
 // function getNodeDetails(userTopic, id, par) {
 //   NodeDB.find({ networkid: { $exists: true }}, function (err, entries) {
@@ -1571,9 +1573,11 @@ function doDeviceSubscribe(message) {
     {
       console.log('* %s has subscription', entries[u].user)
       var payload = []
-      payload.push({value: this.message.value, updated: this.message.updated, id: this.message._id});
+      payload.push({msgvalue: (parseFloat(entries[n].msgvalue) === NaN) ? entries[n].msgvalue : parseFloat(entries[n].msgvalue),
+                    updated: this.message.updated,
+                    id: this.message._id});
       var result = 1
-      var newJSON = '{"id":"'+-1+'", "cmd":"deviceValueUpdate", "result":'+result+', "payload":'+JSON.stringify(payload)+'}'
+      var newJSON = '{"id":"'+-1+', "result":'+result+', "payload":'+JSON.stringify(payload)+'}'
       mqttCloud.publish('user/'+entries[u].user+'/out', newJSON, {qos: 0, retain: false})
     }
   }.bind({message}))
@@ -1691,20 +1695,20 @@ function createMessageMapping(userTopic, id, par) {
 
 function subscribeDevices(userTopic, id, par) {
   var splitTopic = userTopic.toString().split('/')
-  DeviceDB.find({"_id" : { $in: par.devices } }, function (err, entries) {
+  MessageDB.find({ $and: [{"nodeid" : par.nodeid}, {"deviceid": par.deviceid}] }, function (err, entries) {
     var payload = []
     var result = 0
     var deviceMessages = []
     for (var d in entries)
     {
-      deviceMessages = deviceMessages.concat(entries[d].messages)
+      deviceMessages = deviceMessages.concat(entries[d]._id)
       if (d == entries.length-1)
       {
         UserDB.update({ "user" : this.user }, { $set: {"messages": deviceMessages} }, { upsert: true }, function () {
         })
       }
     }
-    payload.push({message: "Mapping done"})
+    payload.push({message: "Subscribing done"})
     result = 1
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
