@@ -697,6 +697,9 @@ function handleUserMessage(topic, message) {
       case 'subscribeForDeviceMessages':
         subscribeForDeviceMessages(userTopic, msg.id, msg.parameters)
         break
+      case 'listSubscribedDevices':
+        listSubscribedDevices(userTopic, msg.id, msg.parameters)
+        break
       case 'listNodes':
         listNodes(userTopic, msg.id, msg.parameters)
         break
@@ -1595,7 +1598,7 @@ function doDeviceSubscribe(message) {
         var msgdata = null
       }
       payload.push({nodeid: this.message.nodeid,
-                    deviceid: this.message.nodeid,
+                    deviceid: this.message.deviceid,
                     msgtype: this.message.msgtype,
                     msgvalue: msgvalue,
                     msgdata: msgdata,
@@ -1727,7 +1730,7 @@ function subscribeForDeviceMessages(userTopic, id, par) {
     var deviceMessages = new Array()
     for (var d in entries)
     {
-      deviceMessages = deviceMessages.concat(entries[d]._id)
+      deviceMessages.push(entries[d]._id)
       if (d == entries.length-1)
       {
         UserDB.update({ "user" : this.user }, { $addToSet: {"messages": {$each: deviceMessages} } }, { upsert: true }, function (err, wasUpdated) {
@@ -1739,7 +1742,25 @@ function subscribeForDeviceMessages(userTopic, id, par) {
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   }.bind({user:splitTopic[1]}))
+}
 
+function listSubscribedDevices(userTopic, id, par) {
+  var splitTopic = userTopic.toString().split('/')
+  UserDB.find({ "user" : splitTopic[1] }, function (err, entries) {
+    MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1 }, function (err, entries) {
+      var payload = []
+      var result = 0
+      for (var n in entries)
+      {
+        payload.push({nodeid: entries[n].nodeid,
+                      deviceid: entries[n].deviceid
+        })
+        result = 1
+      }
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    })
+  })
 }
 
 function updateGateway(userTopic, id, par) {
