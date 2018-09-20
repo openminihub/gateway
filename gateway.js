@@ -1417,7 +1417,7 @@ function listDevices(userTopic, id, par) {
       result = 1
       // payload.push({message: "No result for specified search criteria"});
     }
-    console.log('pld: %s', JSON.stringify(payload))
+    // console.log('pld: %s', JSON.stringify(payload))
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   })
@@ -1584,20 +1584,24 @@ function doDeviceSubscribe(message) {
     {
       console.log('* %s has subscription', entries[u].user)
       var payload = []
-      var msgvalue = parseFloat(message.msgvalue)
+      var msgvalue = parseFloat(this.message.msgvalue)
       if (msgvalue == NaN)
       {
-        var msgdata = message.msgvalue
+        var msgdata = this.message.msgvalue
         msgvalue = undefined
       }
       else
       {
         var msgdata = null
       }
-      payload.push({msgvalue: msgvalue,
+      payload.push({nodeid: this.message.nodeid,
+                    deviceid: this.message.nodeid,
+                    msgtype: this.message.msgtype,
+                    msgvalue: msgvalue,
                     msgdata: msgdata,
-                    updated: this.message.updated,
-                    id: this.message._id});
+                    updated: this.message.updated
+                    // id: this.message._id});
+      })
       var result = 1
       var newJSON = '{"id":"'+-1+'", "cmd":"deviceMessageUpdate", "result":'+result+', "payload":'+JSON.stringify(payload)+'}'
       mqttCloud.publish('user/'+entries[u].user+'/out', newJSON, {qos: 0, retain: false})
@@ -1720,15 +1724,13 @@ function subscribeForDeviceMessages(userTopic, id, par) {
   MessageDB.find({ $and: [{"nodeid" : par.nodeid}, {"deviceid": par.deviceid}] }, function (err, entries) {
     var payload = []
     var result = 0
-    var deviceMessages = []
+    var deviceMessages = new Array()
     for (var d in entries)
     {
       deviceMessages = deviceMessages.concat(entries[d]._id)
       if (d == entries.length-1)
       {
-        UserDB.update({ "user" : this.user }, { $set: {"messages": deviceMessages} }, { upsert: true }, function (err, wasUpdated) {
-          console.log('err: %s', err)
-          console.log('wasUpdated: %s', wasUpdated)
+        UserDB.update({ "user" : this.user }, { $addToSet: {"messages": {$each: deviceMessages} } }, { upsert: true }, function (err, wasUpdated) {
         })
       }
     }
