@@ -694,8 +694,8 @@ function handleUserMessage(topic, message) {
       case 'createMessageMapping':
         createMessageMapping(userTopic, msg.id, msg.parameters)
         break
-      case 'subscribeDevices':
-        subscribeDevices(userTopic, msg.id, msg.parameters)
+      case 'subscribeForDeviceMessages':
+        subscribeForDeviceMessages(userTopic, msg.id, msg.parameters)
         break
       case 'listNodes':
         listNodes(userTopic, msg.id, msg.parameters)
@@ -1693,7 +1693,7 @@ function createMessageMapping(userTopic, id, par) {
   })
 }
 
-function subscribeDevices(userTopic, id, par) {
+function subscribeForDeviceMessages(userTopic, id, par) {
   var splitTopic = userTopic.toString().split('/')
   MessageDB.find({ $and: [{"nodeid" : par.nodeid}, {"deviceid": par.deviceid}] }, function (err, entries) {
     var payload = []
