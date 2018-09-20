@@ -48,8 +48,8 @@ const influx = new Influx.InfluxDB({
         'msgtype'
       ],
       fields: {
-        msgvalue_str: Influx.FieldType.STRING,
-        msgvalue_flt: Influx.FieldType.FLOAT
+        msgvalue: Influx.FieldType.STRING,
+        msgdata: Influx.FieldType.FLOAT
       }
     }
   ]
@@ -891,8 +891,19 @@ function getDeviceValues(userTopic, id, par) {
         var messages = new Array()
         for (var n in entries)
         {
+          var msgdata = entries[n].msgvalue
+          var msgvalue = parseFloat(msgdata)
+          if (msgvalue == NaN)
+          {
+            msgvalue = null
+          }
+          else
+          {
+            msgdata = null
+          }
           messages.push({msgtype: entries[n].msgtype,
-                         msgvalue: (parseFloat(entries[n].msgvalue) === NaN) ? entries[n].msgvalue : parseFloat(entries[n].msgvalue),
+                         msgvalue: msgvalue,
+                         msgdata: msgdata,
                          updated: entries[n].updated,
                          rssi: entries[n].rssi,
                          id: entries[n]._id
@@ -1573,7 +1584,18 @@ function doDeviceSubscribe(message) {
     {
       console.log('* %s has subscription', entries[u].user)
       var payload = []
-      payload.push({msgvalue: (parseFloat(entries[n].msgvalue) === NaN) ? entries[n].msgvalue : parseFloat(entries[n].msgvalue),
+      var msgvalue = parseFloat(message.msgvalue)
+      if (msgvalue == NaN)
+      {
+        var msgdata = message.msgvalue
+        msgvalue = undefined
+      }
+      else
+      {
+        var msgdata = null
+      }
+      payload.push({msgvalue: msgvalue,
+                    msgdata: msgdata,
                     updated: this.message.updated,
                     id: this.message._id});
       var result = 1
@@ -1585,22 +1607,22 @@ function doDeviceSubscribe(message) {
 
 
 function doSaveHistory(message) {
-    var msgvalue_flt = parseFloat(message.msgvalue)
-    if (msgvalue_flt == NaN)
+    var msgvalue = parseFloat(message.msgvalue)
+    if (msgvalue == NaN)
     {
-      var msgvalue_str = message.msgvalue
-      msgvalue_flt = undefined
+      var msgdata = message.msgvalue
+      msgvalue = undefined
     }
     else
     {
-      var msgvalue_str = undefined
+      var msgdata = undefined
     }
     influx.writePoints([
       {
         measurement: 'message',
         tags: { nodeid: message.nodeid, deviceid: message.deviceid, devicetype: message.devicetype, msgtype: message.msgtype },
-        fields: { msgvalue_str: msgvalue_str,
-                  msgvalue_flt: msgvalue_flt
+        fields: { msgvalue: msgvalue,
+                  msgdata: msgdata
         }
       }
     ]).catch(error => {
@@ -1704,7 +1726,9 @@ function subscribeForDeviceMessages(userTopic, id, par) {
       deviceMessages = deviceMessages.concat(entries[d]._id)
       if (d == entries.length-1)
       {
-        UserDB.update({ "user" : this.user }, { $set: {"messages": deviceMessages} }, { upsert: true }, function () {
+        UserDB.update({ "user" : this.user }, { $set: {"messages": deviceMessages} }, { upsert: true }, function (err, wasUpdated) {
+          console.log('err: %s', err)
+          console.log('wasUpdated: %s', wasUpdated)
         })
       }
     }
