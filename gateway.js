@@ -1445,14 +1445,14 @@ function listDeviceTypes(userTopic, id, par) {
   {
     listDeviceTypes = (isEmptyObject(par.types)) ? listDeviceTypes : par.types
   }
-  DeviceTypeDB.find({ $or: [{_id : { $in: listDeviceTypes} }, {_id : { $exists: (listDeviceTypes.length === 0) ? true : false } }] }, function (err, entries) {
+  DeviceTypeDB.find({ $or: [{type : { $in: listDeviceTypes} }, {type : { $exists: (listDeviceTypes.length === 0) ? true : false } }] }, function (err, entries) {
     var payload = []
     var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({name: entries[i].name, value: entries[i].value, type: entries[i]._id});
+        payload.push({name: entries[i].name, value: entries[i].value, type: entries[i].type});
       }
       result = 1
     }
@@ -1472,14 +1472,14 @@ function listMessageTypes(userTopic, id, par) {
   {
     findMessageTypes = (par.msgtype === undefined) ? findMessageTypes : par.msgtype
   }
-  MessageTypeDB.find({ $or: [{_id : { $in: findMessageTypes} }, {_id : { $exists: (findMessageTypes.length === 0) ? true : false } }] }, function (err, entries) {
+  MessageTypeDB.find({ $or: [{type : { $in: findMessageTypes} }, {type : { $exists: (findMessageTypes.length === 0) ? true : false } }] }, function (err, entries) {
     var payload = []
     var result = 0
     if (entries.length > 0)
     {
       for (var i=0; i<entries.length; i++)
       {
-        payload.push({name: entries[i].name, value: entries[i].value, type: entries[i]._id});
+        payload.push({name: entries[i].name, value: entries[i].value, type: entries[i].type});
       }
       result = 1
     }
