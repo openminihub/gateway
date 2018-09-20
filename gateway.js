@@ -343,11 +343,11 @@ function handleOutTopic(rxmessage, nodetype) {
     case '1': //set
       // if (msg.length > 5)
       // {
-      //   var updateCon = {$set:{ "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }}
+      //   var updateCon = {$set:{ "value": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }}
       // }
       // else
       // {
-      //   var updateCon = {$set:{ "updated": new Date().getTime(), "rssi": messageRSSI }}
+      //   var updateCon = {$set:{ "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }}
       // }
       // console.log('* updateCon: %s', JSON.stringify(updateCon))
 
@@ -359,7 +359,7 @@ function handleOutTopic(rxmessage, nodetype) {
           if (entries.length==1)
           {
             // console.log('* node networkid %s found', entries[0].networkid)
-            MessageDB.update({ $and: [{"nodeid" : entries[0]._id}, {"contactid": msg[1]}, {"msgtype": msg[4]}] }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
+            MessageDB.update({ $and: [{"nodeid" : entries[0]._id}, {"contactid": msg[1]}, {"msgtype": msg[4]}] }, { $set: { "value": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
               if (!err)
               {
                 if (!wasAffected) //The row wasn't updated : Create new entry
@@ -369,7 +369,7 @@ function handleOutTopic(rxmessage, nodetype) {
                   {
                     if (this.entries[0].contacts[c].id == msg[1])
                     {
-                      MessageDB.update({ "nodeid" : this.entries[0]._id, "contactid": msg[1], "msgtype": msg[4] }, { "nodeid" : this.entries[0]._id, "contactid": msg[1], "contacttype": this.entries[0].contacts[c].type, "msgtype": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                      MessageDB.update({ "nodeid" : this.entries[0]._id, "contactid": msg[1], "msgtype": msg[4] }, { "nodeid" : this.entries[0]._id, "contactid": msg[1], "contacttype": this.entries[0].contacts[c].type, "msgtype": msg[4], "value": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                         if (numAffected)
                         {
                           // console.log('doc_id: %s', affectedDocument._id)
@@ -410,7 +410,7 @@ function handleOutTopic(rxmessage, nodetype) {
       })
 */
 
-      MessageDB.update({ $and: [{"nodeid" : msg[0]}, {"deviceid": parseInt(msg[1])}, {"msgtype": parseInt(msg[4])}] }, { $set: { "msgvalue": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
+      MessageDB.update({ $and: [{"nodeid" : msg[0]}, {"deviceid": parseInt(msg[1])}, {"msgtype": parseInt(msg[4])}] }, { $set: { "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
         if (!err)
         {
           if (!wasAffected) //The row wasn't updated : Create new entry
@@ -433,8 +433,8 @@ function handleOutTopic(rxmessage, nodetype) {
                     // if (entries[0].devices[d].id == parseInt(msg[1]))
                     // {
                       // console.log('* message insert')
-                      // MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[d].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
-                      MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                      // MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[d].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                      MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                         callAction(affectedDocument)
                         doMessageMapping(affectedDocument)
                         doDeviceSubscribe(affectedDocument)
@@ -464,7 +464,7 @@ function handleOutTopic(rxmessage, nodetype) {
         {
           if (entries.length==1)
           {
-            MessageDB.update({ _id: entries[0]._id }, { $set: { "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI } }, {}, function (err, numReplaced) {   // Callback is optional
+            MessageDB.update({ _id: entries[0]._id }, { $set: { "value": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI } }, {}, function (err, numReplaced) {   // Callback is optional
             })
           }
           else if (entries==0)
@@ -480,7 +480,7 @@ function handleOutTopic(rxmessage, nodetype) {
                   {
                     if (entries[0].contact[c].id == msg[1])
                     {
-                      MessageDB.update({ "node" : msg[0], "contact": msg[1], "message": msg[3] }, { "node" : msg[0], "contact": msg[1], "type": entries[0].contact[c].type, "message": msg[4], "value": msg[5], "updated": new Date().getTime(), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
+                      MessageDB.update({ "node" : msg[0], "contact": msg[1], "message": msg[3] }, { "node" : msg[0], "contact": msg[1], "type": entries[0].contact[c].type, "message": msg[4], "value": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocuments, upsert) {
                       })
                     }
                   }
@@ -1599,7 +1599,7 @@ function doDeviceSubscribe(message) {
                     updated: this.message.updated,
                     id: this.message._id});
       var result = 1
-      var newJSON = '{"id":"'+-1+', "result":'+result+', "payload":'+JSON.stringify(payload)+'}'
+      var newJSON = '{"id":"'+-1+'", "cmd":"deviceMessageUpdate", "result":'+result+', "payload":'+JSON.stringify(payload)+'}'
       mqttCloud.publish('user/'+entries[u].user+'/out', newJSON, {qos: 0, retain: false})
     }
   }.bind({message}))
