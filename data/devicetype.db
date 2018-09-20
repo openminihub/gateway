@@ -1,39 +1,40 @@
-{"_id":1,"value":"S_MOTION","name":"Motion sensor","data":[]}
-{"_id":2,"value":"S_SMOKE","name":"Smoke sensor","data":[]}
-{"_id":3,"value":"S_BINARY","name":"Binary light or relay","data":[]}
-{"_id":4,"value":"S_DIMMER","name":"Dimmable light or fan device","data":[]}
-{"_id":5,"value":"S_COVER","name":"Blinds or window cover","data":[]}
-{"_id":6,"value":"S_TEMP","name":"Temperature sensor","data":[]}
-{"_id":7,"value":"S_HUM","name":"Humidity sensor","data":[]}
-{"_id":8,"value":"S_BARO","name":"Barometer sensor","data":[]}
-{"_id":9,"value":"S_WIND","name":"Wind sensor","data":[]}
-{"_id":10,"value":"S_RAIN","name":"Rain sensor","data":[]}
-{"_id":11,"value":"S_UV","name":"UV sensor","data":[]}
-{"_id":12,"value":"S_WEIGHT","name":"Personal scale sensor","data":[]}
-{"_id":13,"value":"S_POWER","name":"Power meter","data":[]}
-{"_id":14,"value":"S_HEATER","name":"Heater device","data":[]}
-{"_id":15,"value":"S_DISTANCE","name":"Distance sensor","data":[]}
-{"_id":16,"value":"S_LIGHT_LEVEL","name":"Light level sensor","data":[]}
-{"_id":17,"value":"S_ARDUINO_NODE","name":"Used (internally) for presenting a non-repeating Arduino node","data":[]}
-{"_id":18,"value":"S_ARDUINO_REPEATER_NODE","name":"Used (internally) for presenting a repeating Arduino node","data":[]}
-{"_id":19,"value":"S_LOCK","name":"Lock device","data":[]}
-{"_id":20,"value":"S_IR","name":"IR device","data":[]}
-{"_id":21,"value":"S_WATER","name":"Water meter","data":[]}
-{"_id":22,"value":"S_AIR_QUALITY","name":"Air quality sensor","data":[]}
-{"_id":23,"value":"S_CUSTOM","name":"Custom sensor","data":[]}
-{"_id":24,"value":"S_DUST","name":"Dust sensor","data":[]}
-{"_id":25,"value":"S_SCENE_CONTROLLER","name":"Scene controller device","data":[]}
-{"_id":26,"value":"S_RGB_LIGHT","name":"RGB light","data":[]}
-{"_id":27,"value":"S_RGBW_LIGHT","name":"RGB light with an additional White component","data":[]}
-{"_id":28,"value":"S_COLOR_SENSOR","name":"Color sensor","data":[]}
-{"_id":29,"value":"S_HVAC","name":"Thermostat/HVAC device","data":[]}
-{"_id":30,"value":"S_MULTIMETER","name":"Multimeter device","data":[]}
-{"_id":31,"value":"S_SPRINKLER","name":"Sprinkler","data":[]}
-{"_id":32,"value":"S_WATER_LEAK","name":"Water leak sensor","data":[]}
-{"_id":33,"value":"S_SOUND","name":"Sound sensor","data":[]}
-{"_id":34,"value":"S_VIBRATION","name":"Vibration sensor","data":[]}
-{"_id":35,"value":"S_MOISTURE","name":"Moisture sensor","data":[]}
-{"_id":36,"value":"S_INFO","name":"Simple information device (LCD)","data":[]}
-{"_id":37,"value":"S_GAS","name":"Gas meter","data":[]}
-{"_id":38,"value":"S_GPS","name":"GPS Sensor","data":[]}
-{"_id":39,"value":"S_WATER_QUALITY","name":"Water quality sensor","data":[]}
+{"typeid":0,"value":"S_DOOR","name":"Door and window sensors","_id":"MrZHXECS5ofGsdh6"}
+{"typeid":1,"value":"S_MOTION","name":"Motion sensor","_id":"w1BOTldrB7uVws8L"}
+{"typeid":2,"value":"S_SMOKE","name":"Smoke sensor","_id":"irCXiD3Mrn28CVK3"}
+{"typeid":3,"value":"S_BINARY","name":"Binary light or relay","_id":"FuSAigT7rtJXPDne"}
+{"typeid":4,"value":"S_DIMMER","name":"Dimmable light or fan device","_id":"glItBvfy1cbpz2Eq"}
+{"typeid":5,"value":"S_COVER","name":"Blinds or window cover","_id":"Cypj8WEjU9uM8wXa"}
+{"typeid":6,"value":"S_TEMP","name":"Temperature sensor","_id":"Xlnk2Jk3TQR7SErq"}
+{"typeid":7,"value":"S_HUM","name":"Humidity sensor","_id":"pqoasIchJa9agKEM"}
+{"typeid":8,"value":"S_BARO","name":"Barometer sensor","_id":"LuXExIcByJg4LLQT"}
+{"typeid":9,"value":"S_WIND","name":"Wind sensor","_id":"MDxXiYXObfu0k4XY"}
+{"typeid":10,"value":"S_RAIN","name":"Rain sensor","_id":"vki107EuXmqUbFiU"}
+{"typeid":11,"value":"S_UV","name":"UV sensor","_id":"FA5ZieaxPYXZBUUp"}
+{"typeid":12,"value":"S_WEIGHT","name":"Personal scale sensor","_id":"hEGNwILl2N1wVlDH"}
+{"typeid":13,"value":"S_POWER","name":"Power meter","_id":"2ZcndbEhCzoBOQ54"}
+{"typeid":14,"value":"S_HEATER","name":"Heater device","_id":"py8gbNzVw0LyPPWX"}
+{"typeid":15,"value":"S_DISTANCE","name":"Distance sensor","_id":"GfmzVnURsFbXWUEv"}
+{"typeid":16,"value":"S_LIGHT_LEVEL","name":"Light level sensor","_id":"MoESWhDpsAsvlliD"}
+{"typeid":17,"value":"S_ARDUINO_NODE","name":"Used (internally) for presenting a non-repeating Arduino node","_id":"ffVS2HgM75iPdmpV"}
+{"typeid":18,"value":"S_ARDUINO_REPEATER_NODE","name":"Used (internally) for presenting a repeating Arduino node","_id":"rC4AOs1SM8D9IgTM"}
+{"typeid":19,"value":"S_LOCK","name":"Lock device","_id":"yhfLyUfjbQw9zXHU"}
+{"typeid":20,"value":"S_IR","name":"IR device","_id":"rKlWGcxjVWBKN2He"}
+{"typeid":21,"value":"S_WATER","name":"Water meter","_id":"vjiWqO9Cfw6l0Mab"}
+{"typeid":22,"value":"S_AIR_QUALITY","name":"Air quality sensor","_id":"EPHKasYwXKTxScaz"}
+{"typeid":23,"value":"S_CUSTOM","name":"Custom sensor","_id":"Yxgv6o4KGLfIC72D"}
+{"typeid":24,"value":"S_DUST","name":"Dust sensor","_id":"Gd4HCoaCSN8W9zUF"}
+{"typeid":25,"value":"S_SCENE_CONTROLLER","name":"Scene controller device","_id":"qXanf5jQw2EoqtAV"}
+{"typeid":26,"value":"S_RGB_LIGHT","name":"RGB light","_id":"rbMAtxcQBneiSOiS"}
+{"typeid":27,"value":"S_RGBW_LIGHT","name":"RGB light with an additional White component","_id":"rAEFxPmYrr2B8YZz"}
+{"typeid":28,"value":"S_COLOR_SENSOR","name":"Color sensor","_id":"QzsubQXbdsHH9PAC"}
+{"typeid":29,"value":"S_HVAC","name":"Thermostat/HVAC device","_id":"DNlGjLwySUE1xQwK"}
+{"typeid":30,"value":"S_MULTIMETER","name":"Multimeter device","_id":"UGQe7QHFpKvZ13Ag"}
+{"typeid":31,"value":"S_SPRINKLER","name":"Sprinkler","_id":"mFNvNojcg4RgK55b"}
+{"typeid":32,"value":"S_WATER_LEAK","name":"Water leak sensor","_id":"Qa4leQzUftOJ7Ih9"}
+{"typeid":33,"value":"S_SOUND","name":"Sound sensor","_id":"Sq3TaDK0xQwQAo1i"}
+{"typeid":34,"value":"S_VIBRATION","name":"Vibration sensor","_id":"ahYvq4djd9wWpjR5"}
+{"typeid":35,"value":"S_MOISTURE","name":"Moisture sensor","_id":"3dwaVrq2TiZMLwwQ"}
+{"typeid":36,"value":"S_INFO","name":"Simple information device (LCD)","_id":"VLN9EwEWIvhQCZyk"}
+{"typeid":37,"value":"S_GAS","name":"Gas meter","_id":"gaUkUL6XqT2qPbkF"}
+{"typeid":38,"value":"S_GPS","name":"GPS Sensor","_id":"ZIN7i9zjffh10Uog"}
+{"typeid":39,"value":"S_WATER_QUALITY","name":"Water quality sensor","_id":"pG1VApWPcQAQnp7y"}

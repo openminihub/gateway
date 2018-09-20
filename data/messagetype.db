@@ -1,56 +1,57 @@
-{"_id":1,"value":"V_HUM","name":"Humidity","contacts":[]}
-{"_id":2,"value":"V_STATUS","name":"Status","contacts":[]}
-{"_id":3,"value":"V_PERCENTAGE","name":"Percentage value 0-100 (%)","contacts":[]}
-{"_id":4,"value":"V_PRESSURE","name":"Atmospheric Pressure","contacts":[]}
-{"_id":5,"value":"V_FORECAST","name":"Whether forecast","contacts":[]}
-{"_id":6,"value":"V_RAIN","name":"Amount of rain","contacts":[]}
-{"_id":7,"value":"V_RAINRATE","name":"Rate of rain","contacts":[]}
-{"_id":8,"value":"V_WIND","name":"Wind speed","contacts":[]}
-{"_id":9,"value":"V_GUST","name":"Gust","contacts":[]}
-{"_id":10,"value":"V_DIRECTION","name":"Wind direction 0-360 (degrees)","contacts":[]}
-{"_id":11,"value":"V_UV","name":"UV light level","contacts":[]}
-{"_id":12,"value":"V_WEIGHT","name":"Weight","contacts":[]}
-{"_id":13,"value":"V_DISTANCE","name":"Distance","contacts":[]}
-{"_id":14,"value":"V_IMPEDANCE","name":"Impedance","contacts":[]}
-{"_id":15,"value":"V_ARMED","name":"Aremd","contacts":[]}
-{"_id":16,"value":"V_TRIPPED","name":"Tripped","contacts":[]}
-{"_id":17,"value":"V_WATT","name":"Power in W","contacts":[]}
-{"_id":18,"value":"V_KWH","name":"Accumulated number of KWH for a power meter","contacts":[]}
-{"_id":19,"value":"V_SCENE_ON","name":"Turn on a scene","contacts":[]}
-{"_id":20,"value":"V_SCENE_OFF","name":"Turn of a scene","contacts":[]}
-{"_id":21,"value":"V_HVAC_FLOW_STATE","name":"HVAC flow state (Off, HeatOn, CoolOn, or AutoChangeOver)","contacts":[]}
-{"_id":22,"value":"V_HVAC_SPEED","name":"HVAC speed","contacts":[]}
-{"_id":23,"value":"V_LIGHT_LEVEL","name":"Uncalibrated light level. 0-100 (%)","contacts":[]}
-{"_id":24,"value":"V_VAR1","name":"VAR1","contacts":[]}
-{"_id":25,"value":"V_VAR2","name":"VAR2","contacts":[]}
-{"_id":26,"value":"V_VAR3","name":"VAR3","contacts":[]}
-{"_id":27,"value":"V_VAR4","name":"VAR4","contacts":[]}
-{"_id":28,"value":"V_VAR5","name":"VAR5","contacts":[]}
-{"_id":29,"value":"V_UP","name":"Window covering. Up","contacts":[]}
-{"_id":30,"value":"V_DOWN","name":"Window covering. Down","contacts":[]}
-{"_id":31,"value":"V_STOP","name":"Window covering. Stop","contacts":[]}
-{"_id":32,"value":"V_IR_SEND","name":"Send out an IR-command","contacts":[]}
-{"_id":33,"value":"V_IR_RECEIVE","name":"This message contains a received IR-command","contacts":[]}
-{"_id":34,"value":"V_FLOW","name":"Flow of water (in meter)","contacts":[]}
-{"_id":35,"value":"V_VOLUME","name":"Water volume","contacts":[]}
-{"_id":36,"value":"V_LOCK_STATUS","name":"Set or get lock status. 1=Locked","contacts":[]}
-{"_id":37,"value":"V_LEVEL","name":"Level","contacts":[]}
-{"_id":38,"value":"V_VOLTAGE","name":"Voltage","contacts":[]}
-{"_id":39,"value":"V_CURRENT","name":"Current","contacts":[]}
-{"_id":40,"value":"V_RGB","name":"RGB value","contacts":[]}
-{"_id":41,"value":"V_RGBW","name":"RGBW value. Sent as ASCII hex: RRGGBBWW","contacts":[]}
-{"_id":42,"value":"V_ID","name":"Used for sending in sensors hardware ids (i.e. OneWire DS1820b)","contacts":[]}
-{"_id":43,"value":"V_UNIT_PREFIX","name":"Allows sensors to send in a string representing the unit prefix to be displayed in GUI","contacts":[]}
-{"_id":44,"value":"V_HVAC_SETPOINT_COOL","name":"HVAC cool setpoint","contacts":[]}
-{"_id":45,"value":"V_HVAC_SETPOINT_HEAT","name":"HVAC heat setpoint","contacts":[]}
-{"_id":46,"value":"V_HVAC_FLOW_MODE","name":"Flow mode for HVAC (Auto, On, Off, Frost, Periodic)","contacts":[]}
-{"_id":47,"value":"V_TEXT","name":"Text message to display on LCD or controller device","contacts":[]}
-{"_id":48,"value":"V_CUSTOM","name":"Custom messages used for controller/inter node specific commands","contacts":[]}
-{"_id":49,"value":"V_POSITION","name":"GPS position and altitude. Payload: latitude;longitude;altitude(m)","contacts":[]}
-{"_id":50,"value":"V_IR_RECORD","name":"Record IR codes S_IR for playback","contacts":[]}
-{"_id":51,"value":"V_PH","name":"Water quality: PH","contacts":[]}
-{"_id":52,"value":"V_ORP","name":"Water quality: : ORP","contacts":[]}
-{"_id":53,"value":"V_EC","name":"Water quality: EC","contacts":[]}
-{"_id":54,"value":"V_VAR","name":"Power sensor VAR","contacts":[]}
-{"_id":55,"value":"V_VA","name":"Power sensor VA","contacts":[]}
-{"_id":56,"value":"V_POWER_FACTOR","name":"Power factor","contacts":[]}
+{"typeid":0,"value":"V_TEMP","name":"Temperature","_id":"h001LDkULoZYVUxj"}
+{"typeid":1,"value":"V_HUM","name":"Humidity","_id":"zaTbuV7ds2go3JuS"}
+{"typeid":2,"value":"V_STATUS","name":"Status","_id":"F251Hqwkub3e1UEI"}
+{"typeid":3,"value":"V_PERCENTAGE","name":"Percentage value 0-100 (%)","_id":"H9AaL0HFs9yw75cX"}
+{"typeid":4,"value":"V_PRESSURE","name":"Atmospheric Pressure","_id":"FbWB4O1WV76ghax5"}
+{"typeid":5,"value":"V_FORECAST","name":"Whether forecast","_id":"S743uRZrQIcqrT9I"}
+{"typeid":6,"value":"V_RAIN","name":"Amount of rain","_id":"TE3td730SHf6hpiu"}
+{"typeid":7,"value":"V_RAINRATE","name":"Rate of rain","_id":"eLCCXH95RoaT31oK"}
+{"typeid":8,"value":"V_WIND","name":"Wind speed","_id":"Gt6cLIm89vasmxip"}
+{"typeid":9,"value":"V_GUST","name":"Gust","_id":"2fXqqYk7wLvQG0F2"}
+{"typeid":10,"value":"V_DIRECTION","name":"Wind direction 0-360 (degrees)","_id":"oNtGeSQqJxMOupuA"}
+{"typeid":11,"value":"V_UV","name":"UV light level","_id":"nQWXSmzB3ki57hrp"}
+{"typeid":12,"value":"V_WEIGHT","name":"Weight","_id":"vTGA1qAWrBX54Y3d"}
+{"typeid":13,"value":"V_DISTANCE","name":"Distance","_id":"fKLJy237KnG1rpSG"}
+{"typeid":14,"value":"V_IMPEDANCE","name":"Impedance","_id":"y5ELRoyZqXikdjYP"}
+{"typeid":15,"value":"V_ARMED","name":"Aremd","_id":"qupNhb1cS01Ka3Xl"}
+{"typeid":16,"value":"V_TRIPPED","name":"Tripped","_id":"2Qo7iBLr5rgo3knV"}
+{"typeid":17,"value":"V_WATT","name":"Power in W","_id":"Zm4nKZExBX2PxT90"}
+{"typeid":18,"value":"V_KWH","name":"Accumulated number of KWH for a power meter","_id":"YDjS4xN2vrudB1og"}
+{"typeid":19,"value":"V_SCENE_ON","name":"Turn on a scene","_id":"gvS2OCDHiZqY7oiF"}
+{"typeid":20,"value":"V_SCENE_OFF","name":"Turn of a scene","_id":"Y6jT3lzp5oVdxNv2"}
+{"typeid":21,"value":"V_HVAC_FLOW_STATE","name":"HVAC flow state (Off, HeatOn, CoolOn, or AutoChangeOver)","_id":"vTrEZAtnjlg8bquj"}
+{"typeid":22,"value":"V_HVAC_SPEED","name":"HVAC speed","_id":"6eYrn1Rr25NUhx9m"}
+{"typeid":23,"value":"V_LIGHT_LEVEL","name":"Uncalibrated light level. 0-100 (%)","_id":"9eL5zfg06V9leVdg"}
+{"typeid":24,"value":"V_VAR1","name":"VAR1","_id":"GL1sCnzNryBSFDyL"}
+{"typeid":25,"value":"V_VAR2","name":"VAR2","_id":"5rYHkjKTutjdAs4S"}
+{"typeid":26,"value":"V_VAR3","name":"VAR3","_id":"69r8w2GbN62vuLuE"}
+{"typeid":27,"value":"V_VAR4","name":"VAR4","_id":"ngK4ZPQ6uPbyCfin"}
+{"typeid":28,"value":"V_VAR5","name":"VAR5","_id":"ym2T7iCqoFCKDptS"}
+{"typeid":29,"value":"V_UP","name":"Window covering. Up","_id":"5f53lmKGYK9iZoBf"}
+{"typeid":30,"value":"V_DOWN","name":"Window covering. Down","_id":"1Hn6Yx4vIm8Rr56L"}
+{"typeid":31,"value":"V_STOP","name":"Window covering. Stop","_id":"kfjozetdlT2uVkPR"}
+{"typeid":32,"value":"V_IR_SEND","name":"Send out an IR-command","_id":"SHIfiKEgdUl6ueXE"}
+{"typeid":33,"value":"V_IR_RECEIVE","name":"This message contains a received IR-command","_id":"4cwKGwWl7WbftGAA"}
+{"typeid":34,"value":"V_FLOW","name":"Flow of water (in meter)","_id":"rNOcuhTFcGbwO6Dp"}
+{"typeid":35,"value":"V_VOLUME","name":"Water volume","_id":"fxNd2mTQ9x2mx0oe"}
+{"typeid":36,"value":"V_LOCK_STATUS","name":"Set or get lock status. 1=Locked","_id":"3OBwgGcGq4ZmmkPp"}
+{"typeid":37,"value":"V_LEVEL","name":"Level","_id":"X3FVJOp2UTLJe5Mh"}
+{"typeid":38,"value":"V_VOLTAGE","name":"Voltage","_id":"WRqgxI414n2yadNz"}
+{"typeid":39,"value":"V_CURRENT","name":"Current","_id":"SbZ5LHqOmEvtrRoK"}
+{"typeid":40,"value":"V_RGB","name":"RGB value","_id":"wdP8enUNm9tBKAet"}
+{"typeid":41,"value":"V_RGBW","name":"RGBW value. Sent as ASCII hex: RRGGBBWW","_id":"uTNFtClwoNtT3l7n"}
+{"typeid":42,"value":"V_ID","name":"Used for sending in sensors hardware ids (i.e. OneWire DS1820b)","_id":"6aalUK6XHQVsuVv0"}
+{"typeid":43,"value":"V_UNIT_PREFIX","name":"Allows sensors to send in a string representing the unit prefix to be displayed in GUI","_id":"Fo4ttxpBphvY1mNO"}
+{"typeid":44,"value":"V_HVAC_SETPOINT_COOL","name":"HVAC cool setpoint","_id":"bAXImrHCYLq6XIsl"}
+{"typeid":45,"value":"V_HVAC_SETPOINT_HEAT","name":"HVAC heat setpoint","_id":"FTPW1jXKskVVwQvf"}
+{"typeid":46,"value":"V_HVAC_FLOW_MODE","name":"Flow mode for HVAC (Auto, On, Off, Frost, Periodic)","_id":"u1H0qsN6Fsrnge5z"}
+{"typeid":47,"value":"V_TEXT","name":"Text message to display on LCD or controller device","_id":"d2hIbVf9C5bMEoRE"}
+{"typeid":48,"value":"V_CUSTOM","name":"Custom messages used for controller/inter node specific commands","_id":"aS9Poj0R2wxOeQi8"}
+{"typeid":49,"value":"V_POSITION","name":"GPS position and altitude. Payload: latitude;longitude;altitude(m)","_id":"uNWZIJOuFH0oL20c"}
+{"typeid":50,"value":"V_IR_RECORD","name":"Record IR codes S_IR for playback","_id":"v3kowF2Fusbpmu4m"}
+{"typeid":51,"value":"V_PH","name":"Water quality: PH","_id":"LgMmlP0LZnlSYDz1"}
+{"typeid":52,"value":"V_ORP","name":"Water quality: : ORP","_id":"UZwtkgk17mi3r1TI"}
+{"typeid":53,"value":"V_EC","name":"Water quality: EC","_id":"zHkwV4Xd7RKa04Sy"}
+{"typeid":54,"value":"V_VAR","name":"Power sensor VAR","_id":"pGFnpesa2eSy1H6K"}
+{"typeid":55,"value":"V_VA","name":"Power sensor VA","_id":"CHmLNTRW654glI13"}
+{"typeid":56,"value":"V_POWER_FACTOR","name":"Power factor","_id":"ni78HEt0NMgKveaQ"}
