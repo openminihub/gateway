@@ -337,7 +337,15 @@ function handleOutTopic(rxmessage, nodetype) {
       var NodeDevice = new Object()
       NodeDevice.id = parseInt(msg[1])
       NodeDevice.type = parseInt(msg[4])
-      NodeDB.update({ "_id" : msg[0] }, { $addToSet: { "devices": NodeDevice } }, {}, function () {
+      NodeDB.find({ $and: [ {"_id" : msg[0]}, {"devices": { $elemMatch: {id: parseInt(msg[1]), type: parseInt(msg[4])}}} ] }, {}, function (err, entries) {
+        if (!err)
+        {
+          if (entries.length < 1)
+          {
+            NodeDB.update({ "_id" : msg[0] }, { $push: { "devices": [ {id: parseInt(msg[1]), type: parseInt(msg[4]) }]} }, {}, function () {
+            })
+          }
+        }
       })
       break
     case '1': //set
@@ -682,6 +690,9 @@ function handleUserMessage(topic, message) {
       // case 'removeDevice':
       //   removeDevice(userTopic, msg.id, msg.parameters)
       //   break
+      case 'setDeviceValue':
+        setDeviceValue(userTopic, msg.id, msg.parameters)
+        break
       case 'getDeviceValues':
         getDeviceValues(userTopic, msg.id, msg.parameters)
         break
@@ -875,6 +886,36 @@ function listUnusedDevices(userTopic, id, par) {
   })
 }
 */
+function setDeviceValue(userTopic, id, par) {
+  // console.log('par: %s', JSON.stringify(par))
+  var query = new Object()
+  if (isEmptyObject(par))
+  {
+    par = new Object()
+  }
+  var payload = []
+  var result = 1
+  if (typeof par.nodeid === 'undefined'   ||
+      typeof par.deviceid === 'undefined' ||
+      typeof par.msgtype === 'undefined'  ||
+      typeof par.msgvalue === 'undefined' ||
+      typeof par.msgdata === 'undefined'   )
+  {
+    payload.push({message: "Not all parameters are passed"});
+    result = 0
+  }
+  else
+  {
+    var message = (par.msgvalue === null) ? par.msgdata : par.msgvalue
+    var txOpenNode = par.nodeid+';'+par.deviceid+';1;1;'+par.msgtype+';'+message+'\n'
+    console.log('TX   > %s', txOpenNode)
+    serial.write(txOpenNode, function () { serial.drain(); });
+    payload.push({message: "Message sent"});
+  }   
+  var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+  mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+}
+
 function getDeviceValues(userTopic, id, par) {
   // console.log('par: %s', JSON.stringify(par))
   var query = new Object()
