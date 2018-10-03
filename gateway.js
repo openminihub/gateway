@@ -342,7 +342,7 @@ function handleOutTopic(rxmessage, nodetype) {
         {
           if (entries.length < 1)
           {
-            NodeDB.update({ "_id" : msg[0] }, { $push: { "devices": [ {id: parseInt(msg[1]), type: parseInt(msg[4]) }]} }, {}, function () {
+            NodeDB.update({ "_id" : msg[0] }, { $push: { "devices": {id: parseInt(msg[1]), type: parseInt(msg[4]) }} }, {}, function () {
             })
           }
         }
