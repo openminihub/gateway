@@ -906,7 +906,7 @@ function setDeviceValue(userTopic, id, par) {
   }
   else
   {
-    var message = (par.msgvalue === null) ? par.msgdata : par.msgvalue
+    var message = (par.msgvalue === null) ? par.msgdata : par.msgvalue.toString()
     var txOpenNode = par.nodeid+';'+par.deviceid+';1;1;'+par.msgtype+';'+message+'\n'
     console.log('TX   > %s', txOpenNode)
     serial.write(txOpenNode, function () { serial.drain(); });
@@ -1788,19 +1788,29 @@ function subscribeForDeviceMessages(userTopic, id, par) {
 function listSubscribedDevices(userTopic, id, par) {
   var splitTopic = userTopic.toString().split('/')
   UserDB.find({ "user" : splitTopic[1] }, function (err, entries) {
-    MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1 }, function (err, entries) {
+    if (!err and entries.length)
+    {
+      MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1 }, function (err, entries) {
+        var payload = []
+        var result = 0
+        for (var n in entries)
+        {
+          payload.push({nodeid: entries[n].nodeid,
+                        deviceid: entries[n].deviceid
+          })
+          result = 1
+        }
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      })
+    }
+    else
+    {
       var payload = []
-      var result = 0
-      for (var n in entries)
-      {
-        payload.push({nodeid: entries[n].nodeid,
-                      deviceid: entries[n].deviceid
-        })
-        result = 1
-      }
+      var result = 1
       var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
       mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-    })
+    }
   })
 }
 
