@@ -1788,7 +1788,7 @@ function subscribeForDeviceMessages(userTopic, id, par) {
 function listSubscribedDevices(userTopic, id, par) {
   var splitTopic = userTopic.toString().split('/')
   UserDB.find({ "user" : splitTopic[1] }, function (err, entries) {
-    if (!err and entries.length)
+    if (!err && entries.length)
     {
       MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1 }, function (err, entries) {
         var payload = []
