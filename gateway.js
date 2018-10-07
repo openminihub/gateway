@@ -320,6 +320,10 @@ function handleOutTopic(rxmessage, nodetype) {
 
   }
 
+  //Validate the Message structure: node-id ; device-id ; command ; ack ; msgtype ; payload
+  var re = new RegExp("^[a-zA-Z0-9][;][0-9][;][0-9][;][0-1][;][0-9][;].*$");
+  if (re.test(rxmessage))
+    return false
   //regular message
   console.log('RX   > %s', rxmessage)
 
@@ -1397,7 +1401,7 @@ function listDevices(userTopic, id, par) {
   var query = new Object()
   if (isEmptyObject(par))
   {
-    query={"_id": { $exists: true }}
+    query={"devices": { $exists: true }}
     listDeviceCondition = "1 == 1"
   }
   else
