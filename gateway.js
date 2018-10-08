@@ -1773,12 +1773,15 @@ function subscribeForDeviceMessages(userTopic, id, par) {
     var payload = []
     var result = 0
     var deviceMessages = new Array()
+    var query = new Object()
     for (var d in entries)
     {
       deviceMessages.push(entries[d]._id)
       if (d == entries.length-1)
       {
-        UserDB.update({ "user" : this.user }, { $addToSet: {"messages": {$each: deviceMessages} } }, { upsert: true }, function (err, wasUpdated) {
+        query = (par.disable === true) ? {$pull:{"messages":{$in: deviceMessages}}} : {$addToSet:{"messages":{$each: deviceMessages}}}
+        // console.log("%s", JSON.stringify(query))
+        UserDB.update({ "user" : this.user }, query, { upsert: true }, function (err, wasUpdated) {
         })
       }
     }
