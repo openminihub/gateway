@@ -4,7 +4,6 @@ data/device.db
 data/message.db
 data/node.db
 data/user.db
-firmware
 node_modules
 package-lock.json
 settings.json5
