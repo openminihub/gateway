@@ -28,6 +28,9 @@ sudo apt-get clean
 echo -e "${CYAN}************* STEP: Installing git, minicon *************${NC}"
 sudo apt-get -y install git minicom
 
+echo -e "${CYAN}************* STEP: Installing avrdude, python-rpi.gpio *************${NC}"
+sudo apt-get install -y avrdude python python-rpi.gpio
+
 echo -e "${CYAN}************* STEP: Installing Mosquitto MQTT *************${NC}"
 sudo apt-get -y install mosquitto mosquitto-clients
 
