@@ -1,11 +1,14 @@
 #!/bin/bash
 # Usage:
-#   ./gateway-update.sh.sh [parent_directory]
-#   example usage:
-#       ./gateway-update.sh /home/pi/gateway
+#   ./gateway-update.sh
+
+dir_to_update=$PWD
+gateway_log=~/gateway/logs/gateway.sys.log
+avrdude_log=~/gateway/logs/avrdude.log
+FW="${dir_to_update}/firmware/gateway.ino.hex"
 
 updateRepo() {
-    local dir="$1"
+    local dir="$dir_to_update"
     cd $dir # switch to the git repo
     repo_url=$(git config --get remote.origin.url)
 
@@ -20,21 +23,29 @@ updateRepo() {
     echo ""
 }
 
-dir_to_update=${1}
-log_dir=~/gateway/logs/gateway.sys.log
-
-if [ -z "$dir_to_update" ] ; then
-    dir_to_update=$PWD
+if [ -f "$FW" ] ; then
+  FW_OLD=`md5sum $FW | awk '{ print $1 }'`
+else
+  FW_OLD=0
 fi
 
 if [ -f "${dir_to_update}/.updatenow" ] ; then
     echo "Updating ${dir_to_update}"
-    updateRepo $dir_to_update >> $log_dir
+    updateRepo $dir_to_update >> $gateway_log
     mv ${dir_to_update}/.updatenow ${dir_to_update}/.updatedone
     echo "Gateway update done" >> ${dir_to_update}/.updatedone
-    echo "OpenMiniHub gateway has been updated" >> $log_dir
-    echo "Restarting gateway.service" >> $log_dir
-    sudo systemctl restart gateway.service
+    echo "OpenMiniHub gateway has been updated" >> $gateway_log
+    echo "Restarting gateway.service" >> $gateway_log
+    sudo systemctl stop gateway.service
+    if [ -f "$FW" ] ; then
+      FW_NEW=`md5sum $FW | awk '{ print $1 }'`
+      if [ "$FW_NEW" != "$FW_OLD" ] ; then
+        ./utility/avrdude -v -c arduino -p atmega328p -P /dev/serial0 -b 115200 -U flash:w:$FW > $avrdude_log
+      else
+        echo "No GW NODE update this time" > $avrdude_log
+      fi
+    fi
+    sudo systemctl start gateway.service
 else
     echo "Update not initiated from APP"
 fi
