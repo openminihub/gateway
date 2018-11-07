@@ -252,19 +252,19 @@ mqttLocal.on('message', (topic, message) => {
 })
 
 function handleOutTopic(rxmessage, nodetype) {
-  var message = rxmessage
-  var rssiIdx = rxmessage.indexOf(' [RSSI:') //not found = -1
-  var messageRSSI
+  var message = rxmessage.toString().trim()
+  var rssiIdx = rxmessage.indexOf('[RSSI:') //not found = -1
+  var messageRSSI=''
   if (rssiIdx > 0)
   {
-    message = rxmessage.substr(0, rssiIdx);
-    messageRSSI = parseInt(rxmessage.substr(rssiIdx+7, rxmessage.length-2-(rssiIdx+7)))
+    message = rxmessage.substr(0, rssiIdx).toString().trim();
+    messageRSSI = parseInt(rxmessage.substr(rssiIdx+6, rxmessage.length-2-(rssiIdx+6)))
     // console.log('rssi: %s', messageRSSI)
   }
-  else
-  {
-    messageRSSI=''
-  }
+  // else
+  // {
+  //   messageRSSI=''
+  // }
   //if FLX?OK then update firmware for OpenNode
   if (message.toString().trim() == 'FLX?OK')
   {
@@ -275,7 +275,8 @@ function handleOutTopic(rxmessage, nodetype) {
     }
     return true
   }
-  if (message.toString().trim() == 'TO:5:OK')
+  // if (message.toString().trim() == 'TO:5:OK')
+  if (/^TO:.*:OK$/.test(message))
   {
     if (global.nodeTo == 0)
     {
@@ -286,12 +287,13 @@ function handleOutTopic(rxmessage, nodetype) {
           dbNode = entries[0]
           // global.hexFile = new readFile('./firmware/GarageNode/GarageNode_v1.1.hex')
           global.nodeTo = dbNode._id
-          nconf.use('file', { file: './firmware/versions.json5' })
-          var nodeFirmware = nconf.get('versions:'+dbNode.name+':firmware')
+          // nconf.use('file', { file: './firmware/versions.json5' })
+          // var nodeFirmware = nconf.get('versions:'+dbNode.name+':firmware')
           // console.log('FW > %s', nodeFirmware)
-          global.hexFile = new readFile('./firmware/'+nodeFirmware)
+          // global.hexFile = new readFile('./firmware/'+nodeFirmware)
+          global.hexFile = new readFile('/home/pi/GateControl.ino.hex')
           serial.write('FLX?' + '\n', function () { serial.drain(); })
-          console.log('Requesting Node: %s update with FW: %s', global.nodeTo, nodeFirmware)
+          console.log('Request update for Node: %s update with FW', global.nodeTo)
         }
       })
       return true
@@ -664,6 +666,9 @@ function handleUserMessage(topic, message) {
       case 'removePlace':
         removePlace(userTopic, msg.id, msg.parameters)
         break
+      case 'renamePlace':
+        renamePlace(userTopic, msg.id, msg.parameters)
+        break
       case 'attachDeviceToPlace':
         attachDeviceToPlace(userTopic, msg.id, msg.parameters)
         break
@@ -805,8 +810,8 @@ function handleSendMessage(topic, message) {
   }.bind({message}))
 }
 
-function nodeOTA(nodeid, firmware) {
-    serial.write('TO:' + nodeId + '\n', function () { serial.drain(); });
+function nodeOTA(nodeid) {
+  serial.write('TO:' + nodeid + '\n', function () { serial.drain(); });
 }
 
 function readNextFileLine(hexFile, lineNumber) {
@@ -1172,6 +1177,33 @@ function removePlace(userTopic, id, par) {
       else
       {
         payload.push({message: "Error removing place"});
+      }
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    })
+  }
+}
+
+function renamePlace(userTopic, id, par) {
+  var payload = []
+  var result = 0
+  if (par == undefined || par.id == undefined)
+  {
+    payload.push({message: "No parameter specified"});
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  }
+  else
+  {
+    BuildingDB.update({_id: par.id }, { $set: { "name": par.name } }, function (err, numAffected) {
+      if (numAffected > 0)
+      {
+        payload.push({message: "Place renamed"});
+        result = 1
+      }
+      else
+      {
+        payload.push({message: "Error renaming place"});
       }
       var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
       mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
@@ -1894,3 +1926,4 @@ function isEmptyObject(obj) {
 
 //on startup do something
 isStartupAfterUpdate()
+// nodeOTA(5)
