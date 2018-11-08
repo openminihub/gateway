@@ -285,16 +285,18 @@ function handleOutTopic(rxmessage, nodetype) {
       NodeDB.find({ _id : toMsg[1] }, function (err, entries) {
         if (entries.length == 1)
         {
-          dbNode = entries[0]
-          // global.hexFile = new readFile('./firmware/GarageNode/GarageNode_v1.1.hex')
-          global.nodeTo = dbNode._id
-          // nconf.use('file', { file: './firmware/versions.json5' })
-          // var nodeFirmware = nconf.get('versions:'+dbNode.name+':firmware')
-          // console.log('FW > %s', nodeFirmware)
-          // global.hexFile = new readFile('./firmware/'+nodeFirmware)
-          global.hexFile = new readFile('/home/pi/GateControl.ino.hex')
-          serial.write('FLX?' + '\n', function () { serial.drain(); })
-          console.log('Request update for Node: %s update with FW', global.nodeTo)
+          getAvailableFirmware(entries[0], function(newFirmare){
+            if (newFirmare != "0")
+            {
+  	      console.log('%s', newFirmare)
+              global.nodeTo = this.dbNode._id
+              //global.hexFile = new readFile(firmwareLocation+this.dbNode.type+"/"+this.dbNode.name+"/"+newFirmare)
+              global.hexFile = new readFile(newFirmare)
+              console.log('FW > %s', newFirmare)
+              serial.write('FLX?' + '\n', function () { serial.drain() })
+              // console.log('Request update for Node: %s update with FW', global.nodeTo)
+            }
+          }.bind({dbNode:entries[0]}))
         }
       })
       return true
@@ -727,6 +729,9 @@ function handleUserMessage(topic, message) {
       case 'getNodeUpdateVersion':
         getNodeUpdateVersion(userTopic, msg.id, msg.parameters)
         break
+      case 'updateNode':
+        updateNode(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -838,7 +843,7 @@ function readNextFileLine(hexFile, lineNumber) {
 function getNodeUpdateVersion(userTopic, id, par) {
   var payload = []
   var result = 0
-  if (par == undefined || par.id == undefined)
+  if (par == undefined || par.nodeid == undefined)
   {
     payload.push({message: "No parameter specified"});
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
@@ -846,11 +851,11 @@ function getNodeUpdateVersion(userTopic, id, par) {
   }
   else
   {
-    NodeDB.find({ _id : par.id }, function (err, entries) {
+    NodeDB.find({ _id : par.nodeid }, function (err, entries) {
       if (entries.length == 1)
       {
-        getAvailableFirmware(entries[0], function(newVersion){
-          if (isNewerThan(newVersion, this.node.version))
+        getAvailableFirmwareVersion(entries[0], function(newVersion){
+          if (versionCompare(newVersion, this.node.version))
           {
             payload.push({version: newVersion})
           }
@@ -873,12 +878,43 @@ function getNodeUpdateVersion(userTopic, id, par) {
   }
 }
 
+function updateNode(userTopic, id, par) {
+  var payload = []
+  var result = 0
+  if (par == undefined || par.nodeid == undefined)
+  {
+    payload.push({message: "No parameter specified"});
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  }
+  else
+  {
+    serial.write('TO:' + par.nodeid + '\n', function () { serial.drain() });
+    payload.push({message: "Node update initiated"})
+    result = 1
+    var newJSON = '{"id":"'+this.id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(this.userTopic, newJSON, {qos: 0, retain: false})
+  }
+}
+
 // getNodeUpdateVersion('userTopic', 1, { "id": "5" })
+
+function getAvailableFirmwareVersion(node, callback)
+{
+  const { exec } = require('child_process')
+  exec("ls "+firmwareLocation+node.type+"/"+node.name+"/"+node.name+"_* | sort -r | head -1 | awk -F'_' '{print $2}'|cut -d'.' -f1,2", (err, stdout, stderr) => {
+    if (!err) {
+      if (stdout.length > 0)
+        return callback(stdout.trim())
+    }
+    return callback('0')
+  })
+}
 
 function getAvailableFirmware(node, callback)
 {
   const { exec } = require('child_process')
-  exec("ls "+firmwareLocation+node.type+"/"+node.name+"/"+node.name+"-* | sort -r | head -1 | awk -F'_' '{print $2}'|cut -d'.' -f1,2", (err, stdout, stderr) => {
+  exec("ls "+firmwareLocation+node.type+"/"+node.name+"/"+node.name+"_* | sort -r | head -1", (err, stdout, stderr) => {
     if (!err) {
       if (stdout.length > 0)
         return callback(stdout.trim())
@@ -888,7 +924,7 @@ function getAvailableFirmware(node, callback)
 }
 
 // Returns true if v1 is bigger than v2, and false if otherwise.
-function isNewerThan(v1, v2)
+function versionCompare(v1, v2)
 {
   v1=v1.split('.');
   v2=v2.split('.');
@@ -1009,7 +1045,7 @@ function getDeviceValues(userTopic, id, par) {
     var result = 1
     query = (par.lenght === 0) ? {"_id": {$exists : true}} : {$and: [{ "nodeid": par[d].nodeid }, { "deviceid": par[d].deviceid }]}
     MessageDB.find(query, function (err, entries) {
-      if (!err)
+      if (!err && entries)
       {
         var messages = new Array()
         for (var n in entries)
@@ -1042,6 +1078,13 @@ function getDeviceValues(userTopic, id, par) {
           var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
           mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
         }
+      }
+      else
+      {
+        result = 0
+        payload.push({message: "No device value"});
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       }
     }.bind({devicesLeft: par.length-d-1}))
   }
