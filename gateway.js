@@ -12,7 +12,8 @@ var fs = require("fs")
 const execFile = require('child_process').execFile
 var readFile = require('n-readlines')
 nconf.argv().file({ file: path.resolve(__dirname, 'settings.json5'), format: JSON5 })
-settings = nconf.get('settings');
+settings = nconf.get('settings')
+const firmwareLocation = './firmware/';
 var mqtt = require('mqtt')
 var mqttCloud  = mqtt.connect('mqtt://'+settings.mqtt.server.cloud.name.value+':'+settings.mqtt.server.cloud.port.value, {username:settings.mqtt.server.cloud.username.value, password:settings.mqtt.server.cloud.password.value})
 var mqttLocal  = mqtt.connect('mqtt://'+settings.mqtt.server.local.name.value+':'+settings.mqtt.server.local.port.value, {username:settings.mqtt.server.local.username.value, password:settings.mqtt.server.local.password.value})
@@ -723,6 +724,9 @@ function handleUserMessage(topic, message) {
       case 'listNodes':
         listNodes(userTopic, msg.id, msg.parameters)
         break
+      case 'getNodeUpdateVersion':
+        getNodeUpdateVersion(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -829,6 +833,72 @@ function readNextFileLine(hexFile, lineNumber) {
       serial.write('FLX:' + lineNumber + fileLine.toString('ascii').trim() + '\n', function () { serial.drain(); });
     }
   }
+}
+
+function getNodeUpdateVersion(userTopic, id, par) {
+  var payload = []
+  var result = 0
+  if (par == undefined || par.id == undefined)
+  {
+    payload.push({message: "No parameter specified"});
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  }
+  else
+  {
+    NodeDB.find({ _id : par.id }, function (err, entries) {
+      if (entries.length == 1)
+      {
+        getAvailableFirmware(entries[0], function(newVersion){
+          if (isNewerThan(newVersion, this.node.version))
+          {
+            payload.push({version: newVersion})
+          }
+          else
+          {
+            payload.push({version: "0"})
+          }
+          result = 1
+          var newJSON = '{"id":"'+this.id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+          mqttCloud.publish(this.userTopic, newJSON, {qos: 0, retain: false})
+        }.bind({node: entries[0], userTopic, id}))
+      }
+      else
+      {
+        payload.push({message: "Node do not exists"});
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      }
+    })
+  }
+}
+
+// getNodeUpdateVersion('userTopic', 1, { "id": "5" })
+
+function getAvailableFirmware(node, callback)
+{
+  const { exec } = require('child_process')
+  exec("ls "+firmwareLocation+node.type+"/"+node.name+"/"+node.name+"-* | sort -r | head -1 | awk -F'_' '{print $2}'|cut -d'.' -f1,2", (err, stdout, stderr) => {
+    if (!err) {
+      if (stdout.length > 0)
+        return callback(stdout.trim())
+    }
+    return callback('0')
+  })
+}
+
+// Returns true if v1 is bigger than v2, and false if otherwise.
+function isNewerThan(v1, v2)
+{
+  v1=v1.split('.');
+  v2=v2.split('.');
+  for(var i = 0; i<Math.max(v1.length,v2.length); i++){
+    if(v1[i] == undefined) return false; // If there is no digit, v2 is automatically bigger
+    if(v2[i] == undefined) return true; // if there is no digit, v1 is automatically bigger
+    if(v1[i] > v2[i]) return true;
+    if(v1[i] < v2[i]) return false;
+  }
+  return false; // Returns false if they are equal
 }
 
 //API
@@ -1927,3 +1997,4 @@ function isEmptyObject(obj) {
 //on startup do something
 isStartupAfterUpdate()
 // nodeOTA(5)
+
