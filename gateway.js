@@ -288,9 +288,7 @@ function handleOutTopic(rxmessage, nodetype) {
           getAvailableFirmware(entries[0], function(newFirmare){
             if (newFirmare != "0")
             {
-  	      console.log('%s', newFirmare)
               global.nodeTo = this.dbNode._id
-              //global.hexFile = new readFile(firmwareLocation+this.dbNode.type+"/"+this.dbNode.name+"/"+newFirmare)
               global.hexFile = new readFile(newFirmare)
               console.log('FW > %s', newFirmare)
               serial.write('FLX?' + '\n', function () { serial.drain() })
@@ -542,6 +540,10 @@ function handleOutTopic(rxmessage, nodetype) {
           NodeDB.update({ "_id" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
           //TODO if maxversion == undefined then set to *
           // mqttCloud.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
+        }
+        if (msg[4] == '0')  //Version - I_BATTERY_LEVEL
+        {
+          NodeDB.update({ "_id" : msg[0] }, { $set: { battery: msg[5] } }, { upsert: true })
         }
       }
       break
@@ -831,11 +833,11 @@ function readNextFileLine(hexFile, lineNumber) {
     {
       global.nodeTo = 0
       console.log('Firmware successfully transfered')
-      serial.write('FLX?EOF' + '\n', function () { serial.drain(); });
+      serial.write('FLX?EOF' + '\n', function () { serial.drain() })
     }
     else
     {
-      serial.write('FLX:' + lineNumber + fileLine.toString('ascii').trim() + '\n', function () { serial.drain(); });
+      serial.write('FLX:' + lineNumber + fileLine.toString('ascii').trim() + '\n', function () { serial.drain() })
     }
   }
 }
@@ -883,17 +885,31 @@ function updateNode(userTopic, id, par) {
   var result = 0
   if (par == undefined || par.nodeid == undefined)
   {
-    payload.push({message: "No parameter specified"});
+    payload.push({message: "No parameter specified"})
     var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
     mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   }
   else
   {
-    serial.write('TO:' + par.nodeid + '\n', function () { serial.drain() });
-    payload.push({message: "Node update initiated"})
-    result = 1
-    var newJSON = '{"id":"'+this.id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-    mqttCloud.publish(this.userTopic, newJSON, {qos: 0, retain: false})
+    NodeDB.find({ _id : par.nodeid }, function (err, entries) {
+      if (entries.length == 1)
+      {
+        if (entries[0].battery == undefined)
+          serial.write('TO:' + par.nodeid + '\n', function () { serial.drain() })
+        else
+          serial.write('*u' + par.nodeid + '\n', function () { serial.drain() })
+        payload.push({message: "Node update initiated"})
+        result = 1
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      }
+      else
+      {
+        payload.push({message: "Node do not exists"});
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      }
+    })
   }
 }
 
