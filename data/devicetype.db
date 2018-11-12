@@ -24,6 +24,7 @@
 {"type":37,"value":"S_GAS","name":"Gas meter","_id":"gaUkUL6XqT2qPbkF"}
 {"type":4,"value":"S_DIMMER","name":"Dimmable light or fan device","_id":"glItBvfy1cbpz2Eq"}
 {"type":12,"value":"S_WEIGHT","name":"Personal scale sensor","_id":"hEGNwILl2N1wVlDH"}
+{"type":40,"value":"S_GATE","name":"Gate control module","_id":"iUAW8wUaWK6REJDA"}
 {"type":2,"value":"S_SMOKE","name":"Smoke sensor","_id":"irCXiD3Mrn28CVK3"}
 {"type":31,"value":"S_SPRINKLER","name":"Sprinkler","_id":"mFNvNojcg4RgK55b"}
 {"type":39,"value":"S_WATER_QUALITY","name":"Water quality sensor","_id":"pG1VApWPcQAQnp7y"}
@@ -38,4 +39,3 @@
 {"type":10,"value":"S_RAIN","name":"Rain sensor","_id":"vki107EuXmqUbFiU"}
 {"type":1,"value":"S_MOTION","name":"Motion sensor","_id":"w1BOTldrB7uVws8L"}
 {"type":19,"value":"S_LOCK","name":"Lock device","_id":"yhfLyUfjbQw9zXHU"}
-{"type":40,"value":"S_GATE","name":"Gate control module","_id":"iUAW8wUaWK6REJDA"}
