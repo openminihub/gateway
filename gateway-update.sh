@@ -36,7 +36,7 @@ if [ -f "${dir_to_update}/.updatenow" ] ; then
     echo "Gateway update done" >> ${dir_to_update}/.updatedone
     echo "OpenMiniHub gateway has been updated" >> $gateway_log
     echo "Restarting gateway.service" >> $gateway_log
-    sudo systemctl kill gateway.service
+    sudo systemctl stop gateway.service
     if [ -f "$FW" ] ; then
       FW_NEW=`md5sum $FW | awk '{ print $1 }'`
       if [ "$FW_NEW" != "$FW_OLD" ] ; then
