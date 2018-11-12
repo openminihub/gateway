@@ -21,5 +21,5 @@ echo "\"gw\" : ${GW_CHANGE},"
 echo "\"opennode\" : ["
 echo ${opennode_list}
 echo "],"
-echo "\"log\" : \"$(echo ${CHANGE_LOG} | awk -v ORS='\\n' '1')\""
+echo "\"log\" : \"$(echo ${CHANGE_LOG} | awk -v ORS='\\n' '1' | sed 's/\\n$//')\""
 echo "}"
