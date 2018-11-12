@@ -2056,7 +2056,7 @@ function isStartupAfterUpdate() {
 
 function controlGateway(userTopic, id, par) {
   const { exec } = require('child_process')
-  exec((par.sudo) ? "sudo " : "" + par.cmd, (err, stdout, stderr) => {
+  exec((par.sudo) ? "sudo " + par.cmd : par.cmd, (err, stdout, stderr) => {
     var payload = []
     var result = 0
     if (!err)
@@ -2068,7 +2068,7 @@ function controlGateway(userTopic, id, par) {
     }
     else
     {
-      payload.push({message: "Error executing command"})
+      payload.push({message: err})
       var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
       mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
