@@ -656,6 +656,9 @@ function handleUserMessage(topic, message) {
       case 'getUpdateInfo':
         getUpdateInfo(userTopic, msg.id, msg.parameters)
         break
+      case 'controlGateway':
+        controlGateway(userTopic, msg.id, msg.parameters)
+        break
       // case 'listUnusedDevices':
       //   listUnusedDevices(userTopic, msg.id, msg.parameters)
       //   break
@@ -2049,6 +2052,27 @@ function isStartupAfterUpdate() {
       console.log('No first run after update (%s)', err)
     }
   });
+}
+
+function controlGateway(userTopic, id, par) {
+  const { exec } = require('child_process')
+  exec((par.sudo) ? "sudo " : "" + par.cmd, (err, stdout, stderr) => {
+    var payload = []
+    var result = 0
+    if (!err)
+    {
+      result = 1
+      payload.push({message: "Command executed"})
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    }
+    else
+    {
+      payload.push({message: "Error executing command"})
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    }
+  })
 }
 
 function getUpdateInfo(userTopic, id, par)
