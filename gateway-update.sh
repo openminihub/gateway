@@ -4,7 +4,6 @@
 
 dir_to_update=$PWD
 gateway_log=~/gateway/logs/gateway.sys.log
-avrdude_log=~/gateway/logs/avrdude.log
 FW="${dir_to_update}/firmware/gateway.ino.hex"
 
 updateRepo() {
@@ -35,16 +34,18 @@ if [ -f "${dir_to_update}/.updatenow" ] ; then
     mv ${dir_to_update}/.updatenow ${dir_to_update}/.updatedone
     echo "Gateway update done" >> ${dir_to_update}/.updatedone
     echo "OpenMiniHub gateway has been updated" >> $gateway_log
-    echo "Restarting gateway.service" >> $gateway_log
+    echo "Stopping gateway.service" >> $gateway_log
     sudo systemctl stop gateway.service
     if [ -f "$FW" ] ; then
       FW_NEW=`md5sum $FW | awk '{ print $1 }'`
       if [ "$FW_NEW" != "$FW_OLD" ] ; then
-        ./utility/avrdude -v -c arduino -p atmega328p -P /dev/serial0 -b 115200 -U flash:w:$FW > $avrdude_log
+        echo "Updating GW NODE..." >> $gateway_log
+        ./utility/avrdude -v -c arduino -p atmega328p -P /dev/serial0 -b 115200 -U flash:w:$FW > $gateway_log
       else
-        echo "No GW NODE update this time" > $avrdude_log
+        echo "No GW NODE update this time" > $gateway_log
       fi
     fi
+    echo "Starting gateway.service" >> $gateway_log
     sudo systemctl start gateway.service
 else
     echo "Update not initiated from APP"
