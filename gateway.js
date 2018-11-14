@@ -1964,22 +1964,21 @@ function listSubscribedDevices(userTopic, id, par) {
   UserDB.find({ "user" : splitTopic[1] }, function (err, entries) {
     if (!err && entries.length)
     {
-      // MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1 }, function (err, entries) {
-      MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1, _id: 0 }).sort({ nodeid: 1, deviceid: 1 }).exec(function (err, entries) {
+      MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1, _id: 0 }, function (err, entries) {
+      // MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1, _id: 0 }).sort({ nodeid: 1, deviceid: 1 }).exec(function (err, entries) {
         var payload = []
         var result = 0
-        var device = {}
         for (var n in entries)
         {
-          if (JSON.stringify(entries[n]) != JSON.stringify(device))
+          if (!payload.find(o => o.nodeid === entries[n].nodeid && o.deviceid === entries[n].deviceid))
           {
-            payload.push({nodeid: entries[n].nodeid,
+            payload.push({nodeid:   entries[n].nodeid,
                           deviceid: entries[n].deviceid
             })
-            device = entries[n]
           }
           result = 1
         }
+        // console.log('%s', JSON.stringify(payload))
         var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
         mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
       })
