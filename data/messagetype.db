@@ -23,6 +23,7 @@
 {"type":39,"value":"V_CURRENT","name":"Current","_id":"SbZ5LHqOmEvtrRoK"}
 {"type":6,"value":"V_RAIN","name":"Amount of rain","_id":"TE3td730SHf6hpiu"}
 {"type":52,"value":"V_ORP","name":"Water quality: : ORP","_id":"UZwtkgk17mi3r1TI"}
+{"type":58,"value":"V_GATE_STATE","name":"Control gate state (OPEN, CLOSE, PAUSE)","_id":"UjthOADAclaXCGHI"}
 {"type":38,"value":"V_VOLTAGE","name":"Voltage","_id":"WRqgxI414n2yadNz"}
 {"type":37,"value":"V_LEVEL","name":"Level","_id":"X3FVJOp2UTLJe5Mh"}
 {"type":20,"value":"V_SCENE_OFF","name":"Turn of a scene","_id":"Y6jT3lzp5oVdxNv2"}
@@ -54,4 +55,5 @@
 {"type":14,"value":"V_IMPEDANCE","name":"Impedance","_id":"y5ELRoyZqXikdjYP"}
 {"type":28,"value":"V_VAR5","name":"VAR5","_id":"ym2T7iCqoFCKDptS"}
 {"type":53,"value":"V_EC","name":"Water quality: EC","_id":"zHkwV4Xd7RKa04Sy"}
+{"type":57,"value":"V_GATE_STATUS","name":"Gate status (OPENED, CLOSED, OPENING, CLOSING, PAUSED)","_id":"zVMag6GgU6FCEAT2"}
 {"type":1,"value":"V_HUM","name":"Humidity","_id":"zaTbuV7ds2go3JuS"}
