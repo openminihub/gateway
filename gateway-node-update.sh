@@ -20,7 +20,7 @@ if [ -f "${dir_to_update}/.updatenow" ] ; then
       FW_NEW=`md5sum $FW | awk '{ print $1 }'`
       if [ "$FW_NEW" != "$FW_OLD" ] ; then
         echo "Flashing GW Node with latest firmware" >> $gateway_log
-        ./utility/avrdude -v -c arduino -p atmega328p -P /dev/serial0 -b 115200 -U flash:w:$FW -l $avrdude_log
+        ./utility/avrdude -v -c arduino -p atmega328p -P /dev/serial0 -b 115200 -U flash:w:$FW &> $avrdude_log
 	if [ `grep 'Reading\|Writing' ${avrdude_log} | grep '100%' | wc -l` -ne 3 ] ; then 
           gwupdate="failed"
         else
