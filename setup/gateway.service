@@ -3,6 +3,7 @@ Description=OpenMiniHub Gateway Service
 After=network.target
 
 [Service]
+ExecStartPre=/bin/bash /home/pi/gateway/gateway-node-update.sh >> /home/pi/gateway/logs/gateway.sys.log 2>&1
 ExecStart=/bin/sh -c '/usr/bin/node /home/pi/gateway/gateway.js >> /home/pi/gateway/logs/gateway.sys.log 2>&1'
 ExecStop=/bin/kill -s SIGTERM $MAINPID
 ExecReload=/bin/kill -s HUP $MAINPID
@@ -14,7 +15,7 @@ User=pi
 SyslogIdentifier=opeminihub-gateway
 Environment=NODE_ENV=production
 WorkingDirectory=/home/pi/gateway/
-TimeoutStopSec=2
+#TimeoutStopSec=2
 
 [Install]
 WantedBy=multi-user.target

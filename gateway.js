@@ -2009,7 +2009,7 @@ function updateGateway(userTopic, id, par) {
       fs.writeFile('./.updatenow', userTopic+'\n'+id+'\n', function (err) {
         if (!err)
         {
-          const child = execFile('./gateway-update.sh', [''], (err, stdout, stderr) => {
+            const child = execFile('./gateway-update.sh', [''], (err, stdout, stderr) => {
             if (!err)
             {
               result = 1
@@ -2109,5 +2109,4 @@ function isEmptyObject(obj) {
 
 //on startup do something
 isStartupAfterUpdate()
-// nodeOTA(5)
 
