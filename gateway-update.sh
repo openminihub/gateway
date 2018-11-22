@@ -23,7 +23,14 @@ updateRepo() {
 }
 
 if [ -f "${dir_to_update}/.updatenow" ] ; then
+    SERVICE_VERSION_OLD=`md5sum "${dir_to_update}/setup/gateway.service" | awk '{ print $1 }'`
     updateRepo $dir_to_update >> $gateway_log
+    SERVICE_VERSION_NEW=`md5sum "${dir_to_update}/setup/gateway.service" | awk '{ print $1 }'`
+    if [ "$SERVICE_VERSION_NEW" != "$SERVICE_VERSION_OLD" ] ; then
+        echo "Updating gateway.service daemon service" >> $gateway_log
+        sudo cp ${dir_to_update}/setup/gateway.service /etc/systemd/system/
+        sudo systemctl daemon-reload
+    fi
     echo "Update DONE. Restarting gateway.service" >> $gateway_log
     sudo systemctl restart gateway.service
 else
