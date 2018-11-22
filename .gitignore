@@ -11,3 +11,5 @@ logs/*
 ssl/*
 setup/gateway-update.service
 .updatenow
+.updatedone
+.gwnodefw
