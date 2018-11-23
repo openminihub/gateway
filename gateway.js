@@ -2073,7 +2073,7 @@ function controlGateway(userTopic, id, par) {
     }
     else
     {
-      payload.push({message: err})
+      payload.push({message: stderr})
       var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
       mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     }
