@@ -1128,7 +1128,8 @@ function listNodes(userTopic, id, par) {
                         name: entries[n].name,
                         version: entries[n].version,
                         devices: entries[n].devices,
-                        id: entries[n]._id
+                        id: entries[n]._id,
+                        battery: (entries[n].battery === undefined) ? null : entries[n].battery
           });
         }
         var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
