@@ -1814,7 +1814,8 @@ function doDeviceSubscribe(message) {
                     msgtype: this.message.msgtype,
                     msgvalue: msgvalue,
                     msgdata: msgdata,
-                    updated: this.message.updated
+                    updated: this.message.updated,
+                    rssi: this.message.rssi
                     // id: this.message._id});
       })
       var result = 1
