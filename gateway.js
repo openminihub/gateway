@@ -214,7 +214,7 @@ mqttLocal.on('connect', () => {
 mqttCloud.on('message', (topic, message) => {
   if (message.toString().trim().length > 0)
   {
-    console.log('MQTT < %s %s', topic, message)
+    console.log('MQTT < %s %s', topic, message.toString('utf8').replace(/\s+/g, ' ').trim())
     stopic = topic.split('/')
     switch (stopic[0]) {
       case 'user':
@@ -228,7 +228,7 @@ mqttCloud.on('message', (topic, message) => {
 mqttLocal.on('message', (topic, message) => {
   if (message.toString().trim().length > 0)
   {
-    console.log('MQTT < %s %s', topic, message)
+    console.log('MQTT < %s %s', topic, message.toString('utf8').replace(/\s+/g, ' ').trim())
     stopic = topic.split('/')
     switch (stopic[0]) {
       case 'system':
