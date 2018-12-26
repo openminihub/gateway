@@ -49,12 +49,22 @@ const influx = new Influx.InfluxDB({
         'msgtype'
       ],
       fields: {
-        msgvalue: Influx.FieldType.STRING,
-        msgdata: Influx.FieldType.FLOAT
+        msgvalue: Influx.FieldType.FLOAT,
+        msgdata: Influx.FieldType.STRING
       }
     }
   ]
 })
+
+influx.getDatabaseNames()
+  .then(names => {
+    if (!names.includes('openminihub')) {
+      influx.createDatabase('openminihub')
+    }
+  })
+  .catch(err => {
+    console.error(`Error creating Influx database!`)
+  })
 
 var log = console.log
 console.log = function () {
