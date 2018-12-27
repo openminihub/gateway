@@ -1142,6 +1142,8 @@ function getDeviceValueHisotry(userTopic, id, par) {
   {
     payload.push({message: "Not all parameters are passed"});
     result = 0
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
   }
   else
   {
@@ -1153,15 +1155,17 @@ function getDeviceValueHisotry(userTopic, id, par) {
         and time > now()-`+par.offsetfrom+`
         and time < now()-`+par.offsetto+`
       order by time asc
-    `).then(result => {
-      payload.push(result)
+    `).then(query_result => {
+      payload = payload.concat(query_result)
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     }).catch(err => {
       result = 0
       payload.push({message: err.stack})
+      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
     })
-  }   
-  var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-  mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+  }
 }
 
 function listNodes(userTopic, id, par) {
