@@ -726,6 +726,9 @@ function handleUserMessage(topic, message) {
       case 'getDeviceValues':
         getDeviceValues(userTopic, msg.id, msg.parameters)
         break
+      case 'getDeviceValueHisotry':
+        getDeviceValueHisotry(userTopic, msg.id, msg.parameters)
+        break
       case 'listDeviceTypes':
         listDeviceTypes(userTopic, msg.id, msg.parameters)
         break
@@ -1120,6 +1123,45 @@ function getDeviceValues(userTopic, id, par) {
       }
     }.bind({devicesLeft: par.length-d-1}))
   }
+}
+
+function getDeviceValueHisotry(userTopic, id, par) {
+  // console.log('par: %s', JSON.stringify(par))
+  var query = new Object()
+  if (isEmptyObject(par))
+  {
+    par = new Object()
+  }
+  var payload = []
+  var result = 1
+  if (typeof par.nodeid === 'undefined'   ||
+      typeof par.deviceid === 'undefined' ||
+      typeof par.msgtype === 'undefined'  ||
+      typeof par.offsetfrom === 'undefined' ||
+      typeof par.offsetto === 'undefined'   )
+  {
+    payload.push({message: "Not all parameters are passed"});
+    result = 0
+  }
+  else
+  {
+    influx.query(`
+      select msgvalue from message
+      where nodeid = '`+par.nodeid+`'
+        and deviceid = '`+par.deviceid+`'
+        and msgtype = '`+par.msgtype+`'
+        and time > now()-`+par.offsetfrom+`
+        and time < now()-`+par.offsetto+`
+      order by time asc
+    `).then(result => {
+      payload.push(result)
+    }).catch(err => {
+      result = 0
+      payload.push({message: err.stack})
+    })
+  }   
+  var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+  mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
 }
 
 function listNodes(userTopic, id, par) {
