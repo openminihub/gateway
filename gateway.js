@@ -222,8 +222,6 @@ mqttLocal.on('connect', () => {
 })
 
 mqttCloud.on('message', (topic, message) => {
-  console.log('RAW TOPIC: %s', topic)
-  console.log('RAW MESSAGE: %s', message)
   if (message.toString().trim().length > 0)
   {
     console.log('MQTT < %s %s', topic, message.toString('utf8').replace(/\s+/g, ' ').trim())
