@@ -728,8 +728,8 @@ function handleUserMessage(topic, message) {
       case 'getDeviceValues':
         getDeviceValues(userTopic, msg.id, msg.parameters)
         break
-      case 'getDeviceValueHisotry':
-        getDeviceValueHisotry(userTopic, msg.id, msg.parameters)
+      case 'getDeviceValueHistory':
+        getDeviceValueHistory(userTopic, msg.id, msg.parameters)
         break
       case 'listDeviceTypes':
         listDeviceTypes(userTopic, msg.id, msg.parameters)
@@ -1127,7 +1127,7 @@ function getDeviceValues(userTopic, id, par) {
   }
 }
 
-function getDeviceValueHisotry(userTopic, id, par) {
+function getDeviceValueHistory(userTopic, id, par) {
   // console.log('par: %s', JSON.stringify(par))
   var query = new Object()
   if (isEmptyObject(par))
