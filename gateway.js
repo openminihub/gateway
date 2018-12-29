@@ -1147,24 +1147,25 @@ function getDeviceValueHistory(userTopic, id, par) {
   }
   else
   {
-    influx.query(`
-      select msgvalue from message
-      where nodeid = '`+par.nodeid+`'
-        and deviceid = '`+par.deviceid+`'
-        and msgtype = '`+par.msgtype+`'
-        and time > now()-`+par.offsetfrom+`
-        and time < now()-`+par.offsetto+`
-      order by time asc
-    `).then(query_result => {
-      payload = payload.concat(query_result)
-      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-    }).catch(err => {
-      result = 0
-      payload.push({message: err.stack})
-      var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-      mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
-    })
+    var historyQuery = ""
+    if (typeof par.resolution === 'undefined')
+    {
+      historyQuery = "select msgvalue from message where nodeid = '"+par.nodeid+"'and deviceid = '"+par.deviceid+"'and msgtype = '"+par.msgtype+"'and time > now()-"+par.offsetfrom+" and time < now()-"+par.offsetto+" order by time asc"
+    }
+    else
+    {
+      historyQuery = "select round(mean(msgvalue)*10)/10 from message where nodeid = '"+par.nodeid+"'and deviceid = '"+par.deviceid+"'and msgtype = '"+par.msgtype+"'and time > now()-"+par.offsetfrom+" and time < now()-"+par.offsetto+" group by time("+par.resolution+") fill(none) order by time asc"
+    }
+    influx.query(historyQuery)
+      .then(query_result => {
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(query_result)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      }).catch(err => {
+        result = 0
+        payload.push({message: err.stack})
+        var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+        mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+      })
   }
 }
 
