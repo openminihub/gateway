@@ -140,24 +140,32 @@ mqttCloud.on('connect', () => {
 })
 
 mqttLocal.on('connect', () => {  
-  //on startup subscribe to all node topics
-  MessageDB.find({ nodeid : { $exists: true } }, function (err, entries) {
+  //on startup subscribe to all OpenNode topics
+  NodeDB.find({ "type" : "OpenNode" }, { _id: 1 }, function (err, entries) {
     if (!err)
     {
-      console.log('==============================');
-      console.log('* Subscribing to MQTT topics *');
-      console.log('==============================');
-      for (var n in entries)
+      if (entries.length > 1)
       {
-        var mqttTopic = 'node/'+entries[n].nodeid+'/'+entries[n].deviceid+'/'+entries[n].msgtype+'/set'
-        mqttLocal.subscribe(mqttTopic)
-        console.log('%s', mqttTopic);
+        MessageDB.find({ nodeid : { $in: entries } }, function (err, entries) {
+          if (!err)
+          {
+            console.log('==============================');
+            console.log('* Subscribing to MQTT topics *');
+            console.log('==============================');
+            for (var n in entries)
+            {
+              var mqttTopic = 'node/'+entries[n].nodeid+'/'+entries[n].deviceid+'/'+entries[n].msgtype+'/set'
+              mqttLocal.subscribe(mqttTopic)
+              console.log('%s', mqttTopic);
+            }
+            console.log('==============================');
+          }
+          else
+          {
+            console.log('ERROR:%s', err)
+          }
+        })
       }
-      console.log('==============================');
-    }
-    else
-    {
-      console.log('ERROR:%s', err)
     }
   })
   //system configuration topics
@@ -421,7 +429,7 @@ function handleOutTopic(rxmessage, nodetype) {
             var _deviceType = 3
             var _msgType = 2
             break
-          case default:
+          default:
             var _deviceType = 23
             var _msgType = 48
             break
