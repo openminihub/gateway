@@ -398,7 +398,6 @@ function handleOutTopic(rxmessage, nodetype) {
       if (msg.length == 4) //Internal message
       {      
         switch (msg[2]) {
-          case 'app':
           case 'version':
             NodeDB.update({ "_id" : msg[1] }, { $set: { version: msg[3] } }, { upsert: true })
             break
@@ -429,7 +428,17 @@ function handleOutTopic(rxmessage, nodetype) {
         MessageDB.update({ $and: [{ "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000) }, { upsert: true, returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument, upsert) {
 
         })
-      }
+        NodeDB.find({ $and: [ {"_id" : msg[1]}, {"devices": { $elemMatch: {id: parseInt(msg[3]), type: _deviceType}}} ] }, {}, function (err, entries) {
+          if (!err)
+          {
+            if (entries.length < 1)
+            {
+              NodeDB.update({ "_id" : msg[1] }, { $push: { "devices": {id: parseInt(msg[3]), type: _deviceType }} }, {}, function () {
+              })
+            }
+          }
+        })
+    }
       return true
   }
 }
