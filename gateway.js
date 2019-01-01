@@ -392,7 +392,6 @@ function handleOutTopic(rxmessage, nodetype) {
       //take off all not valid symbols
       var trim_msg = rxmessage.toString().trim().replace(/(\n|\r)+$/, '')
       // message = rxmessage.substr(0, rssiIdx).toString().trim();
-      console.log('trimmed: %s', trim_msg)
       //get node networkID
       var msg = trim_msg.toString().split('/')
       if (msg.length == 4) //Internal message
@@ -807,7 +806,7 @@ function setDeviceValue(userTopic, id, par) {
   }
   else
   {
-    NodeDB.find({ $and: [ {"_id" : par.nodeid}, {"devices": { $elemMatch: {id: par.deviceid, type: par.msgtype}}} ] }, {}, function (err, entries) {
+    NodeDB.find({ $and: [ {"_id" : par.nodeid}, {"devices": { $elemMatch: {id: par.deviceid} }} ] }, {}, function (err, entries) {
       var result = 0
       if (!err)
       {
@@ -823,7 +822,8 @@ function setDeviceValue(userTopic, id, par) {
               result = 1
               break
             case 'ESPurna':
-              switch (par.devicetype) {
+              var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf( this.par.deviceid )
+              switch (entries[0].devices[deviceIndex].type) {
                 case 3:
                   var _device = 'relay'
                   break
