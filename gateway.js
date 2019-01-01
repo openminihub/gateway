@@ -793,26 +793,51 @@ function setDeviceValue(userTopic, id, par) {
     par = new Object()
   }
   var payload = []
-  var result = 1
   if (typeof par.nodeid === 'undefined'   ||
       typeof par.deviceid === 'undefined' ||
       typeof par.msgtype === 'undefined'  ||
       typeof par.msgvalue === 'undefined' ||
       typeof par.msgdata === 'undefined'   )
   {
-    payload.push({message: "Not all parameters are passed"});
-    result = 0
+    payload.push({message: "Not all parameters are passed"})
+    var result = 0
+    var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+    mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
+    return false
   }
   else
   {
-    var message = (par.msgvalue === null) ? par.msgdata : par.msgvalue.toString()
-    var txOpenNode = par.nodeid+';'+par.deviceid+';1;1;'+par.msgtype+';'+message+'\n'
-    console.log('TX   > %s', txOpenNode)
-    serial.write(txOpenNode, function () { serial.drain(); });
-    payload.push({message: "Message sent"});
+    NodeDB.find({ $and: [ {"_id" : par.nodeid}, {"devices": { $elemMatch: {id: par.deviceid, type: par.msgtype}}} ] }, {}, function (err, entries) {
+      var result = 0
+      if (!err)
+      {
+        if (entries.length == 1)
+        {
+          var message = (this.par.msgvalue === null) ? this.par.msgdata : this.par.msgvalue.toString()
+          switch (entries[0].type) {
+            case 'OpenNode':
+              var txOpenNode = this.par.nodeid+';'+this.par.deviceid+';1;1;'+this.par.msgtype+';'+message+'\n'
+              console.log('TX   > %s', txOpenNode)
+              serial.write(txOpenNode, function () { serial.drain(); });
+              payload.push({message: "Message sent"});
+              result = 1
+              break
+            case 'ESPurna':
+              switch (par.devicetype) {
+                case 3:
+                  var _device = 'relay'
+                  break
+              }
+              mqttLocal.publish('espurna/'+this.par.nodeid+'/'+_device+'/'+this.par.deviceid+'/set', message, {qos: 0, retain: false})
+              break
+          }
+        }
+      }
+      if (!result) payload.push({message: "Node not found!"});
+      var newJSON = '{"id":"'+this.id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
+      mqttCloud.publish(this.userTopic, newJSON, {qos: 0, retain: false})
+    }.bind({par, userTopic, id}))
   }   
-  var newJSON = '{"id":"'+id+'", "result":'+result+', "payload": '+JSON.stringify(payload)+'}'
-  mqttCloud.publish(userTopic, newJSON, {qos: 0, retain: false})
 }
 
 function getDeviceValues(userTopic, id, par) {
