@@ -169,8 +169,8 @@ mqttLocal.on('connect', () => {
   mqttLocal.subscribe('user/+/in')
   mqttLocal.subscribe('gateway/node/+/out')
   // ESPURNA Handlers
-  mqttLocal.subscribe('espurna/?/?')
-  mqttLocal.subscribe('espurna/?/?/?')
+  mqttLocal.subscribe('espurna/+/+')
+  mqttLocal.subscribe('espurna/+/+/+')
   console.log('+connection to local mqtt OK')
 })
 
