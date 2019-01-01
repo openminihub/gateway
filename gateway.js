@@ -209,6 +209,8 @@ mqttLocal.on('message', (topic, message) => {
         return handleGatewayMessage(topic, message)
       case 'node':
         return handleSendMessage(topic, message)
+      case 'espurna':
+        return handleOutTopic(topic+'/'+message, 'ESPurna')
 //      default:
     }
   }
@@ -216,173 +218,192 @@ mqttLocal.on('message', (topic, message) => {
 })
 
 function handleOutTopic(rxmessage, nodetype) {
-  var message = rxmessage.toString().trim()
-  var rssiIdx = rxmessage.indexOf('[RSSI:') //not found = -1
-  var messageRSSI=''
-  if (rssiIdx > 0)
-  {
-    message = rxmessage.substr(0, rssiIdx).toString().trim();
-    messageRSSI = parseInt(rxmessage.substr(rssiIdx+6, rxmessage.length-2-(rssiIdx+6)))
-  }
-  //if FLX?OK then update firmware for OpenNode
-  if (message.toString().trim() == 'FLX?OK')
-  {
-    if (global.nodeTo)
-    {
-      readNextFileLine(global.hexFile, 0)
-      console.log('Transfering firmware...')
-    }
-    return true
-  }
-  if (/^TO:.*:OK$/.test(message))
-  {
-    if (global.nodeTo == 0)
-    {
-      var toMsg = message.toString().split(':')
-      NodeDB.find({ _id : toMsg[1] }, function (err, entries) {
-        if (entries.length == 1)
-        {
-          getAvailableFirmware(entries[0], function(newFirmare){
-            if (newFirmare != "0")
-            {
-              global.nodeTo = this.dbNode._id
-              global.hexFile = new readFile(newFirmare)
-              console.log('FW > %s', newFirmare)
-              serial.write('FLX?' + '\n', function () { serial.drain() })
-              // console.log('Request update for Node: %s update with FW', global.nodeTo)
-            }
-          }.bind({dbNode:entries[0]}))
-        }
-      })
-      return true
-    }
-    else
-      return false
-  }
-  if (message.toString().trim() == 'FLX?NOK')
-  {
-    console.log('Flashing failed!')
-    global.nodeTo = 0
-    return false
-  }
-  if (message.substring(0, (4 > message.length - 1) ? message.length - 1 : 4) == 'FLX:')
-  {
-    var flxMsg = message.toString().split(':')
-    if (flxMsg[1].trim() == 'INV')
-    {
-      console.log('Flashing failed!')
-      global.nodeTo = 0
-      return false
-     }
-    else if (flxMsg[2].trim() == 'OK')
-      readNextFileLine(global.hexFile, parseInt(flxMsg[1])+1)
-    return true
-
-  }
-
-  //Validate the Message structure: node-id ; device-id ; command ; ack ; msgtype ; payload
-  var re = new RegExp("^[a-zA-Z0-9][;][0-9][;][0-9][;][0-1][;][0-9][;].*$");
-  if (re.test(rxmessage))
-    return false
-  //regular message
-  console.log('RX   > %s', rxmessage)
-
-  //take off all not valid symbols
-  var trim_msg = message.replace(/(\n|\r)+$/, '')
-  //get node networkID
-  var msg = trim_msg.toString().split(';')
-  //internal-3, presentation-0, set-1, request-2, stream-4
-  switch (msg[2]) {
-    case '0': //presentation
-      var NodeDevice = new Object()
-      NodeDevice.id = parseInt(msg[1])
-      NodeDevice.type = parseInt(msg[4])
-      NodeDB.find({ $and: [ {"_id" : msg[0]}, {"devices": { $elemMatch: {id: parseInt(msg[1]), type: parseInt(msg[4])}}} ] }, {}, function (err, entries) {
-        if (!err)
-        {
-          if (entries.length < 1)
-          {
-            NodeDB.update({ "_id" : msg[0] }, { $push: { "devices": {id: parseInt(msg[1]), type: parseInt(msg[4]) }} }, {}, function () {
-            })
-          }
-        }
-      })
-      break
-    case '1': //set
-      MessageDB.update({ $and: [{"nodeid" : msg[0]}, {"deviceid": parseInt(msg[1])}, {"msgtype": parseInt(msg[4])}] }, { $set: { "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
-        if (!err)
-        {
-          if (!wasAffected) //The row wasn't updated : Create new entry
-          {
-            //Do insert only if the node is registered
-            NodeDB.find({ $and: [{ "_id" : msg[0], "devices.id": parseInt(msg[1])}] }, function (err, entries) {
-              if (!err)
-              {
-                if (entries.length==1)
-                {
-                  var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(msg[1]) )
-                    MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
-                      callAction(affectedDocument)
-                      doMessageMapping(affectedDocument)
-                      doDeviceSubscribe(affectedDocument)
-                      doSaveHistory(affectedDocument)
-                    })
-                }
-              }
-            })
-          }
-          else
-          {
-            //Call automation
-            callAction(affectedDocument)
-            doMessageMapping(affectedDocument)
-            doDeviceSubscribe(affectedDocument)
-            doSaveHistory(affectedDocument)
-          }
-        }
-      })
-      break
-    case '3':  //internal
-      if (msg[1] == 255) //Internal contact
+  switch (nodetype) {
+    case 'OpenNode':
+      var message = rxmessage.toString().trim()
+      var rssiIdx = rxmessage.indexOf('[RSSI:') //not found = -1
+      var messageRSSI=''
+      if (rssiIdx > 0)
       {
-        if (msg[4] == '29')  //Change - I_HAS_CHANGE
+        message = rxmessage.substr(0, rssiIdx).toString().trim();
+        messageRSSI = parseInt(rxmessage.substr(rssiIdx+6, rxmessage.length-2-(rssiIdx+6)))
+      }
+      //if FLX?OK then update firmware for OpenNode
+      if (message.toString().trim() == 'FLX?OK')
+      {
+        if (global.nodeTo)
         {
-          // console.log('* I_HAS_CHANGE')          
-          MessageDB.find({ $and: [{"nodeid": msg[0]}, {changed: "Y"}] }, { _id: 1 }, function (err, entries) {
+          readNextFileLine(global.hexFile, 0)
+          console.log('Transfering firmware...')
+        }
+        return true
+      }
+      if (/^TO:.*:OK$/.test(message))
+      {
+        if (global.nodeTo == 0)
+        {
+          var toMsg = message.toString().split(':')
+          NodeDB.find({ _id : toMsg[1] }, function (err, entries) {
+            if (entries.length == 1)
+            {
+              getAvailableFirmware(entries[0], function(newFirmare){
+                if (newFirmare != "0")
+                {
+                  global.nodeTo = this.dbNode._id
+                  global.hexFile = new readFile(newFirmare)
+                  console.log('FW > %s', newFirmare)
+                  serial.write('FLX?' + '\n', function () { serial.drain() })
+                  // console.log('Request update for Node: %s update with FW', global.nodeTo)
+                }
+              }.bind({dbNode:entries[0]}))
+            }
+          })
+          return true
+        }
+        else
+          return false
+      }
+      if (message.toString().trim() == 'FLX?NOK')
+      {
+        console.log('Flashing failed!')
+        global.nodeTo = 0
+        return false
+      }
+      if (message.substring(0, (4 > message.length - 1) ? message.length - 1 : 4) == 'FLX:')
+      {
+        var flxMsg = message.toString().split(':')
+        if (flxMsg[1].trim() == 'INV')
+        {
+          console.log('Flashing failed!')
+          global.nodeTo = 0
+          return false
+        }
+        else if (flxMsg[2].trim() == 'OK')
+          readNextFileLine(global.hexFile, parseInt(flxMsg[1])+1)
+        return true
+      }
+
+      //Validate the Message structure: node-id ; device-id ; command ; ack ; msgtype ; payload
+      var re = new RegExp("^[a-zA-Z0-9][;][0-9][;][0-9][;][0-1][;][0-9][;].*$");
+      if (re.test(rxmessage))
+        return false
+      //regular message
+      console.log('RX   > %s', rxmessage)
+
+      //take off all not valid symbols
+      var trim_msg = message.replace(/(\n|\r)+$/, '')
+      //get node networkID
+      var msg = trim_msg.toString().split(';')
+      //internal-3, presentation-0, set-1, request-2, stream-4
+      switch (msg[2]) {
+        case '0': //presentation
+          var NodeDevice = new Object()
+          NodeDevice.id = parseInt(msg[1])
+          NodeDevice.type = parseInt(msg[4])
+          NodeDB.find({ $and: [ {"_id" : msg[0]}, {"devices": { $elemMatch: {id: parseInt(msg[1]), type: parseInt(msg[4])}}} ] }, {}, function (err, entries) {
             if (!err)
             {
-              if (entries.length>0)
+              if (entries.length < 1)
               {
-                 sendMessageToNode(message, entries.length)
-                 console.log('* I_HAS_CHANGE: %s', entries.length)
-                // MessageMappingDB.find({ $or: [{"_id" : { $in: findDevices } }, {"_id" : { $exists: (findDevices.length === 0) ? true : false } }] }, function (err, entries) {
-                // })
-                for(var m in entries)
-                {
-                  sendMessageToNode(entries[m]._id, entries[m].value)
-                }
+                NodeDB.update({ "_id" : msg[0] }, { $push: { "devices": {id: parseInt(msg[1]), type: parseInt(msg[4]) }} }, {}, function () {
+                })
               }
             }
           })
-        }
-        if (msg[4] == '11')  //Name - I_SKETCH_NAME
-        {
-          NodeDB.update({ "_id" : msg[0] }, { $set: { type: nodetype, name: msg[5], } }, { upsert: true })
-          // mqttCloud.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
-        }
-        if (msg[4] == '12')  //Version - I_SKETCH_VERSION
-        {
-          NodeDB.update({ "_id" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
-          //TODO if maxversion == undefined then set to *
-          // mqttCloud.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
-        }
-        if (msg[4] == '0')  //Version - I_BATTERY_LEVEL
-        {
-          NodeDB.update({ "_id" : msg[0] }, { $set: { battery: msg[5] } }, { upsert: true })
-        }
+          break
+        case '1': //set
+          MessageDB.update({ $and: [{"nodeid" : msg[0]}, {"deviceid": parseInt(msg[1])}, {"msgtype": parseInt(msg[4])}] }, { $set: { "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
+            if (!err)
+            {
+              if (!wasAffected) //The row wasn't updated : Create new entry
+              {
+                //Do insert only if the node is registered
+                NodeDB.find({ $and: [{ "_id" : msg[0], "devices.id": parseInt(msg[1])}] }, function (err, entries) {
+                  if (!err)
+                  {
+                    if (entries.length==1)
+                    {
+                      var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(msg[1]) )
+                        MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                          callAction(affectedDocument)
+                          doMessageMapping(affectedDocument)
+                          doDeviceSubscribe(affectedDocument)
+                          doSaveHistory(affectedDocument)
+                        })
+                    }
+                  }
+                })
+              }
+              else
+              {
+                //Call automation
+                callAction(affectedDocument)
+                doMessageMapping(affectedDocument)
+                doDeviceSubscribe(affectedDocument)
+                doSaveHistory(affectedDocument)
+              }
+            }
+          })
+          break
+        case '3':  //internal
+          if (msg[1] == 255) //Internal contact
+          {
+            if (msg[4] == '29')  //Change - I_HAS_CHANGE
+            {
+              // console.log('* I_HAS_CHANGE')          
+              MessageDB.find({ $and: [{"nodeid": msg[0]}, {changed: "Y"}] }, { _id: 1 }, function (err, entries) {
+                if (!err)
+                {
+                  if (entries.length>0)
+                  {
+                    sendMessageToNode(message, entries.length)
+                    console.log('* I_HAS_CHANGE: %s', entries.length)
+                    // MessageMappingDB.find({ $or: [{"_id" : { $in: findDevices } }, {"_id" : { $exists: (findDevices.length === 0) ? true : false } }] }, function (err, entries) {
+                    // })
+                    for(var m in entries)
+                    {
+                      sendMessageToNode(entries[m]._id, entries[m].value)
+                    }
+                  }
+                }
+              })
+            }
+            if (msg[4] == '11')  //Name - I_SKETCH_NAME
+            {
+              NodeDB.update({ "_id" : msg[0] }, { $set: { type: nodetype, name: msg[5], } }, { upsert: true })
+              // mqttCloud.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
+            }
+            if (msg[4] == '12')  //Version - I_SKETCH_VERSION
+            {
+              NodeDB.update({ "_id" : msg[0] }, { $set: { version: msg[5] } }, { upsert: true })
+              //TODO if maxversion == undefined then set to *
+              // mqttCloud.publish('system/node/'+msg[0]+'/version', msg[5], {qos: 0, retain: false})
+            }
+            if (msg[4] == '0')  //Battery - I_BATTERY_LEVEL
+            {
+              NodeDB.update({ "_id" : msg[0] }, { $set: { battery: msg[5] } }, { upsert: true })
+            }
+          }
+          break
+        default:
       }
-      break
-    default:
+
+    case 'ESPurna':
+      //take off all not valid symbols
+      var trim_msg = message.replace(/(\n|\r)+$/, '')
+      console.log('trimmed: %s', trim_msg)
+      //get node networkID
+      var msg = trim_msg.toString().split('/')
+      switch (msg[2]) {
+        case 'mac': //node id
+        case 'app':
+        case 'version':
+        case 'board':
+        case 'host': //name
+        case 'vcc': //battery
+          return false
+      }
+      return false
   }
 }
 
