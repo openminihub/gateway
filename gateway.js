@@ -395,7 +395,7 @@ function handleOutTopic(rxmessage, nodetype) {
       console.log('trimmed: %s', trim_msg)
       //get node networkID
       var msg = trim_msg.toString().split('/')
-      if (message.length == 4) //Internal message
+      if (msg.length == 4) //Internal message
       {      
         switch (msg[2]) {
           case 'app':
@@ -416,7 +416,7 @@ function handleOutTopic(rxmessage, nodetype) {
             break
         }
       }
-      else if (message.length == 5) //Device message
+      else if (msg.length == 5) //Device message
       {
         switch (msg[2]) {
           case 'relay':
@@ -430,7 +430,7 @@ function handleOutTopic(rxmessage, nodetype) {
 
         })
       }
-      return false
+      return true
   }
 }
 
