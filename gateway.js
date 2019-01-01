@@ -324,7 +324,7 @@ function handleOutTopic(rxmessage, nodetype) {
                     if (entries.length==1)
                     {
                       var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf( parseInt(msg[1]) )
-                        MessageDB.update({ $and: [{ "nodeid" : msg[0], "device": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                        MessageDB.update({ $and: [{ "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid" : msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                           callAction(affectedDocument)
                           doMessageMapping(affectedDocument)
                           doDeviceSubscribe(affectedDocument)
@@ -390,18 +390,45 @@ function handleOutTopic(rxmessage, nodetype) {
 
     case 'ESPurna':
       //take off all not valid symbols
-      var trim_msg = message.replace(/(\n|\r)+$/, '')
+      var trim_msg = rxmessage.toString().trim().replace(/(\n|\r)+$/, '')
+      // message = rxmessage.substr(0, rssiIdx).toString().trim();
       console.log('trimmed: %s', trim_msg)
       //get node networkID
       var msg = trim_msg.toString().split('/')
-      switch (msg[2]) {
-        case 'mac': //node id
-        case 'app':
-        case 'version':
-        case 'board':
-        case 'host': //name
-        case 'vcc': //battery
-          return false
+      if (message.length == 4) //Internal message
+      {      
+        switch (msg[2]) {
+          case 'app':
+          case 'version':
+            NodeDB.update({ "_id" : msg[1] }, { $set: { version: msg[3] } }, { upsert: true })
+            break
+          case 'board':
+            NodeDB.update({ "_id" : msg[1] }, { $set: { board: msg[3] } }, { upsert: true })
+            break
+          case 'host': //name
+            NodeDB.update({ "_id" : msg[1] }, { $set: { type: nodetype, name: msg[3], } }, { upsert: true })
+            break
+          case 'vcc': //battery
+            NodeDB.update({ "_id" : msg[1] }, { $set: { battery: msg[3] } }, { upsert: true })
+            break
+          case 'ip': //battery
+            NodeDB.update({ "_id" : msg[1] }, { $set: { ip: msg[3] } }, { upsert: true })
+            break
+        }
+      }
+      else if (message.length == 5) //Device message
+      {
+        switch (msg[2]) {
+          case 'relay':
+            var _deviceType = 3
+            var _msgType = 2
+            break
+        }
+        // MessageDB.update({ $and: [{"nodeid" : msg[1]}, {"deviceid": parseInt(msg[3])}, {"msgtype": parseInt(msg[4])}] }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
+        // MessageDB.update({ $and: [{ "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000), "rssi": 0 }, { upsert: true }, function (err, wasAffected, affectedDocument, upsert) {
+        MessageDB.update({ $and: [{ "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000) }, { upsert: true, returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument, upsert) {
+
+        })
       }
       return false
   }
