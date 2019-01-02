@@ -437,7 +437,10 @@ function handleOutTopic(rxmessage, nodetype) {
         // MessageDB.update({ $and: [{"nodeid" : msg[1]}, {"deviceid": parseInt(msg[3])}, {"msgtype": parseInt(msg[4])}] }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
         // MessageDB.update({ $and: [{ "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000), "rssi": 0 }, { upsert: true }, function (err, wasAffected, affectedDocument, upsert) {
         MessageDB.update({ $and: [{ "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000) }, { upsert: true, returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument, upsert) {
-
+          callAction(affectedDocument)
+          doMessageMapping(affectedDocument)
+          doDeviceSubscribe(affectedDocument)
+          doSaveHistory(affectedDocument)
         })
         NodeDB.find({ $and: [ {"_id" : msg[1]}, {"devices": { $elemMatch: {id: parseInt(msg[3]), type: _deviceType}}} ] }, {}, function (err, entries) {
           if (!err)
