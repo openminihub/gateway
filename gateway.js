@@ -940,7 +940,7 @@ function getDeviceValueHistory(userTopic, id, par) {
     }
     else
     {
-      historyQuery = "select round(mean(msgvalue)*10)/10 from message where nodeid = '"+par.nodeid+"'and deviceid = '"+par.deviceid+"'and msgtype = '"+par.msgtype+"'and time > now()-"+par.offsetfrom+" and time < now()-"+par.offsetto+" group by time("+par.resolution+") fill(none) order by time asc"
+      historyQuery = "select round(mean(msgvalue)*10)/10 as msgvalue from message where nodeid = '"+par.nodeid+"'and deviceid = '"+par.deviceid+"'and msgtype = '"+par.msgtype+"'and time > now()-"+par.offsetfrom+" and time < now()-"+par.offsetto+" group by time("+par.resolution+") fill(none) order by time asc"
     }
     influx.query(historyQuery)
       .then(query_result => {
