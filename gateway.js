@@ -406,19 +406,23 @@ function handleOutTopic(rxmessage, nodetype) {
       {      
         switch (msg[2]) {
           case 'version':
-            NodeDB.update({ "_id" : msg[1] }, { $set: { version: msg[3] } }, { upsert: true })
+            NodeDB.update({ "_id": msg[1] }, { $set: { version: msg[3] } }, { upsert: true })
             break
           case 'board':
-            NodeDB.update({ "_id" : msg[1] }, { $set: { board: msg[3] } }, { upsert: true })
+            NodeDB.update({ "_id": msg[1] }, { $set: { board: msg[3] } }, { upsert: true })
             break
           case 'host': //name
-            NodeDB.update({ "_id" : msg[1] }, { $set: { type: nodetype, name: msg[3], } }, { upsert: true })
+            NodeDB.update({ "_id": msg[1] }, { $set: { type: nodetype, name: msg[3], } }, { upsert: true })
             break
           case 'vcc': //battery
-            NodeDB.update({ "_id" : msg[1] }, { $set: { battery: msg[3] } }, { upsert: true })
+            NodeDB.update({ "_id": msg[1] }, { $set: { battery: msg[3] } }, { upsert: true })
             break
-          case 'ip': //battery
-            NodeDB.update({ "_id" : msg[1] }, { $set: { ip: msg[3] } }, { upsert: true })
+          case 'ip': //ip
+            NodeDB.update({ "_id": msg[1] }, { $set: { ip: msg[3] } }, { upsert: true })
+            break
+          case 'rssi': //rssi
+            MessageDB.update({ "nodeid": msg[1] }, { $set: { "rssi": msg[3] * -1 }, { returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
+            })
             break
         }
       }
