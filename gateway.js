@@ -1219,11 +1219,13 @@ function callAction(message) {
         //get data from MessageDB for those variables
         MessageDB.find({ "nodeid": { $in: actionRuleNodes } }, function (err, msg_entries) {
           if (!err && msg_entries.length > 0) {
-            var actionData = []
+            var actionData = {}
+	    console.log("MSG ENTRIES: %s", JSON.stringify(msg_entries))
             for (var m in msg_entries) {
               var msgID = msg_entries[m].nodeid + '-' + msg_entries[m].deviceid + '-' + msg_entries[m].msgtype
-              if (msgID in this._actionRuleVariables) {
-                actionData.push({ msgID: msg_entries[m].msgvalue })
+	      console.log('msgid: %s', msgID)
+              if (this._actionRuleVariables.includes(msgID)) {
+                actionData[msgID] =  parseFloat(msg_entries[m].msgvalue)
               }
               console.log("ACTION DATA: %s", JSON.stringify(actionData))
 
