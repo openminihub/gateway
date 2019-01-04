@@ -1176,18 +1176,65 @@ function listMessageTypes(userTopic, id, par) {
   })
 }
 
-const getKeys = data => {
-  const keys = []
-  const regex = /"key"\s*:\s*"(.*)"/g
+const getActionNodes = data => {
+  const vars = []
+  const regex = /"var"\s*:\s*"(.*)"/g
   let temp
-  while(temp = regex.exec(data)){
-    keys.push(temp[1])
+  while (temp = regex.exec(data)) {
+    var tmpNode = temp[1].split('-')
+    vars.push(tmpNode[0])
   }
-  return keys
+  return vars
 }
 
+const getActionVariables = data => {
+  const vars = []
+  const regex = /"var"\s*:\s*"(.*)"/g
+  let temp
+  while (temp = regex.exec(data)) {
+    vars.push(temp[1])
+  }
+  return vars
+}
+
+function createAction() {
+  //on save analyze rule and target and create key 'nodes' with all included nodes
+}
+
+
 function callAction(message) {
- 
+  //find from ActionDB rules what contains nodeid, deviceid, mesgtype
+  ActionDB.find({ "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }, { rule: 1, nodes: 1, _id: 1 }, function (err, action_entries) {
+    if (!err && entries.length > 0) {
+      for (var r in action_entries) {
+        console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
+        //get node list from Action rules, no need to get all nodes from nodes list, because some of them are target nodes
+        var actionRuleNodes = getActionNodes(action_entries[r].rule)
+        var actionRuleVariables = getActionVariables(action_entries[r].rule)
+        //get data from MessageDB for those variables
+        MessageDB.find({ "nodeid": { $in: actionRuleNodes } }, function (err, msg_entries) {
+          if (!err && msg_entries.length > 0) {
+            var actionData = []
+            for (var m in msg_entries) {
+              var msgID = msg_entries[m].nodeid + '-' + msg_entries[m].deviceid + '-' + msg_entries[m].msgtype
+              if (msgID in this._actionRuleVariables) {
+                actionData.push({ msgID: msg_entries[m].msgvalue })
+              }
+              console.log("ACTION DATA: %s", JSON.stringify(actionData))
+
+              // execute JSON Logic this._actionRule & actionData
+              // if true then call _execRule_(this._actionID)
+
+
+              //validate the rule with data
+
+              //execute the rule
+            }
+          }
+        }.bind({ _actionRuleVariables : actionRuleVariables, _actionRule : action_entries[r].rule, _actionID : action_entries[r]._id }))
+      }
+    }
+  })
 }
 
 function _callAction(message) {
