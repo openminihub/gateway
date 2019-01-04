@@ -1252,8 +1252,8 @@ function executeAction(actionActions) {
   var decodedNode = actionActions[0].var.split('-')
   var par = {}
   par.nodeid = decodedNode[0]
-  par.deviceid = decodedNode[1]
-  par.msgtype = decodedNode[2]
+  par.deviceid = parseInt(decodedNode[1])
+  par.msgtype = parseInt(decodedNode[2])
   par.msgvalue = actionActions[0].value
   par.msgdata = null
   console.log('Created par obj: %s', JSON.stringify(par))
