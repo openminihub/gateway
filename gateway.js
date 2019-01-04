@@ -395,7 +395,7 @@ function handleOutTopic(rxmessage, nodetype) {
             NodeDB.update({ "_id": msg[1] }, { $set: { ip: msg[3] } }, { upsert: true })
             break
           case 'rssi': //rssi
-            MessageDB.update({ "nodeid": msg[1] }, { $set: { "rssi": msg[3] * -1 }, { returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
+            MessageDB.update({ "nodeid": msg[1] }, { $set: { "rssi": msg[3] * -1 } }, { returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
             })
             break
         }
@@ -1176,7 +1176,21 @@ function listMessageTypes(userTopic, id, par) {
   })
 }
 
+const getKeys = data => {
+  const keys = []
+  const regex = /"key"\s*:\s*"(.*)"/g
+  let temp
+  while(temp = regex.exec(data)){
+    keys.push(temp[1])
+  }
+  return keys
+}
+
 function callAction(message) {
+ 
+}
+
+function _callAction(message) {
   // {"_id":"1","name":"Automation 1","enabled":"1","hide":"0","triggers":[{"type":"state","attribute":"above","entity":"mFUIV160p9KFLr0P","value":"21.0","before":"OFF"}],"conditions":[{"type":"","entity":"","value":""}],"actions":[{"type":"object","attribute":"TURN","entity":"wkor2Xf3h3GQ7vnj","data":"ON"}]}
   ActionDB.find({ "trigger.entity": message._id }, function (err, entries) {
     if (!err && entries.length > 0) {
