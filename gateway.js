@@ -1189,7 +1189,7 @@ function getValuesFromObject(obj, key) {
       objects.push(obj[i])
     }
   }
-  return objects;
+  return removeDuplicates(objects)
 }
 
 function getNodesFromVariable(obj) {
@@ -1197,7 +1197,12 @@ function getNodesFromVariable(obj) {
   for (var i in obj) {
     objects.push(obj[i].split('-')[0])
   }
-  return objects
+  return removeDuplicates(objects)
+}
+
+function removeDuplicates(arr) {
+  let unique_array = Array.from(new Set(arr))
+  return unique_array
 }
 
 function createAction() {
@@ -1210,7 +1215,7 @@ function callAction(message) {
   ActionDB.find({ "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }, { rule: 1, nodes: 1, _id: 1 }, function (err, action_entries) {
     if (!err && action_entries.length > 0) {
       for (var r in action_entries) {
-        console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
+        // console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
         //get node list from Action rules, no need to get all nodes from nodes list, because some of them are target nodes
         var actionRuleVariables = getValuesFromObject(action_entries[r].rule, 'var')
         var actionRuleNodes = getNodesFromVariable(actionRuleVariables)
