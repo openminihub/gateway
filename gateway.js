@@ -1212,7 +1212,7 @@ function createAction() {
 
 function callAction(message) {
   //find from ActionDB rules what contains nodeid, deviceid, mesgtype
-  ActionDB.find({ "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }, { rules: 1, nodes: 1, _id: 1 }, function (err, action_entries) {
+  ActionDB.find({ "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }, { rules: 1, nodes: 1, actions: 1, _id: 1 }, function (err, action_entries) {
     if (!err && action_entries.length > 0) {
       for (var r in action_entries) {
         // console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
@@ -1237,17 +1237,17 @@ function callAction(message) {
             var logicResult = jsonLogic.apply(this._actionRule, actionData)
             console.log('Logic result: %s', logicResult)
             if (logicResult) {
-              executeAction(this._actionID)
+              executeAction(this._actionActions)
             }
           }
-        }.bind({ _actionRuleVariables: actionRuleVariables, _actionRule: action_entries[r].rules[0].definition, _actionID: action_entries[r]._id }))
+        }.bind({ _actionRuleVariables: actionRuleVariables, _actionRule: action_entries[r].rules[0].definition, _actionID: action_entries[r]._id, _actionActions: action_entries[r].actions }))
       }
     }
   })
 }
 
-function executeAction(actionID) {
-
+function executeAction(actionActions) {
+  console.log('Logic Action: %s', JSON.stringify(actionActions))
 }
 
 function _callAction(message) {
