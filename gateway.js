@@ -1255,7 +1255,8 @@ function executeAction(actionActions) {
   par.deviceid = decodedNode[1]
   par.msgtype = decodedNode[2]
   par.msgvalue = actionActions[0].value
-  par.msgdata = actionActions[0].value
+  par.msgdata = null
+  console.log('Created par obj: %s', JSON.stringify(par))
   setDeviceValue('gateway/in', 1, par)
 }
 
