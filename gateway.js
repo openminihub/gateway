@@ -1212,12 +1212,12 @@ function createAction() {
 
 function callAction(message) {
   //find from ActionDB rules what contains nodeid, deviceid, mesgtype
-  ActionDB.find({ "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }, { rule: 1, nodes: 1, _id: 1 }, function (err, action_entries) {
+  ActionDB.find({ "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }, { rules: 1, nodes: 1, _id: 1 }, function (err, action_entries) {
     if (!err && action_entries.length > 0) {
       for (var r in action_entries) {
         // console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
         //get node list from Action rules, no need to get all nodes from nodes list, because some of them are target nodes
-        var actionRuleVariables = getValuesFromObject(action_entries[r].rule, 'var')
+        var actionRuleVariables = getValuesFromObject(action_entries[r].rules[0].definition, 'var')
         var actionRuleNodes = getNodesFromVariable(actionRuleVariables)
         console.log("ACTION NODES: %s", JSON.stringify(actionRuleNodes))
         console.log("ACTION VARS: %s", JSON.stringify(actionRuleVariables))
@@ -1240,7 +1240,7 @@ function callAction(message) {
               executeAction(this._actionID)
             }
           }
-        }.bind({ _actionRuleVariables: actionRuleVariables, _actionRule: action_entries[r].rule, _actionID: action_entries[r]._id }))
+        }.bind({ _actionRuleVariables: actionRuleVariables, _actionRule: action_entries[r].rules[0].definition, _actionID: action_entries[r]._id }))
       }
     }
   })
