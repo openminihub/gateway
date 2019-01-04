@@ -143,7 +143,8 @@ mqttLocal.on('connect', () => {
   //on startup subscribe to all OpenNode topics
   NodeDB.find({ "type": "OpenNode" }, { _id: 1 }, function (err, entries) {
     if (!err) {
-      if (entries.length > 1) {
+      if (entries.length > 0) {
+        console.log('The nodeid to subscribe: %s', JSON.stringify(entries))
         MessageDB.find({ nodeid: { $in: entries } }, function (err, entries) {
           if (!err) {
             console.log('==============================');
@@ -1231,7 +1232,7 @@ function callAction(message) {
               //execute the rule
             }
           }
-        }.bind({ _actionRuleVariables : actionRuleVariables, _actionRule : action_entries[r].rule, _actionID : action_entries[r]._id }))
+        }.bind({ _actionRuleVariables: actionRuleVariables, _actionRule: action_entries[r].rule, _actionID: action_entries[r]._id }))
       }
     }
   })
