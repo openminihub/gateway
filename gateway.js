@@ -11,6 +11,7 @@ var dbDir = 'data'
 var fs = require("fs")
 const execFile = require('child_process').execFile
 var readFile = require('n-readlines')
+var jsonLogic = require('json-logic-js')
 nconf.argv().file({ file: path.resolve(__dirname, 'settings.json5'), format: JSON5 })
 settings = nconf.get('settings')
 const firmwareLocation = './firmware/';
@@ -1177,25 +1178,26 @@ function listMessageTypes(userTopic, id, par) {
   })
 }
 
-const getActionNodes = data => {
-  const vars = []
-  const regex = /"var"\s*:\s*"(.*)"/g
-  let temp
-  while (temp = regex.exec(data)) {
-    var tmpNode = temp[1].split('-')
-    vars.push(tmpNode[0])
+//return an array of values that match on a certain key
+function getValuesFromObject(obj, key) {
+  var objects = []
+  for (var i in obj) {
+    if (!obj.hasOwnProperty(i)) continue
+    if (typeof obj[i] == 'object') {
+      objects = objects.concat(getValuesFromObject(obj[i], key))
+    } else if (i == key) {
+      objects.push(obj[i])
+    }
   }
-  return vars
+  return objects;
 }
 
-const getActionVariables = data => {
-  const vars = []
-  const regex = /"var"\s*:\s*"(.*)"/g
-  let temp
-  while (temp = regex.exec(data)) {
-    vars.push(temp[1])
+function getNodesFromVariable(obj) {
+  var objects = []
+  for (var i in obj) {
+    objects.push(obj[i].split('-')[0])
   }
-  return vars
+  return objects
 }
 
 function createAction() {
@@ -1210,8 +1212,10 @@ function callAction(message) {
       for (var r in action_entries) {
         console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
         //get node list from Action rules, no need to get all nodes from nodes list, because some of them are target nodes
-        var actionRuleNodes = getActionNodes(action_entries[r].rule)
-        var actionRuleVariables = getActionVariables(action_entries[r].rule)
+        var actionRuleVariables = getValuesFromObject(action_entries[r].rule, 'var')
+        var actionRuleNodes = getNodesFromVariable(actionRuleVariables)
+        console.log("ACTION NODES: %s", JSON.stringify(actionRuleNodes))
+        console.log("ACTION VARS: %s", JSON.stringify(actionRuleVariables))
         //get data from MessageDB for those variables
         MessageDB.find({ "nodeid": { $in: actionRuleNodes } }, function (err, msg_entries) {
           if (!err && msg_entries.length > 0) {
