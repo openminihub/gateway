@@ -1248,6 +1248,15 @@ function callAction(message) {
 
 function executeAction(actionActions) {
   console.log('Logic Action: %s', JSON.stringify(actionActions))
+  // var actionVariables = getValuesFromObject(actionActions[0], 'var')
+  var decodedNode = actionActions[0].var.split('-')
+  var par = {}
+  par.nodeid = decodedNode[0]
+  par.deviceid = decodedNode[1]
+  par.msgtype = decodedNode[2]
+  par.msgvalue = actionActions[0].value
+  par.msgdata = actionActions[0].value
+  setDeviceValue('gateway/in', 1, par)
 }
 
 function _callAction(message) {
