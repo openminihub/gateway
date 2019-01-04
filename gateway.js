@@ -1205,7 +1205,7 @@ function createAction() {
 function callAction(message) {
   //find from ActionDB rules what contains nodeid, deviceid, mesgtype
   ActionDB.find({ "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }, { rule: 1, nodes: 1, _id: 1 }, function (err, action_entries) {
-    if (!err && entries.length > 0) {
+    if (!err && action_entries.length > 0) {
       for (var r in action_entries) {
         console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
         //get node list from Action rules, no need to get all nodes from nodes list, because some of them are target nodes
