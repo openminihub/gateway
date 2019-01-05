@@ -592,6 +592,9 @@ function handleUserMessage(topic, message) {
       case 'updateNode':
         updateNode(userTopic, msg.id, msg.parameters)
         break
+      case 'listActions':
+        listActions(userTopic, id, par)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -1216,6 +1219,25 @@ function createAction() {
   //on save analyze rule and target and create key 'nodes' with all included nodes
 }
 
+function listActions(userTopic, id, par) {
+  ActionDB.find({ "_id": { $exists: true } }, function (err, entries) {
+    var payload = []
+    var result = 0
+    if (!err) {
+      result = 1
+      if (entries.length > 0) {
+        for (var i = 0; i < entries.length; i++) {
+          payload.push(entries);
+        }
+      }
+    }
+    else {
+      payload.push({ message: "Error listing actions" });
+    }
+    var newJSON = '{"id":"' + id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+    mqttCloud.publish(userTopic, newJSON, { qos: 0, retain: false })
+  })
+}
 
 function callAction(message) {
   //find from ActionDB rules what contains nodeid, deviceid, mesgtype
@@ -1263,7 +1285,6 @@ function executeAction(actionActions) {
   par.msgtype = parseInt(decodedNode[2])
   par.msgvalue = actionActions[0].value
   par.msgdata = null
-  console.log('Created par obj: %s', JSON.stringify(par))
   setDeviceValue('gateway/in', 1, par)
 }
 
