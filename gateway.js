@@ -595,6 +595,12 @@ function handleUserMessage(topic, message) {
       case 'listActions':
         listActions(userTopic, msg.id, msg.parameters)
         break
+      case 'createAction':
+        createAction(userTopic, msg.id, msg.parameters)
+        break
+      case 'updateAction':
+        updateAction(userTopic, msg.id, msg.parameters)
+        break
       default:
         console.log('No handler for %s %s', topic, message)
     }
@@ -1241,9 +1247,53 @@ function createAction(userTopic, id, par) {
       else {
         payload.push({ message: "Action not created!" });
       }
+      var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+      mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
     })
-    var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
-    mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
+  }
+}
+
+function updateAction(userTopic, id, par) {
+  if (isEmptyObject(par)) {
+    par = new Object()
+  }
+  var payload = []
+  var result = 0
+  if (par == undefined || par.id == undefined) {
+    payload.push({ message: "No ID specified" })
+    var newJSON = '{"id":"' + id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+    mqttCloud.publish(userTopic, newJSON, { qos: 0, retain: false })
+    return false
+  }
+  else {
+    var _updateList = new Object()
+    if (!isEmptyObject(par.name)) _updateList.push({ "name": par.name })
+    if (!isEmptyObject(par.enabled)) _updateList.push({ "enabled": par.enabled })
+    if (!isEmptyObject(par.actions)) _updateList.push({ "actions": par.actions })
+    if (!isEmptyObject(par.rules)) {
+      _updateList.push({ "rules": par.rules })
+      var _actionRuleNodes = getValuesFromObject(par.rules, 'var')
+      _updateList.push({ "nodes": _actionRuleNodes })
+    }
+
+    if (!isEmptyObject(_updateList)) {
+      ActionDB.update({ "_id": par.id }, { $set: _updateList }, function (err, newDocs) {
+        if (!err && newDocs.lenght > 0) {
+          result = 1
+          payload.push({ message: "Action updated" });
+        }
+        else {
+          payload.push({ message: "Failed to update action" });
+        }
+        var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+        mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
+      })
+    }
+    else {
+      payload.push({ message: "Nothing to update" })
+      var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+      mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
+    }
   }
 }
 
@@ -1275,7 +1325,7 @@ function listActions(userTopic, id, par) {
 
 function callAction(message) {
   //find from ActionDB rules what contains nodeid, deviceid, mesgtype
-  ActionDB.find({ "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }, { rules: 1, nodes: 1, actions: 1, _id: 1 }, function (err, action_entries) {
+  ActionDB.find({ $and: [{ "enabled": true }, { "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }] }, { rules: 1, nodes: 1, actions: 1, _id: 1 }, function (err, action_entries) {
     if (!err && action_entries.length > 0) {
       for (var r in action_entries) {
         // console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
