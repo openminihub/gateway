@@ -1215,8 +1215,36 @@ function removeDuplicates(arr) {
   return unique_array
 }
 
-function createAction() {
-  //on save analyze rule and target and create key 'nodes' with all included nodes
+function createAction(userTopic, id, par) {
+  if (isEmptyObject(par)) {
+    par = new Object()
+  }
+  var payload = []
+  var result = 0
+  if (typeof par.name === 'undefined' ||
+    typeof par.enabled === 'undefined' ||
+    typeof par.rules === 'undefined' ||
+    typeof par.actions === 'undefined') {
+    payload.push({ message: "Not all parameters are passed" })
+    var newJSON = '{"id":"' + id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+    mqttCloud.publish(userTopic, newJSON, { qos: 0, retain: false })
+    return false
+  }
+  else {
+    var _actionRuleNodes = getValuesFromObject(par.rules, 'var')
+    // MessageDB.insert({ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
+    ActionDB.insert({ "name": par.name, "enabled": par.enabled, "rules": par.rules, "actions": par.actions, "nodes": _actionRuleNodes }, function (err, newDocs) {
+      if (!err && newDocs.lenght > 0) {
+        result = 1
+        payload.push({ message: "Action created" });
+      }
+      else {
+        payload.push({ message: "Action not created!" });
+      }
+    })
+    var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+    mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
+  }
 }
 
 function listActions(userTopic, id, par) {
