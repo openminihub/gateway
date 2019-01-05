@@ -593,7 +593,7 @@ function handleUserMessage(topic, message) {
         updateNode(userTopic, msg.id, msg.parameters)
         break
       case 'listActions':
-        listActions(userTopic, id, par)
+        listActions(userTopic, msg.id, msg.parameters)
         break
       default:
         console.log('No handler for %s %s', topic, message)
