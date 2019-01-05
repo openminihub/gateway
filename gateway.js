@@ -1325,15 +1325,15 @@ function listActions(userTopic, id, par) {
 
 function callAction(message) {
   //find from ActionDB rules what contains nodeid, deviceid, mesgtype
-  ActionDB.find({ $and: [{ "enabled": true }, { "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }] }, { rules: 1, nodes: 1, actions: 1, _id: 1 }, function (err, action_entries) {
+  ActionDB.find({ $and: [{ "enabled": true }, { "nodes": message.nodeid + '-' + message.deviceid + '-' + message.msgtype }] }, { rules: 1, nodes: 1, actions: 1, name: 1, _id: 1 }, function (err, action_entries) {
     if (!err && action_entries.length > 0) {
       for (var r in action_entries) {
         // console.log("ACTION ENTRIES: %s", JSON.stringify(action_entries))
         //get node list from Action rules, no need to get all nodes from nodes list, because some of them are target nodes
         var actionRuleVariables = getValuesFromObject(action_entries[r].rules[0].definition, 'var')
         var actionRuleNodes = getNodesFromVariable(actionRuleVariables)
-        console.log("ACTION NODES: %s", JSON.stringify(actionRuleNodes))
-        console.log("ACTION VARS: %s", JSON.stringify(actionRuleVariables))
+        // console.log("ACTION NODES: %s", JSON.stringify(actionRuleNodes))
+        // console.log("ACTION VARS: %s", JSON.stringify(actionRuleVariables))
         //get data from MessageDB for those variables
         MessageDB.find({ "nodeid": { $in: actionRuleNodes } }, function (err, msg_entries) {
           if (!err && msg_entries.length > 0) {
@@ -1344,16 +1344,17 @@ function callAction(message) {
                 actionData[msgID] = parseFloat(msg_entries[m].msgvalue)
               }
             }
-            console.log("ACTION RULE: %s", JSON.stringify(this._actionRule))
-            console.log("ACTION DATA: %s", JSON.stringify(actionData))
+            // console.log("ACTION RULE: %s", JSON.stringify(this._actionRule))
+            // console.log("ACTION DATA: %s", JSON.stringify(actionData))
             // execute JSON Logic this._actionRule & actionData
             var logicResult = jsonLogic.apply(this._actionRule, actionData)
-            console.log('Logic result: %s', logicResult)
+            // console.log('Logic result: %s', logicResult)
             if (logicResult) {
+              console.log('Executing: %s', _actionName)
               executeAction(this._actionActions)
             }
           }
-        }.bind({ _actionRuleVariables: actionRuleVariables, _actionRule: action_entries[r].rules[0].definition, _actionID: action_entries[r]._id, _actionActions: action_entries[r].actions }))
+        }.bind({ _actionRuleVariables: actionRuleVariables, _actionRule: action_entries[r].rules[0].definition, _actionID: action_entries[r]._id, _actionActions: action_entries[r].actions, _actionName: action_entries[r].name }))
       }
     }
   })
