@@ -397,7 +397,7 @@ function handleOutTopic(rxmessage, nodetype) {
             NodeDB.update({ "_id": msg[1] }, { $set: { ip: msg[3] } }, { upsert: true })
             break
           case 'rssi': //rssi
-            MessageDB.update({ "nodeid": msg[1] }, { $set: { "rssi": msg[3] } }, { upsert: false, returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
+            MessageDB.update({ "nodeid": msg[1] }, { $set: { "rssi": parseInt(msg[3]) } }, { upsert: false, returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
             })
             break
         }
@@ -414,9 +414,7 @@ function handleOutTopic(rxmessage, nodetype) {
             var _msgType = 48
             break
         }
-        // MessageDB.update({ $and: [{"nodeid" : msg[1]}, {"deviceid": parseInt(msg[3])}, {"msgtype": parseInt(msg[4])}] }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000), "rssi": messageRSSI } }, { returnUpdatedDocs : true , multi : false }, function (err, wasAffected, affectedDocument ) {
-        // MessageDB.update({ $and: [{ "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { "nodeid" : msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now()/1000), "rssi": 0 }, { upsert: true }, function (err, wasAffected, affectedDocument, upsert) {
-        MessageDB.update({ $and: [{ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { "nodeid": msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000) }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
+        MessageDB.update({ $and: [{ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000) } }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
           if (!err) {
             if (wasAffected) {
               callAction(affectedDocument)
@@ -425,7 +423,7 @@ function handleOutTopic(rxmessage, nodetype) {
               doSaveHistory(affectedDocument)
             }
             else {
-              MessageDB.update({ $and: [{ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { "nodeid": msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, { upsert: true, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
+              MessageDB.insert({ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
                 //first message, no need for automation as it wasn't possible to define it before message received
               })
             }
