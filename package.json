@@ -10,6 +10,7 @@
   "dependencies": {
     "fs": "0.0.1-security",
     "influx": "^5.0.7",
+    "json-logic-js": "^1.2.2",
     "json5": "^2.0.1",
     "mqtt": "^2.18.8",
     "n-readlines": "^1.0.0",
