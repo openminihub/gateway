@@ -1350,7 +1350,7 @@ function callAction(message) {
             var logicResult = jsonLogic.apply(this._actionRule, actionData)
             // console.log('Logic result: %s', logicResult)
             if (logicResult) {
-              console.log('Executing: %s', _actionName)
+              console.log('Executing: %s', this._actionName)
               executeAction(this._actionActions)
             }
           }
