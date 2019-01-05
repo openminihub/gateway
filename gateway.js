@@ -1227,7 +1227,13 @@ function listActions(userTopic, id, par) {
       result = 1
       if (entries.length > 0) {
         for (var i = 0; i < entries.length; i++) {
-          payload.push(entries);
+          payload.push({
+            name: entries[i].name,
+            enabled: entries[i].enabled,
+            rules: entries[i].rules,
+            actions: entries[i].actions,
+            id: entries[i]._id
+          });
         }
       }
     }
