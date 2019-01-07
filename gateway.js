@@ -1,7 +1,7 @@
 // **********************************************************************************
 // Gateway for OpenMiniHub IoT Framework
 // **********************************************************************************
-// Copyright Martins Ierags, OpenMiniHub (2017)
+// Copyright Martins Ierags, OpenMiniHub (2019) GPL3.0
 // **********************************************************************************
 var nconf = require('nconf')                                   //https://github.com/indexzero/nconf
 var JSON5 = require('json5')                                   //https://github.com/aseemk/json5
@@ -296,8 +296,14 @@ function handleOutTopic(rxmessage, nodetype) {
           NodeDB.find({ $and: [{ "_id": msg[0] }, { "devices": { $elemMatch: { id: parseInt(msg[1]), type: parseInt(msg[4]) } } }] }, {}, function (err, entries) {
             if (!err) {
               if (entries.length < 1) {
-                NodeDB.update({ "_id": msg[0] }, { $push: { "devices": { id: parseInt(msg[1]), type: parseInt(msg[4]) } } }, {}, function () {
-                })
+                DeviceTypeDB.find({ "type": parseInt(msg[4]) }, function (err, entries) {
+                  var _deviceName = "Unknown"
+                  if (!err && entries.lenght > 0) {
+                    _deviceName = entries[0].name
+                  }
+                  NodeDB.update({ "_id": this.msg[0] }, { $push: { "devices": { id: parseInt(this.msg[1]), type: parseInt(this.msg[4]), name: _deviceName } } }, {}, function () {
+                  })
+                }.bind(msg))
               }
             }
           })
@@ -312,7 +318,7 @@ function handleOutTopic(rxmessage, nodetype) {
                   if (!err) {
                     if (entries.length == 1) {
                       var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(msg[1]))
-                      MessageDB.update({ $and: [{ "nodeid": msg[0], "deviceid": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid": msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                      MessageDB.update({ $and: [{ "nodeid": msg[0], "deviceid": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid": msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "devicename": entries[0].devices[deviceIndex].name, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                         callAction(affectedDocument)
                         doMessageMapping(affectedDocument)
                         doDeviceSubscribe(affectedDocument)
@@ -352,10 +358,15 @@ function handleOutTopic(rxmessage, nodetype) {
                 }
               })
             }
-            if (msg[4] == '11')  //Name - I_SKETCH_NAME
+            if (msg[4] == '11')  //Board - I_SKETCH_NAME
             {
-              NodeDB.update({ "_id": msg[0] }, { $set: { type: nodetype, name: msg[5], } }, { upsert: true })
-              // mqttCloud.publish('system/node/'+msg[0]+'/name', msg[5], {qos: 0, retain: false})
+              NodeDB.update({ "_id": msg[0] }, { $set: { type: nodetype, board: msg[5] } }, { upsert: true, returnUpdatedDocs: true }, function (err, numAffected, affectedDocuments) {
+                if (!err && numAffected) {
+                  if (isEmptyObject(affectedDocuments[0].name)) {
+                    NodeDB.update({ "_id": this.id }, { $set: { name: this.name } }, { upsert: false })
+                  }
+                }
+              }.bind({ id: msg[0], name: msg[5] }))
             }
             if (msg[4] == '12')  //Version - I_SKETCH_VERSION
             {
@@ -408,10 +419,12 @@ function handleOutTopic(rxmessage, nodetype) {
           case 'relay':
             var _deviceType = 3
             var _msgType = 2
+            var _deviceName = "Relay"
             break
           default:
             var _deviceType = 23
             var _msgType = 48
+            var _deviceName = "Unknown"
             break
         }
         MessageDB.update({ $and: [{ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000) } }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
@@ -423,7 +436,7 @@ function handleOutTopic(rxmessage, nodetype) {
               doSaveHistory(affectedDocument)
             }
             else {
-              MessageDB.insert({ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
+              MessageDB.insert({ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "devicename": _deviceName, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
                 //first message, no need for automation as it wasn't possible to define it before message received
               })
             }
@@ -432,7 +445,7 @@ function handleOutTopic(rxmessage, nodetype) {
         NodeDB.find({ $and: [{ "_id": msg[1] }, { "devices": { $elemMatch: { id: parseInt(msg[3]), type: _deviceType } } }] }, {}, function (err, entries) {
           if (!err) {
             if (entries.length < 1) {
-              NodeDB.update({ "_id": msg[1] }, { $push: { "devices": { id: parseInt(msg[3]), type: _deviceType } } }, {}, function () {
+              NodeDB.update({ "_id": msg[1] }, { $push: { "devices": { id: parseInt(msg[3]), type: _deviceType, name: _deviceName } } }, {}, function () {
               })
             }
           }
@@ -559,6 +572,9 @@ function handleUserMessage(topic, message) {
       case 'listDevices':
         listDevices(userTopic, msg.id, msg.parameters)
         break
+      case 'renameDevice':
+        renameDevice(userTopic, msg.id, msg.parameters)
+        break
       case 'setDeviceValue':
         setDeviceValue(userTopic, msg.id, msg.parameters)
         break
@@ -585,6 +601,9 @@ function handleUserMessage(topic, message) {
         break
       case 'listNodes':
         listNodes(userTopic, msg.id, msg.parameters)
+        break
+      case 'renameNode':
+        renameNodes(userTopic, msg.id, msg.parameters)
         break
       case 'getNodeUpdateVersion':
         getNodeUpdateVersion(userTopic, msg.id, msg.parameters)
@@ -851,6 +870,7 @@ function getDeviceValues(userTopic, id, par) {
           nodeid: entries[n].nodeid,
           deviceid: entries[n].deviceid,
           devicetype: entries[n].devicetype,
+          devicename: entries[n].devicename,
           messages: messages
         });
         if (this.devicesLeft == 0) {
@@ -917,6 +937,7 @@ function listNodes(userTopic, id, par) {
           payload.push({
             type: entries[n].type,
             name: entries[n].name,
+            board: entries[n].board,
             version: entries[n].version,
             devices: entries[n].devices,
             id: entries[n]._id,
@@ -928,6 +949,29 @@ function listNodes(userTopic, id, par) {
       }
     }
   })
+}
+
+function renameNode(userTopic, id, par) {
+  var payload = []
+  var result = 0
+  if (par == undefined || par.id == undefined) {
+    payload.push({ message: "No parameter specified" });
+    var newJSON = '{"id":"' + id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+    mqttCloud.publish(userTopic, newJSON, { qos: 0, retain: false })
+  }
+  else {
+    NodeDB.update({ _id: par.id }, { $set: { "name": par.name } }, function (err, numAffected) {
+      if (numAffected > 0) {
+        payload.push({ message: "Node renamed" });
+        result = 1
+      }
+      else {
+        payload.push({ message: "Error renaming node" });
+      }
+      var newJSON = '{"id":"' + id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+      mqttCloud.publish(userTopic, newJSON, { qos: 0, retain: false })
+    })
+  }
 }
 
 function createPlace(userTopic, id, par) {
@@ -1146,6 +1190,42 @@ function listDevices(userTopic, id, par) {
     var newJSON = '{"id":"' + id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
     mqttCloud.publish(userTopic, newJSON, { qos: 0, retain: false })
   })
+}
+
+function renameDevice(userTopic, id, par) {
+  var payload = []
+  var result = 0
+  if (par == undefined || par.nodeid == undefined || par.deviceid == undefined) {
+    payload.push({ message: "No parameter specified" });
+    var newJSON = '{"id":"' + id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+    mqttCloud.publish(userTopic, newJSON, { qos: 0, retain: false })
+  }
+  else {
+    NodeDB.find({ $and: [{ "_id": par.nodeid, "devices.id": par.deviceid }] }, function (err, entries) {
+      if (!err && entries.length == 1) {
+        var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(par.deviceid))).toString()
+        NodeDB.update({ $and: [{ "_id": this.par.nodeid }, { "devices.id": this.par.deviceid }] }, { $set: { ['devices.' + deviceIndex + '.name']: this.par.name } }, {}, function (err, numAffected) {
+          var payload = []
+          var result = 0
+          if (!err && numAffected > 0) {
+            payload.push({ message: "Device renamed" });
+            result = 1
+            MessageDB.update({ $and: [{ "nodeid": this.par.nodeid }, { "deviceid": this.par.deviceid }] }, { $set: { "devicename": this._deviceName } }, { upsert: false }, function (err, numAffected) {
+            })
+          }
+          else {
+            payload.push({ message: "Error renaming the device" });
+          }
+          var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+          mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
+        }.bind({ _deviceName: this.par }))
+      } else {
+        payload.push({ message: "Error renaming the device" });
+        var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+        mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
+      }
+    }.bind({ par, id, userTopic }))
+  }
 }
 
 function listDeviceTypes(userTopic, id, par) {
