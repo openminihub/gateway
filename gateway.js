@@ -835,6 +835,75 @@ function setDeviceValue(userTopic, id, par) {
 }
 
 function getDeviceValues(userTopic, id, par) {
+  var _onlyNodes = []
+  if (isEmptyObject(par)) {
+    par = new Object()
+  } else {
+    _onlyNodes = removeDuplicates(Array.from(Object.keys(par), k => par[k].nodeid))
+    // console.log('onlyNodes => %s', JSON.stringify(removeDuplicates(_onlyNodes));
+  }
+  var _query = (par.lenght === 0) ? { "_id": { $exists: true } } : { "_id": { $in: _onlyNodes } }
+  NodeDB.find(_query, {}, function (err, entries) {
+    if (!err && entries) {
+      var _queryMsg = (this._par.lenght === 0) ? { "nodeid": { $exists: true } } : { "nodeid": { $in: this._onlyNodesMsg } }
+      MessageDB.find(_queryMsg).sort({ nodeid: 1, deviceid: 1 }).exec(function (err, entries) {
+        var payload = []
+        var result = 1
+        if (!err && entries) {
+          // console.log('nodeDB => %s', JSON.stringify(this._nodes));
+          var messages = new Array()
+          var device = new Object()
+          var pushed = true
+          for (var n in entries) {
+            if (device.nodeid != entries[n].nodeid && device.nodeid != entries[n].nodeid && n > 0) {
+              device.messages = messages
+              payload.push(device)
+              messages = new Array()
+              pushed = true
+              // console.log('device: %s', JSON.stringify(device))
+            }
+            if (pushed) {
+              device.nodeid = entries[n].nodeid
+              device.deviceid = entries[n].deviceid
+              device.devicetype = entries[n].devicetype
+              var nodeIndex = this._nodes.map(function (node) { return node._id; }).indexOf(entries[n].nodeid)
+              var deviceIndex = (this._nodes[nodeIndex].devices.map(function (device) { return device.id; }).indexOf(parseInt(entries[n].deviceid)))
+              device.devicename = this._nodes[nodeIndex].devices[deviceIndex].name
+              pushed = false
+            }
+            var msgdata = entries[n].msgvalue
+            var msgvalue = parseFloat(msgdata)
+            if (msgvalue == NaN) {
+              msgvalue = null
+            }
+            else {
+              msgdata = null
+            }
+            messages.push({
+              msgtype: entries[n].msgtype,
+              msgvalue: msgvalue,
+              msgdata: msgdata,
+              updated: entries[n].updated,
+              rssi: entries[n].rssi,
+              id: entries[n]._id
+            })
+          }
+          device.messages = messages
+          payload.push(device)
+          // console.log('payload: %s', JSON.stringify(payload))
+          var newJSON = '{"id":"' + this._id2 + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+          mqttCloud.publish(this._userTopic2, newJSON, { qos: 0, retain: false })
+        } else {
+          result = 0
+          var newJSON = '{"id":"' + this._id2 + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+          mqttCloud.publish(this._userTopic2, newJSON, { qos: 0, retain: false })
+        }
+      }.bind({ _nodes: entries, _id2: _id, _userTopic2: _userTopic }))
+    }
+  }.bind({ _par: par, _id: id, _userTopic: userTopic, _onlyNodesMsg: _onlyNodes }))
+}
+
+function getDeviceValues_old(userTopic, id, par) {
   // console.log('par: %s', JSON.stringify(par))
   var query = new Object()
   if (isEmptyObject(par)) {
