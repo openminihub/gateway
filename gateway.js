@@ -898,7 +898,7 @@ function getDeviceValues(userTopic, id, par) {
           var newJSON = '{"id":"' + this._id2 + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
           mqttCloud.publish(this._userTopic2, newJSON, { qos: 0, retain: false })
         }
-      }.bind({ _nodes: entries, _id2: _id, _userTopic2: _userTopic }))
+      }.bind({ _nodes: entries, _id2: this._id, _userTopic2: this._userTopic }))
     }
   }.bind({ _par: par, _id: id, _userTopic: userTopic, _onlyNodesMsg: _onlyNodes }))
 }
