@@ -858,6 +858,8 @@ function getDeviceValues(userTopic, id, par) {
           var pushed = true
           console.log('====================================================')
           for (var n in entries) {
+            console.log('entries[%s]: nodeid: %s == %s', n, device.nodeid != entries[n].nodeid)
+            console.log('entries[%s]: deviceid: %s == ', n, device.deviceid, entries[n].deviceid)
             if (device.nodeid != entries[n].nodeid && device.deviceid != entries[n].deviceid && n > 0) {
               device.messages = messages
               console.log('entries[%s]: %s', n, JSON.stringify(device))
