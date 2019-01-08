@@ -858,9 +858,10 @@ function getDeviceValues(userTopic, id, par) {
           for (var n in entries) {
             if (device.nodeid != entries[n].nodeid && device.deviceid != entries[n].deviceid && n > 0) {
               device.messages = messages
-              payload.push(new device)
+              payload.push(device)
               // payload.push(JSON.parse(JSON.stringify(device)))
               messages = new Array()
+              device = new Object()
               pushed = true
               // console.log('device: %s', JSON.stringify(device))
             }
@@ -891,7 +892,7 @@ function getDeviceValues(userTopic, id, par) {
             })
           }
           device.messages = messages
-          payload.push(new device)
+          payload.push(device)
           // payload.push(JSON.parse(JSON.stringify(device)))
           console.log('payload: %s', JSON.stringify(payload))
           var newJSON = '{"id":"' + this._id2 + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
