@@ -851,13 +851,15 @@ function getDeviceValues(userTopic, id, par) {
         var result = 1
         if (!err && entries) {
           // console.log('nodeDB => %s', JSON.stringify(this._nodes));
+          // console.log('msgDB => %s', JSON.stringify(entries));
           var messages = new Array()
           var device = new Object()
           var pushed = true
           for (var n in entries) {
-            if (device.nodeid != entries[n].nodeid && device.nodeid != entries[n].nodeid && n > 0) {
+            if (device.nodeid != entries[n].nodeid && device.deviceid != entries[n].deviceid && n > 0) {
               device.messages = messages
-              payload.push(device)
+              payload.push(new device)
+              // payload.push(JSON.parse(JSON.stringify(device)))
               messages = new Array()
               pushed = true
               // console.log('device: %s', JSON.stringify(device))
@@ -889,8 +891,9 @@ function getDeviceValues(userTopic, id, par) {
             })
           }
           device.messages = messages
-          payload.push(device)
-          // console.log('payload: %s', JSON.stringify(payload))
+          payload.push(new device)
+          // payload.push(JSON.parse(JSON.stringify(device)))
+          console.log('payload: %s', JSON.stringify(payload))
           var newJSON = '{"id":"' + this._id2 + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
           mqttCloud.publish(this._userTopic2, newJSON, { qos: 0, retain: false })
         } else {
