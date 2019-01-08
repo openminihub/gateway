@@ -318,7 +318,7 @@ function handleOutTopic(rxmessage, nodetype) {
                   if (!err) {
                     if (entries.length == 1) {
                       var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(msg[1]))
-                      MessageDB.update({ $and: [{ "nodeid": msg[0], "deviceid": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid": msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "devicename": entries[0].devices[deviceIndex].name, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                      MessageDB.update({ $and: [{ "nodeid": msg[0], "deviceid": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid": msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                         callAction(affectedDocument)
                         doMessageMapping(affectedDocument)
                         doDeviceSubscribe(affectedDocument)
@@ -436,7 +436,7 @@ function handleOutTopic(rxmessage, nodetype) {
               doSaveHistory(affectedDocument)
             }
             else {
-              MessageDB.insert({ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "devicename": _deviceName, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
+              MessageDB.insert({ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "devicetype": _deviceType, "msgtype": _msgType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
                 //first message, no need for automation as it wasn't possible to define it before message received
               })
             }
@@ -850,26 +850,20 @@ function getDeviceValues(userTopic, id, par) {
         var payload = []
         var result = 1
         if (!err && entries) {
-          console.log('====================================================')
           // console.log('nodeDB => %s', JSON.stringify(this._nodes));
-          console.log('msgDB => %s', JSON.stringify(entries));
+          // console.log('msgDB => %s', JSON.stringify(entries));
           var messages = new Array()
           var device = new Object()
           var pushed = true
-          console.log('====================================================')
           for (var n in entries) {
-            console.log('entries[%s]: nodeid: %s == %s', n, device.nodeid, entries[n].nodeid)
-            console.log('entries[%s]: deviceid: %s == ', n, device.deviceid, entries[n].deviceid)
             if ((device.nodeid != entries[n].nodeid || device.deviceid != entries[n].deviceid) && n > 0) {
               device.messages = messages
-              console.log('entries[%s]: %s', n, JSON.stringify(device))
-              console.log('====================================================')
+              // console.log('entries[%s]: %s', n, JSON.stringify(device))
               payload.push(device)
               // payload.push(JSON.parse(JSON.stringify(device)))
               messages = new Array()
               device = new Object()
               pushed = true
-              // console.log('device: %s', JSON.stringify(device))
             }
             if (pushed) {
               device.nodeid = entries[n].nodeid
@@ -898,11 +892,10 @@ function getDeviceValues(userTopic, id, par) {
             })
           }
           device.messages = messages
-          console.log('entries[%s]: %s', n, JSON.stringify(device))
-          console.log('====================================================')
+          // console.log('entries[%s]: %s', n, JSON.stringify(device))
           payload.push(device)
           // payload.push(JSON.parse(JSON.stringify(device)))
-          console.log('payload: %s', JSON.stringify(payload))
+          // console.log('payload: %s', JSON.stringify(payload))
           var newJSON = '{"id":"' + this._id2 + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
           mqttCloud.publish(this._userTopic2, newJSON, { qos: 0, retain: false })
         } else {
@@ -914,7 +907,7 @@ function getDeviceValues(userTopic, id, par) {
     }
   }.bind({ _par: par, _id: id, _userTopic: userTopic, _onlyNodesMsg: _onlyNodes }))
 }
-
+/*
 function getDeviceValues_old(userTopic, id, par) {
   // console.log('par: %s', JSON.stringify(par))
   var query = new Object()
@@ -968,7 +961,7 @@ function getDeviceValues_old(userTopic, id, par) {
     }.bind({ devicesLeft: par.length - d - 1 }))
   }
 }
-
+*/
 function getDeviceValueHistory(userTopic, id, par) {
   // console.log('par: %s', JSON.stringify(par))
   var query = new Object()
@@ -1291,15 +1284,13 @@ function renameDevice(userTopic, id, par) {
           if (!err && numAffected > 0) {
             payload.push({ message: "Device renamed" });
             result = 1
-            MessageDB.update({ $and: [{ "nodeid": this.par.nodeid }, { "deviceid": this.par.deviceid }] }, { $set: { "devicename": this._deviceName } }, { upsert: false }, function (err, numAffected) {
-            })
           }
           else {
             payload.push({ message: "Error renaming the device" });
           }
           var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
           mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
-        }.bind({ _deviceName: this.par }))
+        })
       } else {
         payload.push({ message: "Error renaming the device" });
         var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
