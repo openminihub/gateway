@@ -852,8 +852,7 @@ function getDeviceValues(userTopic, id, par) {
         if (!err && entries) {
           console.log('====================================================')
           // console.log('nodeDB => %s', JSON.stringify(this._nodes));
-              console.log('entries[%s]: %s', n, JSON.stringify(device))
-              // console.log('msgDB => %s', JSON.stringify(entries));
+          console.log('msgDB => %s', JSON.stringify(entries));
           var messages = new Array()
           var device = new Object()
           var pushed = true
