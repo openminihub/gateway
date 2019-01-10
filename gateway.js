@@ -422,6 +422,7 @@ function handleOutTopic(rxmessage, nodetype) {
             var _deviceName = "Relay"
             break
           default:
+            console.log('UNKNOWN: %s', trim_msg)
             var _deviceType = 23
             var _msgType = 48
             var _deviceName = "Unknown"
