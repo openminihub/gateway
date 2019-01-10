@@ -1269,16 +1269,16 @@ function listDevices(userTopic, id, par) {
 function renameDevice(userTopic, id, par) {
   var payload = []
   var result = 0
-  if (par == undefined || par.nodeid == undefined || par.deviceid == undefined) {
+  if (par == undefined || par.id == undefined || par.nodeid == undefined) {
     payload.push({ message: "No parameter specified" });
     var newJSON = '{"id":"' + id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
     mqttCloud.publish(userTopic, newJSON, { qos: 0, retain: false })
   }
   else {
-    NodeDB.find({ $and: [{ "_id": par.nodeid, "devices.id": par.deviceid }] }, function (err, entries) {
+    NodeDB.find({ $and: [{ "_id": par.nodeid, "devices.id": par.id }] }, function (err, entries) {
       if (!err && entries.length == 1) {
-        var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(this._par.deviceid))).toString()
-        NodeDB.update({ $and: [{ "_id": this._par.nodeid }, { "devices.id": this._par.deviceid }] }, { $set: { ['devices.' + deviceIndex + '.name']: this._par.name } }, {}, function (err, numAffected) {
+        var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(this._par.id))).toString()
+        NodeDB.update({ $and: [{ "_id": this._par.nodeid }, { "devices.id": this._par.id }] }, { $set: { ['devices.' + deviceIndex + '.name']: this._par.name } }, {}, function (err, numAffected) {
           var payload = []
           var result = 0
           if (!err && numAffected > 0) {
