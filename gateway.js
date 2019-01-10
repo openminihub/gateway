@@ -603,7 +603,7 @@ function handleUserMessage(topic, message) {
         listNodes(userTopic, msg.id, msg.parameters)
         break
       case 'renameNode':
-        renameNodes(userTopic, msg.id, msg.parameters)
+        renameNode(userTopic, msg.id, msg.parameters)
         break
       case 'getNodeUpdateVersion':
         getNodeUpdateVersion(userTopic, msg.id, msg.parameters)
@@ -1277,8 +1277,8 @@ function renameDevice(userTopic, id, par) {
   else {
     NodeDB.find({ $and: [{ "_id": par.nodeid, "devices.id": par.deviceid }] }, function (err, entries) {
       if (!err && entries.length == 1) {
-        var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(par.deviceid))).toString()
-        NodeDB.update({ $and: [{ "_id": this.par.nodeid }, { "devices.id": this.par.deviceid }] }, { $set: { ['devices.' + deviceIndex + '.name']: this.par.name } }, {}, function (err, numAffected) {
+        var deviceIndex = (entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(this._par.deviceid))).toString()
+        NodeDB.update({ $and: [{ "_id": this._par.nodeid }, { "devices.id": this._par.deviceid }] }, { $set: { ['devices.' + deviceIndex + '.name']: this._par.name } }, {}, function (err, numAffected) {
           var payload = []
           var result = 0
           if (!err && numAffected > 0) {
@@ -1288,15 +1288,15 @@ function renameDevice(userTopic, id, par) {
           else {
             payload.push({ message: "Error renaming the device" });
           }
-          var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
-          mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
-        })
+          var newJSON = '{"id":"' + this._id2 + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+          mqttCloud.publish(this._userTopic2, newJSON, { qos: 0, retain: false })
+        }.bind({ _id2: this._id, _userTopic2: this._userTopic }))
       } else {
         payload.push({ message: "Error renaming the device" });
-        var newJSON = '{"id":"' + this.id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
-        mqttCloud.publish(this.userTopic, newJSON, { qos: 0, retain: false })
+        var newJSON = '{"id":"' + this._id + '", "result":' + result + ', "payload": ' + JSON.stringify(payload) + '}'
+        mqttCloud.publish(this._userTopic, newJSON, { qos: 0, retain: false })
       }
-    }.bind({ par, id, userTopic }))
+    }.bind({ _par: par, _id: id, _userTopic: userTopic }))
   }
 }
 
