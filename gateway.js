@@ -389,7 +389,7 @@ function handleOutTopic(rxmessage, nodetype) {
       // message = rxmessage.substr(0, rssiIdx).toString().trim();
       //get node networkID
       var msg = trim_msg.toString().split('/')
-      if (msg.length == 4) //Internal message
+      if (msg.length == 4) //Internal message or RFID
       {
         switch (msg[2]) {
           case 'version':
@@ -1334,7 +1334,7 @@ function listMessageTypes(userTopic, id, par) {
     var result = 0
     if (entries.length > 0) {
       for (var i = 0; i < entries.length; i++) {
-        payload.push({ name: entries[i].name, value: entries[i].value, type: entries[i].type });
+        payload.push({ name: entries[i].name, value: entries[i].value, type: entries[i].type, ro: entries[i].ro });
       }
       result = 1
     }
