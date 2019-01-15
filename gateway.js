@@ -362,6 +362,7 @@ function handleOutTopic(rxmessage, nodetype) {
             {
               NodeDB.update({ "_id": msg[0] }, { $set: { type: nodetype, board: msg[5] } }, { upsert: true, returnUpdatedDocs: true }, function (err, numAffected, affectedDocuments) {
                 if (!err && numAffected) {
+                  // TODO: TypeError: Cannot read property 'name' of undefined
                   if (isEmptyObject(affectedDocuments[0].name)) {
                     NodeDB.update({ "_id": this.id }, { $set: { name: this.name } }, { upsert: false })
                   }
@@ -389,7 +390,7 @@ function handleOutTopic(rxmessage, nodetype) {
       // message = rxmessage.substr(0, rssiIdx).toString().trim();
       //get node networkID
       var msg = trim_msg.toString().split('/')
-      if (msg.length == 4) //Internal message or RFID
+      if (msg.length == 4) //Internal message or RFIN
       {
         switch (msg[2]) {
           case 'version':
@@ -410,6 +411,9 @@ function handleOutTopic(rxmessage, nodetype) {
           case 'rssi': //rssi
             MessageDB.update({ "nodeid": msg[1] }, { $set: { "rssi": parseInt(msg[3]) } }, { upsert: false, returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
             })
+            break
+          case 'rfin': // rfin C00101921800E1696E = C001 0192 1800 E1696E
+            console.log('rfin: TIMINGS: %s, DEVICE MSG: %s', msg[3].substring(0, 12), msg[3].substring(12))
             break
         }
       }
