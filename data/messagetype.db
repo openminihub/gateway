@@ -43,7 +43,7 @@
 {"type":56,"value":"V_POWER_FACTOR","name":"Power factor","ro":false,"_id":"ni78HEt0NMgKveaQ"}
 {"type":10,"value":"V_DIRECTION","name":"Wind direction 0-360 (degrees)","ro":false,"_id":"oNtGeSQqJxMOupuA"}
 {"type":54,"value":"V_VAR","name":"Power sensor VAR","ro":true,"_id":"pGFnpesa2eSy1H6K"}
-{"type":15,"value":"V_ARMED","name":"Aremd","ro":true,"_id":"qupNhb1cS01Ka3Xl"}
+{"type":15,"value":"V_ARMED","name":"Armed","ro":true,"_id":"qupNhb1cS01Ka3Xl"}
 {"type":34,"value":"V_FLOW","name":"Flow of water (in meter)","ro":false,"_id":"rNOcuhTFcGbwO6Dp"}
 {"type":46,"value":"V_HVAC_FLOW_MODE","name":"Flow mode for HVAC (Auto, On, Off, Frost, Periodic)","ro":true,"_id":"u1H0qsN6Fsrnge5z"}
 {"type":49,"value":"V_POSITION","name":"GPS position and altitude. Payload: latitude;longitude;altitude(m)","ro":false,"_id":"uNWZIJOuFH0oL20c"}
@@ -55,5 +55,5 @@
 {"type":14,"value":"V_IMPEDANCE","name":"Impedance","ro":false,"_id":"y5ELRoyZqXikdjYP"}
 {"type":28,"value":"V_VAR5","name":"VAR5","ro":true,"_id":"ym2T7iCqoFCKDptS"}
 {"type":53,"value":"V_EC","name":"Water quality: EC","ro":false,"_id":"zHkwV4Xd7RKa04Sy"}
-{"type":57,"value":"V_GATE_STATUS","name":"Gate status (OPENED, CLOSED, OPENING, CLOSING, PAUSED)","ro":false,"_id":"zVMag6GgU6FCEAT2"}
+{"type":57,"value":"V_GATE_STATUS","name":"Gate status (OPENED, CLOSED, OPENING, CLOSING, PAUSED)","ro":true,"_id":"zVMag6GgU6FCEAT2"}
 {"type":1,"value":"V_HUM","name":"Humidity","ro":false,"_id":"zaTbuV7ds2go3JuS"}
