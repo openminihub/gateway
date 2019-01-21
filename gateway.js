@@ -862,8 +862,8 @@ function getDeviceValues(userTopic, id, par) {
     if (!err && entries) {
       //Create an array of nodeid-deviceid-
       var _nodeDevice = ""
-      for (var device in this._par) {
-        _nodeDevice = "^(\\b" + _par.nodeid + "-" + _par.deviceid + "-\\b).*|"
+      for (var d in this._par) {
+        _nodeDevice = "^(\\b" + this._par[d].nodeid + "-" + this._par[d].deviceid + "-\\b).*|"
       }
       var _queryMsg = (this._par.lenght === 0) ? { "devicemsg": { $exists: true } } : { "devicemsg": { $regex: new RegExp(_nodeDevice.substring(0, _nodeDevice.length - 1)) } }
       MessageDB.find(_queryMsg).sort({ nodeid: 1, deviceid: 1 }).exec(function (err, entries) {
@@ -876,7 +876,8 @@ function getDeviceValues(userTopic, id, par) {
           var device = new Object()
           var pushed = true
           for (var n in entries) {
-            if ((device.nodeid != entries[n].nodeid || device.deviceid != entries[n].deviceid) && n > 0) {
+            var _devicemsg = entries[n].devicemsg.split('-')
+            if ((device.nodeid != _devicemsg[0] || device.deviceid != _devicemsg[1]) && n > 0) {
               device.messages = messages
               // console.log('entries[%s]: %s', n, JSON.stringify(device))
               payload.push(device)
@@ -886,11 +887,11 @@ function getDeviceValues(userTopic, id, par) {
               pushed = true
             }
             if (pushed) {
-              device.nodeid = entries[n].nodeid
-              device.deviceid = entries[n].deviceid
-              device.devicetype = entries[n].devicetype
-              var nodeIndex = this._nodes.map(function (node) { return node._id; }).indexOf(entries[n].nodeid)
-              var deviceIndex = (this._nodes[nodeIndex].devices.map(function (device) { return device.id; }).indexOf(parseInt(entries[n].deviceid)))
+              device.nodeid = _devicemsg[0]
+              device.deviceid = _devicemsg[1]
+              device.devicetype = _devicemsg[2]
+              var nodeIndex = this._nodes.map(function (node) { return node._id; }).indexOf(device.nodeid)
+              var deviceIndex = (this._nodes[nodeIndex].devices.map(function (device) { return device.id; }).indexOf(parseInt(device.deviceid)))
               device.devicename = this._nodes[nodeIndex].devices[deviceIndex].name
               pushed = false
             }
