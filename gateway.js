@@ -889,7 +889,7 @@ function getDeviceValues(userTopic, id, par) {
             if (pushed) {
               device.nodeid = _devicemsg[0]
               device.deviceid = _devicemsg[1]
-              device.devicetype = _devicemsg[2]
+              device.devicetype = entries[n].devicetype
               var nodeIndex = this._nodes.map(function (node) { return node._id; }).indexOf(device.nodeid)
               var deviceIndex = (this._nodes[nodeIndex].devices.map(function (device) { return device.id; }).indexOf(parseInt(device.deviceid)))
               device.devicename = this._nodes[nodeIndex].devices[deviceIndex].name
@@ -904,7 +904,7 @@ function getDeviceValues(userTopic, id, par) {
               msgdata = null
             }
             messages.push({
-              msgtype: entries[n].msgtype,
+              msgtype: _devicemsg[2],
               msgvalue: msgvalue,
               msgdata: msgdata,
               updated: entries[n].updated,
