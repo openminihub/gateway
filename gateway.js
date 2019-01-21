@@ -441,7 +441,7 @@ function handleOutTopic(rxmessage, nodetype) {
             break
         }
         // MessageDB.update({ $and: [{ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000) } }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
-        MessageDB.update({ "devicemsg": msg[0] + '-' + msg[1] + '-' + msg[4] }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000) } }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
+        MessageDB.update({ "devicemsg": msg[1] + '-' + msg[3] + '-' + _msgType }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000) } }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
           if (!err) {
             if (wasAffected) {
               callAction(affectedDocument)
@@ -450,7 +450,7 @@ function handleOutTopic(rxmessage, nodetype) {
               doSaveHistory(affectedDocument)
             }
             else {
-              MessageDB.insert({ "devicemsg": msg[0] + '-' + msg[1] + '-' + msg[4], "devicetype": _deviceType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
+              MessageDB.insert({ "devicemsg": msg[1] + '-' + msg[3] + '-' + _msgType, "devicetype": _deviceType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
                 //first message, no need for automation as it wasn't possible to define it before message received
               })
             }
@@ -656,7 +656,7 @@ function handleSendMessage(topic, message) {
   // var trim_msg = topic.replace(/(\n|\r)+$/, '')
   var tpc = topic.toString().split('/')
   // MessageDB.find({ $and: [{ "nodeid": tpc[1] }, { "deviceid": tpc[2] }, { "msgtype": tpc[3] }] }, function (err, entries) {
-  MessageDB.find({ "devicemsg": tpc[0] + '-' + tpc[1] + '-' + tpc[4] }, function (err, entries) {
+  MessageDB.find({ "devicemsg": tpc[1] + '-' + tpc[2] + '-' + tpc[3] }, function (err, entries) {
     if (!err) {
       if (entries.length > 0) {
         var txOpenNode = entries[0].nodeid + ';' + entries[0].deviceid + ';1;1;' + entries[0].msgtype + ';' + this.message + '\n'
