@@ -1801,10 +1801,11 @@ function listSubscribedDevices(userTopic, id, par) {
         var payload = []
         var result = 0
         for (var n in entries) {
-          if (!payload.find(o => o.nodeid === entries[n].nodeid && o.deviceid === entries[n].deviceid)) {
+          var _devicemsg = entries[n]._id.split('-')
+          if (!payload.find(o => o.nodeid === _devicemsg[0] && o.deviceid === _devicemsg[1])) {
             payload.push({
-              nodeid: entries[n].nodeid,
-              deviceid: entries[n].deviceid
+              nodeid: _devicemsg[0],
+              deviceid: _devicemsg[1]
             })
           }
           result = 1
