@@ -306,10 +306,10 @@ function handleOutTopic(rxmessage, nodetype) {
                   }
                   NodeDB.update({ "_id": this._msg2[0] }, { $push: { "devices": { id: parseInt(this._msg2[1]), type: parseInt(this._msg2[4]), name: _deviceName } } }, {}, function () {
                   })
-                }.bind(_msg2 : this._msg))
+                }.bind({_msg2 : this._msg}))
               }
             }
-          }.bind(_msg : msg))
+          }.bind({_msg : msg}))
           break
         case '1': //set
           // MessageDB.update({ $and: [{ "nodeid": msg[0] }, { "deviceid": parseInt(msg[1]) }, { "msgtype": parseInt(msg[4]) }] }, { $set: { "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI } }, { returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument) {
