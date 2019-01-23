@@ -127,7 +127,7 @@ serial.open(function (error) {
 NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 MessageDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
-MessageDB.ensureIndex({ fieldName: 'devicemsg', unique: true }, function (err) { })
+MessageDB.ensureIndex({ fieldName: '_id', unique: true }, function (err) { })
 
 global.processSerialData = function (data) {
   //  console.log('SERIAL: %s', data)
@@ -149,7 +149,7 @@ mqttLocal.on('connect', () => {
         console.log('The nodeid to subscribe: %s', JSON.stringify(entries))
         //TODO: Create regex with OR nodied id1|id2|id3 etc.
         // MessageDB.find({ nodeid: { $in: entries } }, function (err, entries) {
-        MessageDB.find({ "devicemsg": { $in: entries } }, function (err, entries) {
+        MessageDB.find({ "_id": { $in: entries } }, function (err, entries) {
           if (!err) {
             console.log('==============================');
             console.log('* Subscribing to MQTT topics *');
@@ -299,21 +299,21 @@ function handleOutTopic(rxmessage, nodetype) {
           NodeDB.find({ $and: [{ "_id": msg[0] }, { "devices": { $elemMatch: { id: parseInt(msg[1]), type: parseInt(msg[4]) } } }] }, {}, function (err, entries) {
             if (!err) {
               if (entries.length < 1) {
-                DeviceTypeDB.find({ "type": parseInt(msg[4]) }, function (err, entries) {
+                DeviceTypeDB.find({ "type": parseInt(this._msg[4]) }, function (err, entries) {
                   var _deviceName = "Unknown"
                   if (!err && entries.lenght > 0) {
                     _deviceName = entries[0].name
                   }
-                  NodeDB.update({ "_id": this.msg[0] }, { $push: { "devices": { id: parseInt(this.msg[1]), type: parseInt(this.msg[4]), name: _deviceName } } }, {}, function () {
+                  NodeDB.update({ "_id": this._msg2[0] }, { $push: { "devices": { id: parseInt(this._msg2[1]), type: parseInt(this._msg2[4]), name: _deviceName } } }, {}, function () {
                   })
-                }.bind(msg))
+                }.bind(_msg2 : this._msg))
               }
             }
-          })
+          }.bind(_msg : msg))
           break
         case '1': //set
           // MessageDB.update({ $and: [{ "nodeid": msg[0] }, { "deviceid": parseInt(msg[1]) }, { "msgtype": parseInt(msg[4]) }] }, { $set: { "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI } }, { returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument) {
-          MessageDB.update({ "devicemsg": msg[0] + '-' + msg[1] + '-' + msg[4] }, { $set: { "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI } }, { returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument) {
+          MessageDB.update({ "_id": msg[0] + '-' + msg[1] + '-' + msg[4] }, { $set: { "msg": msg[5], "upd": Math.floor(Date.now() / 1000), "rssi": messageRSSI } }, { returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument) {
             if (!err) {
               if (!wasAffected) //The row wasn't updated : Create new entry
               {
@@ -323,7 +323,7 @@ function handleOutTopic(rxmessage, nodetype) {
                     if (entries.length == 1) {
                       var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(msg[1]))
                       // MessageDB.update({ $and: [{ "nodeid": msg[0], "deviceid": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid": msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
-                      MessageDB.update({ "devicemsg": msg[0] + '-' + msg[1] + '-' + msg[4] }, { "devicemsg": msg[0] + '-' + msg[1] + '-' + msg[4], "devicetype": entries[0].devices[deviceIndex].type, "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
+                      MessageDB.update({ "_id": msg[0] + '-' + msg[1] + '-' + msg[4] }, { "_id": msg[0] + '-' + msg[1] + '-' + msg[4], "dt": entries[0].devices[deviceIndex].type, "msg": msg[5], "upd": Math.floor(Date.now() / 1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                         callAction(affectedDocument)
                         doMessageMapping(affectedDocument)
                         doDeviceSubscribe(affectedDocument)
@@ -416,7 +416,7 @@ function handleOutTopic(rxmessage, nodetype) {
           case 'rssi': //rssi
             //TODO: Update logic to use composite index
             // MessageDB.update({ "nodeid": msg[1] }, { $set: { "rssi": parseInt(msg[3]) } }, { upsert: false, returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
-            MessageDB.update({ "devicemsg": { $regex: new RegExp("^(\\b" + msg[1] + "-\\b).*") } }, { $set: { "rssi": parseInt(msg[3]) } }, { upsert: false, returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
+            MessageDB.update({ "_id": { $regex: new RegExp("^(\\b" + msg[1] + "-\\b).*") } }, { $set: { "rssi": parseInt(msg[3]) } }, { upsert: false, returnUpdatedDocs: false, multi: true }, function (err, wasAffected) {
             })
             break
           case 'rfin': // rfin C00101921800E1696E = C001 0192 1800 E1696E
@@ -440,7 +440,7 @@ function handleOutTopic(rxmessage, nodetype) {
             break
         }
         // MessageDB.update({ $and: [{ "nodeid": msg[1], "deviceid": parseInt(msg[3]), "msgtype": _msgType }] }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000) } }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
-        MessageDB.update({ "devicemsg": msg[1] + '-' + msg[3] + '-' + _msgType }, { $set: { "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000) } }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
+        MessageDB.update({ "_id": msg[1] + '-' + msg[3] + '-' + _msgType }, { $set: { "msg": msg[4], "upd": Math.floor(Date.now() / 1000) } }, { upsert: false, returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument, upsert) {
           if (!err) {
             if (wasAffected) {
               callAction(affectedDocument)
@@ -449,7 +449,7 @@ function handleOutTopic(rxmessage, nodetype) {
               doSaveHistory(affectedDocument)
             }
             else {
-              MessageDB.insert({ "devicemsg": msg[1] + '-' + msg[3] + '-' + _msgType, "devicetype": _deviceType, "msgvalue": msg[4], "updated": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
+              MessageDB.insert({ "_id": msg[1] + '-' + msg[3] + '-' + _msgType, "dt": _deviceType, "msg": msg[4], "upd": Math.floor(Date.now() / 1000), "rssi": 0 }, function (err, newDocs) {
                 //first message, no need for automation as it wasn't possible to define it before message received
               })
             }
@@ -655,7 +655,7 @@ function handleSendMessage(topic, message) {
   // var trim_msg = topic.replace(/(\n|\r)+$/, '')
   var tpc = topic.toString().split('/')
   // MessageDB.find({ $and: [{ "nodeid": tpc[1] }, { "deviceid": tpc[2] }, { "msgtype": tpc[3] }] }, function (err, entries) {
-  MessageDB.find({ "devicemsg": tpc[1] + '-' + tpc[2] + '-' + tpc[3] }, function (err, entries) {
+  MessageDB.find({ "_id": tpc[1] + '-' + tpc[2] + '-' + tpc[3] }, function (err, entries) {
     if (!err) {
       if (entries.length > 0) {
         var txOpenNode = entries[0].nodeid + ';' + entries[0].deviceid + ';1;1;' + entries[0].msgtype + ';' + this.message + '\n'
@@ -864,7 +864,7 @@ function getDeviceValues(userTopic, id, par) {
       for (var d in this._par) {
         _nodeDevice = "^(\\b" + this._par[d].nodeid + "-" + this._par[d].deviceid + "-\\b).*|"
       }
-      var _queryMsg = (this._par.lenght === 0) ? { "devicemsg": { $exists: true } } : { "devicemsg": { $regex: new RegExp(_nodeDevice.substring(0, _nodeDevice.length - 1)) } }
+      var _queryMsg = (this._par.lenght === 0) ? { "_id": { $exists: true } } : { "_id": { $regex: new RegExp(_nodeDevice.substring(0, _nodeDevice.length - 1)) } }
       MessageDB.find(_queryMsg).sort({ nodeid: 1, deviceid: 1 }).exec(function (err, entries) {
         var payload = []
         var result = 1
@@ -875,7 +875,7 @@ function getDeviceValues(userTopic, id, par) {
           var device = new Object()
           var pushed = true
           for (var n in entries) {
-            var _devicemsg = entries[n].devicemsg.split('-')
+            var _devicemsg = entries[n]._id.split('-')
             if ((device.nodeid != _devicemsg[0] || device.deviceid != _devicemsg[1]) && n > 0) {
               device.messages = messages
               // console.log('entries[%s]: %s', n, JSON.stringify(device))
@@ -888,13 +888,13 @@ function getDeviceValues(userTopic, id, par) {
             if (pushed) {
               device.nodeid = _devicemsg[0]
               device.deviceid = parseInt(_devicemsg[1])
-              device.devicetype = entries[n].devicetype
+              device.devicetype = entries[n].dt
               var nodeIndex = this._nodes.map(function (node) { return node._id; }).indexOf(device.nodeid)
               var deviceIndex = (this._nodes[nodeIndex].devices.map(function (device) { return device.id; }).indexOf(parseInt(device.deviceid)))
               device.devicename = this._nodes[nodeIndex].devices[deviceIndex].name
               pushed = false
             }
-            var msgdata = entries[n].msgvalue
+            var msgdata = entries[n].msg
             var msgvalue = parseFloat(msgdata)
             if (msgvalue == NaN) {
               msgvalue = null
@@ -906,7 +906,7 @@ function getDeviceValues(userTopic, id, par) {
               msgtype: parseInt(_devicemsg[2]),
               msgvalue: msgvalue,
               msgdata: msgdata,
-              updated: entries[n].updated,
+              updated: entries[n].upd,
               rssi: entries[n].rssi,
               id: entries[n]._id
             })
@@ -1584,13 +1584,12 @@ function callAction(message) {
             // console.log("ACTION VARS: %s", JSON.stringify(actionRuleVariables))
             //get data from MessageDB for those variables
             // MessageDB.find({ "nodeid": { $in: actionRuleNodes } }, function (err, msg_entries) {
-            MessageDB.find({ "devicemsg": { $in: actionRuleVariables } }, function (err, msg_entries) {
+            MessageDB.find({ "_id": { $in: actionRuleVariables } }, function (err, msg_entries) {
               if (!err && msg_entries.length > 0) {
                 var actionData = {}
                 for (var m in msg_entries) {
-                  var msgID = msg_entries[m].nodeid + '-' + msg_entries[m].deviceid + '-' + msg_entries[m].msgtype
-                  if (this._actionRuleVariables.includes(msgID)) {
-                    actionData[msgID] = parseFloat(msg_entries[m].msgvalue)
+                  if (this._actionRuleVariables.includes(_id)) {
+                    actionData[_id] = parseFloat(msg_entries[m].msg)
                   }
                 }
                 // console.log("ACTION RULE: %s", JSON.stringify(this._actionRule))
@@ -1720,7 +1719,8 @@ function sendMessageToNode(message, data) {
       if (!err) {
         if (entries.length > 0) {
           console.log('message: %s', JSON.stringify(entries[0]))
-          NodeDB.find({ _id: entries[0].nodeid }, function (err, entries) {
+          var _devicemsg = entries[0]._id.split('-')
+          NodeDB.find({ _id: _devicemsg[0] }, function (err, entries) {
             if (!err) {
               if (entries.length > 0) {
                 switch (entries[0].type) {
@@ -1770,7 +1770,7 @@ function createMessageMapping(userTopic, id, par) {
 function subscribeForDeviceMessages(userTopic, id, par) {
   var splitTopic = userTopic.toString().split('/')
   // MessageDB.find({ $and: [{ "nodeid": par.nodeid }, { "deviceid": par.deviceid }] }, function (err, entries) {
-  MessageDB.find({ "devicemsg": { $regex: new RegExp("^(\\b" + par.nodeid + "-" + par.deviceid + "-\\b).*") } }, function (err, entries) {
+  MessageDB.find({ "_id": { $regex: new RegExp("^(\\b" + par.nodeid + "-" + par.deviceid + "-\\b).*") } }, function (err, entries) {
     var payload = []
     var result = 0
     var deviceMessages = new Array()
