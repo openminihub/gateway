@@ -865,7 +865,7 @@ function getDeviceValues(userTopic, id, par) {
         _nodeDevice = "^(\\b" + this._par[d].nodeid + "-" + this._par[d].deviceid + "-\\b).*|"
       }
       var _queryMsg = (this._par.lenght === 0) ? { "_id": { $exists: true } } : { "_id": { $regex: new RegExp(_nodeDevice.substring(0, _nodeDevice.length - 1)) } }
-      MessageDB.find(_queryMsg).sort({ nodeid: 1, deviceid: 1 }).exec(function (err, entries) {
+      MessageDB.find(_queryMsg).sort({ _id: 1 }).exec(function (err, entries) {
         var payload = []
         var result = 1
         if (!err && entries.lenght > 0) {
@@ -1627,7 +1627,7 @@ function executeAction(actionActions) {
 
 function doMessageMapping(message) {
   for (var m in message.mapping) {
-    MessageDB.update({ "_id": message.mapping[m] }, { $set: { value: message.value, updated: message.updated, changed: "Y" } }, { returnUpdatedDocs: true, multi: false }, function (err, updated, entry) {
+    MessageDB.update({ "_id": message.mapping[m] }, { $set: { msg: message.value, upd: message.updated, changed: "Y" } }, { returnUpdatedDocs: true, multi: false }, function (err, updated, entry) {
       if (!err) {
         if (updated) {
           console.log('* Message mapping done')
@@ -1796,7 +1796,7 @@ function listSubscribedDevices(userTopic, id, par) {
   var splitTopic = userTopic.toString().split('/')
   UserDB.find({ "user": splitTopic[1] }, function (err, entries) {
     if (!err && entries.length) {
-      MessageDB.find({ "_id": { $in: entries[0].messages } }, { nodeid: 1, deviceid: 1, _id: 0 }, function (err, entries) {
+      MessageDB.find({ "_id": { $in: entries[0].messages } }, { msg: 0, dt: 0, rssi: 0, upd: 0, _id: 1 }, function (err, entries) {
         // MessageDB.find({ "_id": { $in: entries[0].messages} }, { nodeid: 1, deviceid: 1, _id: 0 }).sort({ nodeid: 1, deviceid: 1 }).exec(function (err, entries) {
         var payload = []
         var result = 0
