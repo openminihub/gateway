@@ -1668,18 +1668,19 @@ function doDeviceSubscribe(message) {
 }
 
 function doSaveHistory(message) {
-  var msgvalue = parseFloat(message.msgvalue)
+  var msgvalue = parseFloat(message.msg)
   if (msgvalue == NaN) {
-    var msgdata = message.msgvalue
+    var msgdata = message.msg
     msgvalue = undefined
   }
   else {
     var msgdata = undefined
   }
+  var _devicemsg = message._id.split('-')
   influx.writePoints([
     {
       measurement: 'message',
-      tags: { nodeid: message.nodeid, deviceid: message.deviceid, devicetype: message.devicetype, msgtype: message.msgtype },
+      tags: { nodeid: _devicemsg[0], deviceid: _devicemsg[1], devicetype: message.dt, msgtype: _devicemsg[2] },
       fields: {
         msgvalue: msgvalue,
         msgdata: msgdata
