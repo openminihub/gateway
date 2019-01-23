@@ -868,7 +868,7 @@ function getDeviceValues(userTopic, id, par) {
       MessageDB.find(_queryMsg).sort({ nodeid: 1, deviceid: 1 }).exec(function (err, entries) {
         var payload = []
         var result = 1
-        if (!err && entries) {
+        if (!err && entries.lenght > 0) {
           // console.log('nodeDB => %s', JSON.stringify(this._nodes));
           // console.log('msgDB => %s', JSON.stringify(entries));
           var messages = new Array()
