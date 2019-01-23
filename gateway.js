@@ -127,7 +127,7 @@ serial.open(function (error) {
 NodeDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 BuildingDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
 MessageDB.persistence.setAutocompactionInterval(settings.database.compactDBInterval.value) //compact the database every 24hrs
-MessageDB.ensureIndex({ fieldName: 'devicemsg', unique: true }, function (err) {})
+MessageDB.ensureIndex({ fieldName: 'devicemsg', unique: true }, function (err) { })
 
 global.processSerialData = function (data) {
   //  console.log('SERIAL: %s', data)
@@ -368,8 +368,7 @@ function handleOutTopic(rxmessage, nodetype) {
             {
               NodeDB.update({ "_id": msg[0] }, { $set: { type: nodetype, board: msg[5] } }, { upsert: true, returnUpdatedDocs: true }, function (err, numAffected, affectedDocuments) {
                 if (!err && numAffected) {
-                  // TODO: TypeError: Cannot read property 'name' of undefined
-                  if (isEmptyObject(affectedDocuments[0].name)) {
+                  if (affectedDocuments[0].name === undefined) {
                     NodeDB.update({ "_id": this.id }, { $set: { name: this.name } }, { upsert: false })
                   }
                 }
