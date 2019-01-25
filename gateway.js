@@ -362,8 +362,7 @@ function handleOutTopic(rxmessage, nodetype) {
             {
               NodeDB.update({ "_id": msg[0] }, { $set: { type: nodetype, board: msg[5] } }, { upsert: true, returnUpdatedDocs: true }, function (err, numAffected, affectedDocuments) {
                 if (!err && numAffected) {
-                  // TODO: TypeError: Cannot read property 'name' of undefined
-                  if (isEmptyObject(affectedDocuments[0].name)) {
+                  if (affectedDocuments[0].name === undefined) {
                     NodeDB.update({ "_id": this.id }, { $set: { name: this.name } }, { upsert: false })
                   }
                 }
