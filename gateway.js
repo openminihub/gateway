@@ -338,6 +338,8 @@ function handleOutTopic(rxmessage, nodetype) {
                 doSaveHistory(affectedDocument)
               }
             }
+            else
+              console.log('ANSIS ERR: %s', err)
           })
           break
         case '3':  //internal
