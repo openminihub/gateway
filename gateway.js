@@ -303,7 +303,7 @@ function handleOutTopic(rxmessage, nodetype) {
                   }
                   NodeDB.update({ "_id": this.msg[0] }, { $push: { "devices": { id: parseInt(this.msg[1]), type: parseInt(this.msg[4]), name: _deviceName } } }, {}, function () {
                   })
-                }.bind({msg : msg}))
+                }.bind({ msg: msg }))
               }
             }
           })
@@ -362,7 +362,9 @@ function handleOutTopic(rxmessage, nodetype) {
             {
               NodeDB.update({ "_id": msg[0] }, { $set: { type: nodetype, board: msg[5] } }, { upsert: true, returnUpdatedDocs: true }, function (err, numAffected, affectedDocuments) {
                 if (!err && numAffected) {
-                  if (!affectedDocuments[0].hasOwnProperty("name")) {
+                  if (isEmptyObject(affectedDocuments[0])) {
+                    NodeDB.update({ "_id": this.id }, { $set: { name: this.name } }, { upsert: false })
+                  } else if (!affectedDocuments[0].hasOwnProperty("name")) {
                     NodeDB.update({ "_id": this.id }, { $set: { name: this.name } }, { upsert: false })
                   }
                 }
