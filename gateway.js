@@ -303,7 +303,7 @@ function handleOutTopic(rxmessage, nodetype) {
                   }
                   NodeDB.update({ "_id": this.msg[0] }, { $push: { "devices": { id: parseInt(this.msg[1]), type: parseInt(this.msg[4]), name: _deviceName } } }, {}, function () {
                   })
-                }.bind(msg))
+                }.bind({msg : msg}))
               }
             }
           })
