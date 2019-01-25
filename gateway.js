@@ -854,7 +854,7 @@ function getDeviceValues(userTopic, id, par) {
     par = new Object()
   } else {
     _onlyNodes = removeDuplicates(Array.from(Object.keys(par), k => par[k].nodeid))
-    // console.log('onlyNodes => %s', JSON.stringify(removeDuplicates(_onlyNodes));
+    // console.log('onlyNodes => %s', JSON.stringify(removeDuplicates(_onlyNodes)))
   }
   var _query = (par.lenght === 0) ? { "_id": { $exists: true } } : { "_id": { $in: _onlyNodes } }
   NodeDB.find(_query, {}, function (err, entries) {
@@ -862,7 +862,7 @@ function getDeviceValues(userTopic, id, par) {
       //Create an array of nodeid-deviceid-
       var _nodeDevice = ""
       for (var d in this._par) {
-        _nodeDevice = "^(\\b" + this._par[d].nodeid + "-" + this._par[d].deviceid + "-\\b).*|"
+        _nodeDevice = _nodeDevice + "^(\\b" + this._par[d].nodeid + "-" + this._par[d].deviceid + "-\\b).*|"
       }
       var _queryMsg = (this._par.lenght === 0) ? { "_id": { $exists: true } } : { "_id": { $regex: new RegExp(_nodeDevice.substring(0, _nodeDevice.length - 1)) } }
       MessageDB.find(_queryMsg).sort({ _id: 1 }).exec(function (err, entries) {
