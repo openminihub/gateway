@@ -329,6 +329,8 @@ function handleOutTopic(rxmessage, nodetype) {
                       })
                     }
                   }
+                  else
+                    console.log('ANSIS ERR2: %s', err)
                 })
               }
               else {
@@ -341,7 +343,7 @@ function handleOutTopic(rxmessage, nodetype) {
               }
             }
             else
-              console.log('ANSIS ERR: %s', err)
+              console.log('ANSIS ERR1: %s', err)
           })
           break
         case '3':  //internal
