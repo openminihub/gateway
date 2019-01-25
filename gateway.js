@@ -310,8 +310,8 @@ function handleOutTopic(rxmessage, nodetype) {
           break
         case '1': //set
           console.log('ANSIS OK?: %s', msg[2])
-
           MessageDB.update({ $and: [{ "nodeid": msg[0] }, { "deviceid": parseInt(msg[1]) }, { "msgtype": parseInt(msg[4]) }] }, { $set: { "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI } }, { returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument) {
+            console.log('ANSIS OK2?: %s', msg[0])
             if (!err) {
               if (!wasAffected) //The row wasn't updated : Create new entry
               {
@@ -319,7 +319,7 @@ function handleOutTopic(rxmessage, nodetype) {
                 NodeDB.find({ $and: [{ "_id": msg[0], "devices.id": parseInt(msg[1]) }] }, function (err, entries) {
                   if (!err) {
                     if (entries.length == 1) {
-                      console.log('ANSIS TEST: %s', entries.length)
+                      console.log('ANSIS wasAffected: %s', entries.length)
                       var deviceIndex = entries[0].devices.map(function (device) { return device.id; }).indexOf(parseInt(msg[1]))
                       MessageDB.update({ $and: [{ "nodeid": msg[0], "deviceid": parseInt(msg[1]), "msgtype": parseInt(msg[4]) }] }, { "nodeid": msg[0], "deviceid": parseInt(msg[1]), "devicetype": entries[0].devices[deviceIndex].type, "msgtype": parseInt(msg[4]), "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI }, { upsert: true }, function (err, numAffected, affectedDocument, upsert) {
                         callAction(affectedDocument)
@@ -334,7 +334,7 @@ function handleOutTopic(rxmessage, nodetype) {
                 })
               }
               else {
-                console.log('ANSIS TEST: %s', JSON.stringify(affectedDocument))
+                console.log('ANSIS wasAffected: %s', JSON.stringify(affectedDocument))
                 //Call automation
                 callAction(affectedDocument)
                 doMessageMapping(affectedDocument)
