@@ -309,6 +309,8 @@ function handleOutTopic(rxmessage, nodetype) {
           })
           break
         case '1': //set
+          console.log('ANSIS OK?: %s', msg[2])
+
           MessageDB.update({ $and: [{ "nodeid": msg[0] }, { "deviceid": parseInt(msg[1]) }, { "msgtype": parseInt(msg[4]) }] }, { $set: { "msgvalue": msg[5], "updated": Math.floor(Date.now() / 1000), "rssi": messageRSSI } }, { returnUpdatedDocs: true, multi: false }, function (err, wasAffected, affectedDocument) {
             if (!err) {
               if (!wasAffected) //The row wasn't updated : Create new entry
