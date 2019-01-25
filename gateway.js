@@ -362,7 +362,7 @@ function handleOutTopic(rxmessage, nodetype) {
             {
               NodeDB.update({ "_id": msg[0] }, { $set: { type: nodetype, board: msg[5] } }, { upsert: true, returnUpdatedDocs: true }, function (err, numAffected, affectedDocuments) {
                 if (!err && numAffected) {
-                  if (affectedDocuments[0].name === undefined) {
+                  if (!affectedDocuments[0].hasOwnProperty("name")) {
                     NodeDB.update({ "_id": this.id }, { $set: { name: this.name } }, { upsert: false })
                   }
                 }
