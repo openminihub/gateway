@@ -10,21 +10,19 @@ module.exports = {
       },
       node_id: {
         primaryKey: true,
-        type: Sequelize.STRING
-        // ,
-        // references: {
-        //   model: 'Devices',
-        //   key: 'node_id'
-        // }
+        type: Sequelize.STRING,
+        references: {
+          model: 'Devices',
+          key: 'node_id'
+        }
       },
       device_id: {
         primaryKey: true,
-        type: Sequelize.STRING
-        // ,
-        // references: {
-        //   model: 'Devices',
-        //   key: 'id'
-        // }
+        type: Sequelize.STRING,
+        references: {
+          model: 'Devices',
+          key: 'id'
+        }
       },
       type: {
         primaryKey: true,

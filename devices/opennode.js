@@ -164,6 +164,7 @@ function _doInsertOnNewMessage(rowsUpdated, values) {
         db.Messages.create(values)
             .then(updatedRow => {
                 console.log(updatedRow.get({ plain: true }))
+                console.log('...inserted...')
             })
             .catch((err) => {
                 console.log('%s', err)
