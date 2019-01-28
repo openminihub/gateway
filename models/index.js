@@ -33,6 +33,7 @@ Object.keys(db).forEach(modelName => {
 
 db.sequelize = sequelize
 
+db.sequelize.query('PRAGMA journal_mode=WAL;')
 
 db.Devices.belongsTo(db.Messages, { targetKey: 'device_id', foreignKey: 'id' })
 
