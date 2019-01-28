@@ -52,25 +52,17 @@ mkdir -p $GATEWAY_DIR    #main dir where gateway app lives
 cd $GATEWAY_DIR || exit
 git init
 git remote add origin https://github.com/openminihub/gateway.git
-git pull origin development
+git pull origin develop
 sudo npm install --unsafe-perm --build-from-source --ignore-warnings
 sudo npm cache verify    #clear any caches/incomplete installs
 sudo npm audit fix
-mkdir $GATEWAY_DIR/logs -p
-if [ ! -f $GATEWAY_DIR/settings.json5 ]; then
-  cp -p settings.json5.example settings.json5
+mkdir $GATEWAY_DIR/log -p
+if [ ! -f $GATEWAY_DIR/config/gateway.json ]; then
+  cp -p gateway.sample.json gateway.json
 fi
 
 #create db and empty placeholders so chown pi will override root permissions
 mkdir $GATEWAY_DIR/data -p
-touch $GATEWAY_DIR/data/action.db
-touch $GATEWAY_DIR/data/building.db
-touch $GATEWAY_DIR/data/device.db
-#touch $GATEWAY_DIR/data/devicetype.db
-touch $GATEWAY_DIR/data/message.db
-#touch $GATEWAY_DIR/data/msgtype.db
-touch $GATEWAY_DIR/data/node.db
-touch $GATEWAY_DIR/data/user.db
 
 #create influxdb database
 influx <<EOD
@@ -99,7 +91,7 @@ echo -e "${CYAN}************* STEP: Configuring logrotate *************${NC}"
 sudo echo "#this is used by logrotate and should be placed in /etc/logrotate.d/
 #rotate the gateway logs and keep a limit of how many are archived
 #note: archives are rotated in $GATEWAY_DIR/logs so that dir must exist prior to rotation
-$GATEWAY_DIR/logs/*.log {
+$GATEWAY_DIR/log/*.log {
         size 20M
         missingok
         rotate 20

@@ -17,7 +17,7 @@ updateRepo() {
 
     # reseting the local changes and update the repo
     echo -e "\nExecuting: git fetch & reset"
-    (git fetch --all && git reset --hard origin/development)
+    (git fetch --all && git reset --hard origin/develop)
 
     echo ""
 }
