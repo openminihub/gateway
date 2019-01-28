@@ -2,20 +2,18 @@
 module.exports = (sequelize, DataTypes) => {
   const Messages = sequelize.define('Messages', {
     node_id: {
-      type: DataTypes.STRING
-      // ,
-      // references: {
-      //   model: 'Devices',
-      //   key: "node_id"
-      // }
+      type: DataTypes.STRING,
+      references: {
+        model: 'Devices',
+        key: "node_id"
+      }
     },
     device_id: {
-      type: DataTypes.STRING
-      // ,
-      // references: {
-      //   model: 'Devices',
-      //   key: "id"
-      // }
+      type: DataTypes.STRING,
+      references: {
+        model: 'Devices',
+        key: "id"
+      }
     },
     type: DataTypes.INTEGER,
     value: DataTypes.STRING,
@@ -31,6 +29,8 @@ module.exports = (sequelize, DataTypes) => {
   });
   Messages.associate = function(models) {
     // associations can be defined here
+    models.Messages.belongsTo(db.Devices, { targetKey: 'node_id', foreignKey: 'node_id' })
+    models.Messages.belongsTo(db.Devices, { targetKey: 'device_id', foreignKey: 'device_id' })
   };
   return Messages;
 };
