@@ -1,0 +1,20 @@
+{
+  "development": {
+    "dialect": "sqlite",
+    "storage": "./data/gateway.dev.sqlite3",
+    "logging": true,
+    "operatorsAliases": "Sequelize.Op"
+  },
+  "test": {
+    "dialect": "sqlite",
+    "storage": "./data/gateway.test.sqlite3",
+    "logging": false,
+    "operatorsAliases": "Sequelize.Op"
+  },
+  "production": {
+    "dialect": "sqlite",
+    "storage": "./data/gateway.sqlite3",
+    "logging": false,
+    "operatorsAliases": "Sequelize.Op"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "password": "",
+  "serial": {
+    "port": "/dev/serial0",
+    "baudrate": 115200
+  },
+  "mqtt": {
+    "local": {
+      "name": "localhost",
+      "port": 1883,
+      "username": "pi",
+      "password": "raspberry"
+    },
+    "cloud": {
+      "name": "",
+      "port": null,
+      "username": "",
+      "password": ""
+    }
+  }
+}
