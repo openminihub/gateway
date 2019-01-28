@@ -29,8 +29,8 @@ module.exports = (sequelize, DataTypes) => {
   });
   Messages.associate = function(models) {
     // associations can be defined here
-    models.Messages.belongsTo(db.Devices, { targetKey: 'node_id', foreignKey: 'node_id' })
-    models.Messages.belongsTo(db.Devices, { targetKey: 'device_id', foreignKey: 'device_id' })
+    models.Messages.belongsTo(models.Devices, { targetKey: 'node_id', foreignKey: 'node_id' })
+    models.Messages.belongsTo(models.Devices, { targetKey: 'device_id', foreignKey: 'device_id' })
   };
   return Messages;
 };
