@@ -105,6 +105,7 @@ exports.processSerialData = function (rxmessage) {
             break
         case '3':  //internal
             var _node = new Object()
+            _node.type = 'OpenNode'
             if (_msg[1] == 255) { //Internal contact
                 _node.id = _msg[0]
                 if (_msg[4] == '29') { //Change - I_HAS_CHANGE
@@ -135,8 +136,7 @@ exports.processSerialData = function (rxmessage) {
             }
             debug('Update Nodes.db: %s %o', _node.id, _node)
             db.Nodes.upsert(_node)
-                .then(function (updatedData) {
-                    console.log(updatedData)
+                .then(function () {
                 })
                 .catch((err) => {
                     console.log('%s', err)
@@ -165,19 +165,19 @@ function _doInsertOnNewMessage(rowsUpdated, values) {
     }
 }
 
-function _doInsertOnNewNode(rowsUpdated, values) {
-    if (rowsUpdated == 0) {
-        values.type = "OpenNode"
-        debug('Insert Nodes.db: %o', values)
-        db.Nodes.create(values)
-            .then(updatedRow => {
-                console.log(updatedRow.get({ plain: true }))
-            })
-            .catch((err) => {
-                console.log('%s', err)
-            })
-    }
-}
+// function _doInsertOnNewNode(rowsUpdated, values) {
+//     if (rowsUpdated == 0) {
+//         values.type = "OpenNode"
+//         debug('Insert Nodes.db: %o', values)
+//         db.Nodes.create(values)
+//             .then(updatedRow => {
+//                 console.log(updatedRow.get({ plain: true }))
+//             })
+//             .catch((err) => {
+//                 console.log('%s', err)
+//             })
+//     }
+// }
 
 function _doInsertOnNewDevice(rowsUpdated, values) {
     if (rowsUpdated == 0) {
