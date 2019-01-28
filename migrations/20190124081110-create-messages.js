@@ -51,3 +51,8 @@ module.exports = {
     return queryInterface.dropTable('Messages');
   }
 };
+
+// queryInterface.addConstraint('Messages', ['node_id', 'device_id', 'type'], {
+//   type: 'primary key',
+//   name: 'messages_pk'
+// })
