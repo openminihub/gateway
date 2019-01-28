@@ -46,7 +46,7 @@ module.exports = {
       }
     })
     .then(() => {
-      queryInterface.query('ALTER TABLE "Messages" ADD CONSTRAINT devices_fk FOREIGN KEY (node_id, device_id) REFERENCES Devices(node_id, device_id);')
+      queryInterface.sequelize.query('ALTER TABLE "Messages" ADD CONSTRAINT devices_fk FOREIGN KEY (node_id, device_id) REFERENCES Devices(node_id, device_id);')
       return queryInterface.addIndex('Messages', ['node_id', 'device_id', 'type'], {indexName: 'messages_pk', indicesType: 'UNIQUE'})
     })
   },
