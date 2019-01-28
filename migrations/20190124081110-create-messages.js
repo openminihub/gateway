@@ -46,14 +46,7 @@ module.exports = {
       }
     })
     .then(() => {
-      queryInterface.addConstraint('Messages', ['node_id', 'device_id'], {
-        type: 'foreign key',
-        name: 'devices_fk',
-        references: {
-          table: 'Devices',
-          field: ['node_id','device_id']
-        }
-      })
+      queryInterface.query('ALTER TABLE "Messages" ADD CONSTRAINT devices_fk FOREIGN KEY (node_id, device_id) REFERENCES Devices(node_id, device_id);')
       return queryInterface.addIndex('Messages', ['node_id', 'device_id', 'type'], {indexName: 'messages_pk', indicesType: 'UNIQUE'})
     })
   },
