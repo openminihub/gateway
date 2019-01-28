@@ -62,7 +62,7 @@ exports.processSerialData = function (rxmessage) {
         }
     */
     //Validate the Message structure: node-id ; device-id ; command ; ack ; msgtype ; payload
-    var re = new RegExp("^[a-zA-Z0-9][;][0-9][;][0-9][;][0-1][;][0-9][;].*$");
+    var re = new RegExp("^(\d{1,3}\;\d{1,3}\;\d{1}\;\d{1}\;\d{1,3}\;.*)$");
     if (re.test(_rxmessage))
         return false
     //regular message
