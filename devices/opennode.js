@@ -79,11 +79,18 @@ exports.processSerialData = function (rxmessage) {
             _device.type = parseInt(_msg[4])
             _device.node_id = _msg[0]
             debug('Update Devices.db: %s %o', _device.node_id, _device)
-            db.Devices.update(_device, { where: { id: _device.node_id } })
-                .then(rowsUpdated => _doInsertOnNewDevice(rowsUpdated, _device))
+            db.Devices.upsert(_device)
+                .then(function (updatedData) {
+                    console.log(updatedData)
+                })
                 .catch((err) => {
                     console.log('%s', err)
                 })
+            // db.Devices.update(_device, { where: { id: _device.node_id } })
+            //     .then(rowsUpdated => _doInsertOnNewDevice(rowsUpdated, _device))
+            //     .catch((err) => {
+            //         console.log('%s', err)
+            //     })
             break
         case '1': //set
             var _message = new Object()
