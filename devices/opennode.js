@@ -94,7 +94,7 @@ exports.processSerialData = function (rxmessage) {
         case '1': //set
             var _message = new Object()
             _message.node_id = _msg[0]
-            _message.device = _msg[1]
+            _message.device_id = _msg[1]
             _message.type = _msg[4]
             _message.value = _msg[5]
             _message.rssi = _message_rssi
