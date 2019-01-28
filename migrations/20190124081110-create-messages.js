@@ -10,19 +10,21 @@ module.exports = {
       },
       node_id: {
         primaryKey: true,
-        type: Sequelize.STRING,
-        references: {
-          model: 'Devices',
-          key: 'node_id'
-        }
+        type: Sequelize.STRING
+        // ,
+        // references: {
+        //   model: 'Devices',
+        //   key: 'node_id'
+        // }
       },
       device_id: {
         primaryKey: true,
-        type: Sequelize.STRING,
-        references: {
-          model: 'Devices',
-          key: 'id'
-        }
+        type: Sequelize.STRING
+        // ,
+        // references: {
+        //   model: 'Devices',
+        //   key: 'id'
+        // }
       },
       type: {
         primaryKey: true,
@@ -44,6 +46,14 @@ module.exports = {
       }
     })
     .then(() => {
+      queryInterface.addConstraint('Messages', ['node_id', 'device_id'], {
+        type: 'foreign key',
+        name: 'devices_fk',
+        references: {
+          table: 'Devices',
+          field: ['node_id','device_id']
+        }
+      })
       return queryInterface.addIndex('Messages', ['node_id', 'device_id', 'type'], {indexName: 'messages_pk', indicesType: 'UNIQUE'})
     })
   },
