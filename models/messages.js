@@ -4,8 +4,8 @@ module.exports = (sequelize, DataTypes) => {
     node_id: {
       type: DataTypes.STRING,
       references: {
-        model: 'Nodes',
-        key: "id"
+        model: 'Devices',
+        key: "node_id"
       }
     },
     device_id: {
