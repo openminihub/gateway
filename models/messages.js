@@ -2,18 +2,20 @@
 module.exports = (sequelize, DataTypes) => {
   const Messages = sequelize.define('Messages', {
     node_id: {
-      type: DataTypes.STRING,
-      references: {
-        model: 'Devices',
-        key: "node_id"
-      }
+      type: DataTypes.STRING
+      // ,
+      // references: {
+      //   model: 'Devices',
+      //   key: "node_id"
+      // }
     },
     device_id: {
-      type: DataTypes.STRING,
-      references: {
-        model: 'Devices',
-        key: "id"
-      }
+      type: DataTypes.STRING
+      // ,
+      // references: {
+      //   model: 'Devices',
+      //   key: "id"
+      // }
     },
     type: DataTypes.INTEGER,
     value: DataTypes.STRING,
