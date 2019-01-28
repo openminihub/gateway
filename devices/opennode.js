@@ -103,7 +103,7 @@ exports.processSerialData = function (rxmessage) {
             // where device_id = (select id from Devices
             //                    where node_id = xxx)
             debug('Update Messages.db: %s %o', _message.node_id, _message )
-            db.Messages.update(_message, { where: { node_id: _message.node_id, device_id: _message.device_id, type: _message.type } })
+            db.Messages.update({ value: _message.value, rssi: _message.rssi}, { where: { node_id: _message.node_id, device_id: _message.device_id, type: _message.type } })
                 .then(rowsUpdated => _doInsertOnNewMessage(rowsUpdated, _message))
                 .catch((err) => {
                     console.log('%s', err)
