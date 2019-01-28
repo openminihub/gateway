@@ -8,10 +8,8 @@ module.exports = (sequelize, DataTypes) => {
         key: "id"
       }
     },
-    device: DataTypes.STRING,
-    // device_id: DataTypes.INTEGER,
     device_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       references: {
         model: 'Devices',
         key: "id"
@@ -25,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
       {
         name: 'message_idx',
         unique: true,
-        fields: ['node_id', 'device', 'type']
+        fields: ['node_id', 'device_id', 'type']
       }
     ]
   });

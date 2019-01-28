@@ -3,13 +3,13 @@ module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.createTable('Places', {
       id: {
-        allowNull: false,
+        // allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
       parent_id: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
         references: {
           model: 'Places',
           key: 'id'

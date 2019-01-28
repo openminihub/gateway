@@ -96,7 +96,7 @@ exports.processSerialData = function (rxmessage) {
             // set value = xxx
             // where device_id = (select id from Devices
             //                    where node_id = xxx)
-            debug('Update Messages.db: %s %o', _message.node_id, _device)
+            debug('Update Messages.db: %s %o', _message.node_id, _message )
             db.Messages.update(_message, { where: { id: _message.node_id } })
                 .then(rowsUpdated => _doInsertOnNewMessage(rowsUpdated, _message))
                 .catch((err) => {
@@ -161,9 +161,9 @@ function _doInsertOnNewMessage(rowsUpdated, values) {
 function _doInsertOnNewNode(rowsUpdated, values) {
     if (rowsUpdated == 0) {
         values.type = "OpenNode"
-        if (values.hasOwnProperty("board")) {
-            values.name = values.board
-        }
+        // if (values.hasOwnProperty("board")) {
+            // values.name = values.board
+        // }
         debug('Insert Nodes.db: %o', values)
         db.Nodes.create(values)
             .then(updatedRow => {

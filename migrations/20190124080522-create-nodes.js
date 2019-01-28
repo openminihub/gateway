@@ -3,7 +3,7 @@ module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.createTable('Nodes', {
       id: {
-        allowNull: false,
+        // allowNull: false,
         primaryKey: true,
         type: Sequelize.STRING
       },
@@ -33,7 +33,10 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE
       }
-    });
+    })
+    .then(() => {
+      return queryInterface.addIndex('Nodes', ['id'], {indexName: 'nodes_pk', indicesType: 'UNIQUE'})
+    })
   },
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('Nodes');

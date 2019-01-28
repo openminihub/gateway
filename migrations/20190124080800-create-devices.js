@@ -2,21 +2,18 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.createTable('Devices', {
-      id: {
-        allowNull: false,
-        autoIncrement: true,
-        primaryKey: true,
-        type: Sequelize.INTEGER
-      },
-      device: {
-        type: Sequelize.STRING
-      },
       node_id: {
+        // allowNull: false,
+        primaryKey: true,
         type: Sequelize.STRING,
         references: {
           model: 'Nodes',
           key: 'id'
         }
+      },
+      id: {
+        primaryKey: true,
+        type: Sequelize.STRING
       },
       type: {
         type: Sequelize.INTEGER
@@ -35,8 +32,11 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE
       }
-    });
-  },
+    })
+      .then(() => {
+        return queryInterface.addIndex('Devices', ['node_id', 'id'], {indexName: 'devices_pk', indicesType: 'UNIQUE'})
+      })
+    },
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('Devices');
   }

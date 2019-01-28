@@ -1,4 +1,4 @@
 module.exports = Object.assign(
     {},
-    require('./config')
+    require('./gwconfig')
 )

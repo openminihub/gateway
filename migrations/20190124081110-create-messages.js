@@ -5,31 +5,27 @@ module.exports = {
       id: {
         allowNull: false,
         autoIncrement: true,
-        primaryKey: true,
+      //   // primaryKey: true,
         type: Sequelize.INTEGER
       },
       node_id: {
-        type: Sequelize.STRING
+        primaryKey: true,
+        type: Sequelize.STRING,
         references: {
           model: 'Nodes',
           key: 'id'
         }
       },
       device_id: {
-        type: Sequelize.INTEGER
+        primaryKey: true,
+        type: Sequelize.STRING,
         references: {
           model: 'Devices',
           key: 'id'
         }
       },
-      device: {
-        type: Sequelize.STRING
-        references: {
-          model: 'Devices',
-          key: 'device'
-        }
-      },
       type: {
+        primaryKey: true,
         type: Sequelize.INTEGER
       },
       value: {
@@ -47,9 +43,9 @@ module.exports = {
         type: Sequelize.DATE
       }
     })
-    // .then(() => {
-    //   return queryInterface.sequelize.query('ALTER TABLE "Nodes" ADD CONSTRAINT "nodes_pk" PRIMARY KEY ("node_id", "device_id", "type")');
-    // })
+    .then(() => {
+      return queryInterface.addIndex('Messages', ['node_id', 'device_id', 'type'], {indexName: 'messages_pk', indicesType: 'UNIQUE'})
+    })
   },
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('Messages');
