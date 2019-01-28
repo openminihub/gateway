@@ -12,8 +12,8 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.STRING,
         references: {
-          model: 'Nodes',
-          key: 'id'
+          model: 'Devices',
+          key: 'node_id'
         }
       },
       device_id: {
