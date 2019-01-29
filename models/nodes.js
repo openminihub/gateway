@@ -7,7 +7,15 @@ module.exports = (sequelize, DataTypes) => {
     name: DataTypes.STRING,
     ip: DataTypes.STRING,
     battery: DataTypes.REAL
-  }, {});
+  }, {
+    indexes: [
+      {
+        name: 'node_idx',
+        unique: true,
+        fields: ['id']
+      }
+    ]
+  });
   Nodes.associate = function(models) {
     // associations can be defined here
   };
