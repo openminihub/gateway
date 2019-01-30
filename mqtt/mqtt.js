@@ -1,6 +1,7 @@
 var mqtt = require('mqtt')
 var debug = require('debug')('mqtt')
 const api = require('../api')
+const ESPurna = require('../devices/espurna.js')
 //ONLY FOR DEVELOPMENT
 const OpenNode = require('../devices/opennode.js')
 
@@ -90,6 +91,7 @@ function parseMqttMessage(topic, message) {
         // return handleSendMessage(topic, message)
         case 'espurna':
             debug('ESPurna MSG')
+            return ESPurna.processMqttData(topic, message)
             break
         // return handleOutTopic(topic + '/' + message, 'ESPurna')
         case 'serial':

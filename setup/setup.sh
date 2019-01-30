@@ -64,16 +64,19 @@ fi
 #create db and empty placeholders so chown pi will override root permissions
 mkdir $GATEWAY_DIR/data -p
 
-#create influxdb database
-influx <<EOD
-create database openminihub
-EOD
-
 #create self signed certificate
 #WARNING: must do this *AFTER* the gateway app was git-cloned
 echo -e "${CYAN}************* STEP: Create self signed HTTPS certificate (5 year) *************${NC}"
 mkdir $GATEWAY_DIR/ssl -p
 sudo openssl req -new -x509 -nodes -days 1825 -newkey rsa:2048 -out $GATEWAY_DIR/ssl/server.crt -keyout $GATEWAY_DIR/ssl/server.key -subj "/C=LV/L=Marupe/O=OpenMiniHub/OU=IoT/CN=openminihub.com"
+
+#configure & create influxdb database
+sudo systemctl stop influxd.service
+sudo cp gateway/config/influxdb.conf /etc/influxdb/influxdb.conf
+sudo systemctl start influxd.service
+influx <<EOD
+create database openminihub
+EOD
 
 #fix owenrship issues if they exists
 sudo chown -R pi:pi $GATEWAY_DIR
