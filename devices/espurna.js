@@ -31,16 +31,16 @@ exports.processMqttData = function (topic, message) {
                     _node.battery = message
                     break
             }
-        if (!_isEmptyObject(_node)) {
-            db.Nodes.upsert(_node)
-            .then(function () {
-            })
-            .catch((err) => {
-                console.log('%s', err)
-            })
-        }
+            if (!_isEmptyObject(_node)) {
+                db.Nodes.upsert(_node)
+                    .then(function () {
+                    })
+                    .catch((err) => {
+                        console.log('%s', err)
+                    })
+            }
+            break
     }
-    break
 }
 
 
