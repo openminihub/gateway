@@ -37,9 +37,16 @@ module.exports = {
     },
 
     listPlaces: (msg, topic, respond) => {
+        var x= Object()
+        if (_isEmptyObject(_json_message.parameters)) {
+            x = { [Op.and]: '1=1' }
+        } else {
+            x = { [Op.or]: msg.parameters }
+        }
+
         db.Places.findAll({
             attributes: ['id', 'parent_id', 'name'],
-            where: { [Op.or]: msg.parameters },
+            where: x,
         })
             .then(
                 result => {
@@ -75,4 +82,9 @@ module.exports = {
         console.log(topic)
         console.log(JSON.stringify(answer))
     }
+}
+
+function _isEmptyObject(obj) {
+    // return ((obj === undefined) || Object.keys(obj).length === 0 ? 1 : 0)
+    return (typeof obj === 'undefined' || Object.keys(obj).length === 0 ? 1 : 0)
 }

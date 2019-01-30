@@ -67,9 +67,6 @@ function parseMqttMessage(topic, message, source) {
                 // _json_message.topic = topic
                 _json_message.source = source
                 debug('ALL: %o', _json_message)
-                if (_isEmptyObject(_json_message.parameters)) {
-                    _json_message.parameters['1'] = 1
-                }
                 return api[_json_message.cmd](_json_message, topic[1], api.respondUser)
             }
             catch (err) {
@@ -106,9 +103,4 @@ function parseMqttMessage(topic, message, source) {
             return false
     }
     console.log('No handler for topic %s', topic[0])
-}
-
-function _isEmptyObject(obj) {
-    // return ((obj === undefined) || Object.keys(obj).length === 0 ? 1 : 0)
-    return (typeof obj === 'undefined' || Object.keys(obj).length === 0 ? 1 : 0)
 }
