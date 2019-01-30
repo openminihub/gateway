@@ -31,7 +31,9 @@ exports.processMqttData = function (topic, message) {
                     _node.battery = message
                     break
             }
+            debug('db.Nodes update: %o', _node)
             if (!_isEmptyObject(_node)) {
+                _node.id = _msg[1]
                 db.Nodes.upsert(_node)
                     .then(function () {
                     })
