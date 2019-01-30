@@ -74,6 +74,39 @@ module.exports = {
     },
 
 
+    listDevices: (msg, respond) => {
+        db.Devices.findAll({
+            attributes: ['node_id', 'id', 'devicetype_id', 'name', 'place_id'],
+            where: _isEmptyObject(msg.parameters) === true ? { } : { [Op.or]: msg.parameters }
+        })
+            .then(
+                result => {
+                    var response = JSON.parse(JSON.stringify(result))
+                    return respond(response, msg, 1)
+                })
+            .catch((err) => {
+                var response = { message: err.toString() }
+                return respond(response, msg, 0)
+            })
+    },
+
+
+    listNodes: (msg, respond) => {
+        db.Nodes.findAll({
+            attributes: ['id', 'version', 'board', 'type', 'name', 'ip', 'battery'],
+            where: _isEmptyObject(msg.parameters) === true ? { } : { [Op.or]: msg.parameters }
+        })
+            .then(
+                result => {
+                    var response = JSON.parse(JSON.stringify(result))
+                    return respond(response, msg, 1)
+                })
+            .catch((err) => {
+                var response = { message: err.toString() }
+                return respond(response, msg, 0)
+            })
+    },
+
     // respondUser: (answer, msg, result) => {
     //     var newJSON = '{"id":"' + msg.id + '", "cmd":"'+msg.cmd+'", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
     //     if (msg.source === 'local') {
