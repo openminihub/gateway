@@ -12,8 +12,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     devicetype_id: DataTypes.INTEGER,
     name: DataTypes.STRING,
-    place_id: DataTypes.INTEGER
-  }, {
+    place_id: DataTypes.INTEGER,
+    config: DataTypes.STRING
+}, {
     indexes: [
       {
         name: 'device_idx',

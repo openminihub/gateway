@@ -28,6 +28,10 @@ module.exports = {
       place_id: {
         type: Sequelize.INTEGER
       },
+      config: {
+        allowNull: true,
+        type: Sequelize.STRING
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE
