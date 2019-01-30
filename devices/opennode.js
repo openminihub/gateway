@@ -75,9 +75,9 @@ exports.processSerialData = function (rxmessage) {
     switch (_msg[2]) {
         case '0': //presentation
             var _device = new Object()
+            _device.node_id = _msg[0]
             _device.id = _msg[1]
             _device.devicetype_id = parseInt(_msg[4])
-            _device.node_id = _msg[0]
             debug('Update Devices.db: %s %o', _device.node_id, _device)
             db.Devices.upsert(_device)
                 .then(function () {
@@ -103,7 +103,7 @@ exports.processSerialData = function (rxmessage) {
             // where device_id = (select id from Devices
             //                    where node_id = xxx)
             debug('Update Messages.db: %s %o', _message.node_id, _message )
-            db.Messages.update({ value: _message.value, rssi: _message.rssi}, { where: { node_id: _message.node_id, device_id: _message.device_id, type: _message.type } })
+            db.Messages.update({ value: _message.value, rssi: _message.rssi}, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
                 .then(rowsUpdated => _doInsertOnNewMessage(rowsUpdated, _message))
                 .catch((err) => {
                     console.log('%s', err)
