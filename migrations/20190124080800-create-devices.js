@@ -15,9 +15,13 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.STRING
       },
-      type: {
+      devicetype_id: {
         type: Sequelize.INTEGER
-      },
+        , references: {
+          model: 'DeviceTypes',
+          key: 'id'
+        }
+        },
       name: {
         type: Sequelize.STRING
       },

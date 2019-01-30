@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
         key: "id"
       }
     },
-    type: DataTypes.INTEGER,
+    messagetype_id: DataTypes.INTEGER,
     value: DataTypes.STRING,
     rssi: DataTypes.INTEGER
   }, {

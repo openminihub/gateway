@@ -76,7 +76,7 @@ exports.processSerialData = function (rxmessage) {
         case '0': //presentation
             var _device = new Object()
             _device.id = _msg[1]
-            _device.type = parseInt(_msg[4])
+            _device.devicetype_id = parseInt(_msg[4])
             _device.node_id = _msg[0]
             debug('Update Devices.db: %s %o', _device.node_id, _device)
             db.Devices.upsert(_device)
@@ -95,7 +95,7 @@ exports.processSerialData = function (rxmessage) {
             var _message = new Object()
             _message.node_id = _msg[0]
             _message.device_id = _msg[1]
-            _message.type = parseInt(_msg[4])
+            _message.messagetype_id = parseInt(_msg[4])
             _message.value = _msg[5]
             _message.rssi = _message_rssi
             // update Messages

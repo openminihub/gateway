@@ -26,7 +26,10 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE
       }
-    });
+    })
+    .then(() => {
+      return queryInterface.addIndex('Places', ['id'], {indexName: 'places_pk', indicesType: 'UNIQUE'})
+    })
   },
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('Places');

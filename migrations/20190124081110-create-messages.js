@@ -24,9 +24,13 @@ module.exports = {
       //   key: 'id'
       // }
     },
-    type: {
+    messagetype_id: {
       primaryKey: true,
       type: Sequelize.INTEGER
+      , references: {
+        model: 'MessageTypes',
+        key: 'id'
+      }
     },
     value: {
       type: Sequelize.STRING
@@ -45,7 +49,7 @@ module.exports = {
   })
 .then(() => {
     // queryInterface.sequelize.query('ALTER TABLE "Messages" ADD CONSTRAINT devices_fk FOREIGN KEY (node_id, device_id) REFERENCES Devices(node_id, device_id);')
-    return queryInterface.addIndex('Messages', ['node_id', 'device_id', 'type'], { indexName: 'messages_pk', indicesType: 'UNIQUE' })
+    return queryInterface.addIndex('Messages', ['node_id', 'device_id', 'messagetype_id'], { indexName: 'messages_pk', indicesType: 'UNIQUE' })
   })
 },
   down: (queryInterface, Sequelize) => {
