@@ -2,17 +2,18 @@ const db = require('../models')
 var debug = require('debug')('ESPurna')
 
 exports.processMqttData = function (topic, message) {
-    var _msg = topic.toString().split('/')
+    var _msg = topic
+    message = message.toString()
 
     switch (_msg[2]) {
         case 'relay':
             break
-        case 'rfid':
+        case 'rfin':
             var _message = new Object()
             _message.node_id = _msg[1]
             _message.device_id = message.substring(12)
             _message.messagetype_id = 16 // 16 = V_TRIPPED
-            _message.value = 1
+            _message.value = '1'
             _message.rssi = null
             debug('Update Messages.db: %s %o', _message.node_id, _message)
             db.Messages.update({ value: _message.value }, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
@@ -64,7 +65,7 @@ function _doInsertOnNewMessage(rowsUpdated, values, message) {
         _device.id = message.substring(12)
         _device.config = message.substring(0, 12)
         _device.devicetype_id = 1  // 1 = Motion sensor
-        debug('Insert Devices.db: %o', values)
+        debug('Insert Devices.db: %o', _device)
         db.Devices.create(_device)
             .then(updatedRow => {
                 // console.log(updatedRow.get({ plain: true }))

@@ -2,8 +2,8 @@ const db = require('../models')
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op
 
-exports.getDeviceValues =
-    function (par, topic, respond) {
+exports = {
+    getDeviceValues: (par, topic, respond) => {
         db.Devices.findAll({
             attributes: ['device', 'node_id', 'type', 'name', 'place_id'],
             include: [{
@@ -34,10 +34,24 @@ exports.getDeviceValues =
                     return respond(response, topic, 1)
                 }
             )
-    }
+    },
 
-exports.returnAPI = function (answer, topic, result) {
-    console.log(result)
-    console.log(topic)
-    console.log(JSON.stringify(answer))
+    listPlaces: (par, topic, respond) => {
+        db.Places.findAll({
+            attributes: ['id', 'parent_id', 'name']
+        })
+            .then(
+                result => {
+                    var response = result.get({ plain: true })
+                    return respond(response, topic, 1)
+                })
+    },
+
+
+
+    returnAPI: (answer, topic, result) => {
+        console.log(result)
+        console.log(topic)
+        console.log(JSON.stringify(answer))
+    }
 }
