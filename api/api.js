@@ -1,9 +1,10 @@
 const db = require('../models')
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op
+var debug = require('debug')('api')
 
 module.exports = {
-    getDeviceValues: (msg, topic, respond) => {
+    getDeviceValues: (msg, respond) => {
         db.Devices.findAll({
             attributes: ['device', 'node_id', 'type', 'name', 'place_id'],
             include: [{
@@ -31,60 +32,74 @@ module.exports = {
                         }
                     }
                     // console.log(JSON.stringify(response))
-                    return respond(response, msg.source, topic, 1)
+                    return respond(response, msg, 1)
                 }
             )
     },
 
-    listPlaces: (msg, topic, respond) => {
-        var x= Object()
-        if (_isEmptyObject(_json_message.parameters)) {
-            x = { [Op.and]: '1=1' }
-        } else {
-            x = { [Op.or]: msg.parameters }
-        }
-
+    listPlaces: (msg, respond) => {
+        debug('listPlaces, empty?: %s', _isEmptyObject(msg.parameter))
+        if (_isEmptyObject(msg.parameter))
+            debug('true')
+        else
+            debug('false')
         db.Places.findAll({
             attributes: ['id', 'parent_id', 'name'],
-            where: x,
+            where: _isEmptyObject(msg.parameters) === true ? { } : { [Op.or]: msg.parameters }
         })
             .then(
                 result => {
                     // var response = result.get({ plain: true })
                     var response = JSON.parse(JSON.stringify(result))
-                    return respond(response, msg.source, topic, 1)
+                    return respond(response, msg, 1)
                 })
             .catch((err) => {
                 // console.log('%s', err)
                 var response = { message: err.toString() }
-                return respond(response, msg.source, topic, 0)
+                return respond(response, msg, 0)
             })
     },
 
-    createPlace: (msg, topic, respond) => {
+    createPlace: (msg, respond) => {
         db.Places.create(msg.parameters)
             .then(
                 result => {
-                    var response = result.get({ plain: true })
-                    return respond(response, msg.source, topic, 1)
+                    var response = JSON.parse(JSON.stringify(result))
+                    return respond(response, msg, 1)
                 })
             .catch((err) => {
-                // console.log('%s', err)
-                var response = { message: err }
-                return respond(response, msg.source, topic, 0)
+                var response = { message: err.toString() }
+                return respond(response, msg, 0)
             })
     },
 
 
-    respondUser: (answer, source, topic, result) => {
-        console.log(source)
-        console.log(result)
-        console.log(topic)
-        console.log(JSON.stringify(answer))
-    }
+    // respondUser: (answer, msg, result) => {
+    //     var newJSON = '{"id":"' + msg.id + '", "cmd":"'+msg.cmd+'", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
+    //     if (msg.source === 'local') {
+    //         mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+    //     } else if (msg.source === 'cloud') {
+    //         mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+    //     }
+    //     console.log(msg.source)
+    //     console.log(result)
+    //     console.log(msg.user)
+    //     console.log(JSON.stringify(answer))
+    // }
 }
 
+// function _isEmptyObject(obj) {
+//     // return ((obj === undefined) || Object.keys(obj).length === 0 ? 1 : 0)
+//     return (typeof obj === 'undefined' || Object.keys(obj).length === 0 ? 1 : 0)
+// }
+
 function _isEmptyObject(obj) {
-    // return ((obj === undefined) || Object.keys(obj).length === 0 ? 1 : 0)
-    return (typeof obj === 'undefined' || Object.keys(obj).length === 0 ? 1 : 0)
+    if (typeof obj === 'undefined') {
+        return true
+    }
+    for(var key in obj) {
+        if(obj.hasOwnProperty(key))
+            return false;
+    }
+    return true;
 }

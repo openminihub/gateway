@@ -4,53 +4,71 @@ const api = require('../api')
 const ESPurna = require('../devices/espurna.js')
 //ONLY FOR DEVELOPMENT
 const OpenNode = require('../devices/opennode.js')
+var mqttCloud
+var mqttLocal
 
 
-exports.enable = function (config) {
-    debug('Connectig to MQTT: %o', config.cloud.name)
-    var mqttCloud = mqtt.connect('mqtt://' + config.cloud.name + ':' + config.cloud.port, { username: config.cloud.username, password: config.cloud.password })
-    var mqttLocal = mqtt.connect('mqtt://' + config.local.name + ':' + config.local.port, { username: config.local.username, password: config.local.password })
+module.exports = {
+    enable: (config) => {
+        debug('Connectig to MQTT: %o', config.cloud.name)
+        mqttCloud = mqtt.connect('mqtt://' + config.cloud.name + ':' + config.cloud.port, { username: config.cloud.username, password: config.cloud.password })
+        mqttLocal = mqtt.connect('mqtt://' + config.local.name + ':' + config.local.port, { username: config.local.username, password: config.local.password })
 
-    mqttCloud.on('connect', () => {
-        //on startup subscribe to user topics
-        mqttCloud.subscribe('user/+/in')
-        //ONLY FOR DEVELOPMENT
-        mqttCloud.subscribe('serial')
-        console.log('+connection to cloud mqtt OK')
-    })
+        mqttCloud.on('connect', () => {
+            //on startup subscribe to user topics
+            mqttCloud.subscribe('user/+/in')
+            //ONLY FOR DEVELOPMENT
+            mqttCloud.subscribe('serial')
+            console.log('+connection to cloud mqtt OK')
+        })
 
-    mqttLocal.on('connect', () => {
-        //on startup subscribe to all OpenNode topics
-        console.log('==============================');
-        console.log('* Subscribing to MQTT topics *');
-        console.log('==============================');
-        // var mqttTopic = 'node/' + entries[n].nodeid + '/' + entries[n].deviceid + '/' + entries[n].msgtype + '/set'
-        // mqttLocal.subscribe(mqttTopic)
-        // console.log('%s', mqttTopic);
-        console.log('==============================');
+        mqttLocal.on('connect', () => {
+            //on startup subscribe to all OpenNode topics
+            console.log('==============================');
+            console.log('* Subscribing to MQTT topics *');
+            console.log('==============================');
+            // var mqttTopic = 'node/' + entries[n].nodeid + '/' + entries[n].deviceid + '/' + entries[n].msgtype + '/set'
+            // mqttLocal.subscribe(mqttTopic)
+            // console.log('%s', mqttTopic);
+            console.log('==============================');
 
-        //system configuration topics
-        mqttLocal.subscribe('system/gateway')
-        // mqttLocal.subscribe('user/login')
-        // mqttLocal.subscribe('system/login')
-        // mqttLocal.subscribe('gateway/in')
-        mqttLocal.subscribe('system/node/?/?/?/set')
-        mqttLocal.subscribe('user/+/in')
-        mqttLocal.subscribe('gateway/node/+/out')
-        // ESPURNA Handlers
-        mqttLocal.subscribe('espurna/+/+')
-        mqttLocal.subscribe('espurna/+/+/+')
-        console.log('+connection to local mqtt OK')
-    })
+            //system configuration topics
+            mqttLocal.subscribe('system/gateway')
+            // mqttLocal.subscribe('user/login')
+            // mqttLocal.subscribe('system/login')
+            // mqttLocal.subscribe('gateway/in')
+            mqttLocal.subscribe('system/node/?/?/?/set')
+            mqttLocal.subscribe('user/+/in')
+            mqttLocal.subscribe('gateway/node/+/out')
+            // ESPURNA Handlers
+            mqttLocal.subscribe('espurna/+/+')
+            mqttLocal.subscribe('espurna/+/+/+')
+            console.log('+connection to local mqtt OK')
+        })
 
-    mqttCloud.on('message', (topic, message) => {
-        return parseMqttMessage(topic, message, 'cloud')
-    })
+        mqttCloud.on('message', (topic, message) => {
+            return parseMqttMessage(topic, message, 'cloud')
+        })
 
-    mqttLocal.on('message', (topic, message) => {
-        return parseMqttMessage(topic, message, 'local')
-    })
+        mqttLocal.on('message', (topic, message) => {
+            return parseMqttMessage(topic, message, 'local')
+        })
+    }
 }
+
+function respondUser(answer, msg, result) {
+    var newJSON = '{"id":"' + msg.id + '", "cmd":"' + msg.cmd + '", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
+    if (msg.source === 'local') {
+        mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+    } else if (msg.source === 'cloud') {
+        mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+    }
+    debug(msg.source)
+    debug(result)
+    debug(msg.user)
+    debug(JSON.stringify(answer))
+}
+
 
 function parseMqttMessage(topic, message, source) {
     var _message = message.toString('utf8').replace(/\s+/g, ' ').trim()
@@ -64,10 +82,10 @@ function parseMqttMessage(topic, message, source) {
             debug('User: %s', topic[1])
             try {
                 var _json_message = JSON.parse(_message)
-                // _json_message.topic = topic
+                _json_message.user = topic[1]
                 _json_message.source = source
                 debug('ALL: %o', _json_message)
-                return api[_json_message.cmd](_json_message, topic[1], api.respondUser)
+                return api[_json_message.cmd](_json_message, respondUser)
             }
             catch (err) {
                 console.log('No handler for command %o', _json_message.cmd)
