@@ -2,7 +2,7 @@ const db = require('../models')
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op
 
-exports = {
+module.exports = {
     getDeviceValues: (msg, topic, respond) => {
         db.Devices.findAll({
             attributes: ['device', 'node_id', 'type', 'name', 'place_id'],
@@ -43,12 +43,13 @@ exports = {
         })
             .then(
                 result => {
-                    var response = result.get({ plain: true })
+                    // var response = result.get({ plain: true })
+                    var response = JSON.parse(JSON.stringify(result))
                     return respond(response, msg.source, topic, 1)
                 })
             .catch((err) => {
                 // console.log('%s', err)
-                var response = { message: err }
+                var response = { message: err.toString() }
                 return respond(response, msg.source, topic, 0)
             })
     },
