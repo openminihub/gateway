@@ -3,12 +3,12 @@ const Sequelize = require('sequelize');
 const Op = Sequelize.Op
 
 exports = {
-    getDeviceValues: (par, topic, respond) => {
+    getDeviceValues: (msg, topic, respond) => {
         db.Devices.findAll({
             attributes: ['device', 'node_id', 'type', 'name', 'place_id'],
             include: [{
                 model: db.Messages,
-                where: { [Op.or]: par },
+                where: { [Op.or]: msg.parameters },
                 attributes: ['type', 'value', 'rssi', 'updatedAt']
             }]
         })
@@ -31,25 +31,45 @@ exports = {
                         }
                     }
                     // console.log(JSON.stringify(response))
-                    return respond(response, topic, 1)
+                    return respond(response, msg.source, topic, 1)
                 }
             )
     },
 
-    listPlaces: (par, topic, respond) => {
+    listPlaces: (msg, topic, respond) => {
         db.Places.findAll({
-            attributes: ['id', 'parent_id', 'name']
+            attributes: ['id', 'parent_id', 'name'],
+            where: { [Op.or]: msg.parameters },
         })
             .then(
                 result => {
                     var response = result.get({ plain: true })
-                    return respond(response, topic, 1)
+                    return respond(response, msg.source, topic, 1)
                 })
+            .catch((err) => {
+                // console.log('%s', err)
+                var response = { message: err }
+                return respond(response, msg.source, topic, 0)
+            })
+    },
+
+    createPlace: (msg, topic, respond) => {
+        db.Places.create(msg.parameters)
+            .then(
+                result => {
+                    var response = result.get({ plain: true })
+                    return respond(response, msg.source, topic, 1)
+                })
+            .catch((err) => {
+                // console.log('%s', err)
+                var response = { message: err }
+                return respond(response, msg.source, topic, 0)
+            })
     },
 
 
-
-    returnAPI: (answer, topic, result) => {
+    respondUser: (answer, source, topic, result) => {
+        console.log(source)
         console.log(result)
         console.log(topic)
         console.log(JSON.stringify(answer))

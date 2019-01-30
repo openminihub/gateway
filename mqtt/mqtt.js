@@ -44,15 +44,15 @@ exports.enable = function (config) {
     })
 
     mqttCloud.on('message', (topic, message) => {
-        return parseMqttMessage(topic, message)
+        return parseMqttMessage(topic, message, 'cloud')
     })
 
     mqttLocal.on('message', (topic, message) => {
-        return parseMqttMessage(topic, message)
+        return parseMqttMessage(topic, message, 'local')
     })
 }
 
-function parseMqttMessage(topic, message) {
+function parseMqttMessage(topic, message, source) {
     var _message = message.toString('utf8').replace(/\s+/g, ' ').trim()
     console.log('MQTT < %s %s', topic, _message)
     if (_message.length === 0) {
@@ -65,9 +65,9 @@ function parseMqttMessage(topic, message) {
             try {
                 var _json_message = JSON.parse(_message)
                 // _json_message.topic = topic
-                _json_message.source = "local"
+                _json_message.source = source
                 debug('ALL: %o', _json_message)
-                return api[_json_message.cmd](_json_message.parameters, topic[1], api.returnAPI)
+                return api[_json_message.cmd](_json_message, topic[1], api.respondUser)
             }
             catch (err) {
                 console.log('No handler for command %o', _json_message.cmd)
