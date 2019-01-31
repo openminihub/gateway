@@ -3,8 +3,7 @@
 #   ./gateway-update.sh
 
 dir_to_update=$PWD
-gateway_log=~/gateway/logs/gateway.sys.log
-avrdude_log=~/gateway/logs/avrdude.log
+gateway_log=~/gateway/log/gateway.log
 
 updateRepo() {
     local dir="$dir_to_update"

@@ -53,21 +53,22 @@ module.exports = {
         mqttLocal.on('message', (topic, message) => {
             return parseMqttMessage(topic, message, 'local')
         })
-    }
-}
+    },
 
-function respondUser(answer, msg, result) {
-    var newJSON = '{"id":"' + msg.id + '", "cmd":"' + msg.cmd + '", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
-    if (msg.source === 'local') {
-        mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
-    } else if (msg.source === 'cloud') {
-        mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+
+    respondUser: (answer, msg, result) => {
+        var newJSON = '{"id":"' + msg.id + '", "cmd":"' + msg.cmd + '", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
+        if (msg.source === 'local') {
+            mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+        } else if (msg.source === 'cloud') {
+            mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+        }
+        debug(result)
+        debug(msg.source)
+        debug(msg.user)
+        debug(msg.id)
+        debug(JSON.stringify(answer))
     }
-    debug(result)
-    debug(msg.source)
-    debug(msg.user)
-    debug(msg.id)
-    debug(JSON.stringify(answer))
 }
 
 
@@ -101,31 +102,31 @@ function parseMqttMessage(topic, message, source) {
                     // Try to get "id: x" from the message string
                     var _serachId = ['"id"', ':']
                     var _indexOfSearch = 0
-                    for(var n in _serachId) {
+                    for (var n in _serachId) {
                         _indexOfSearch = _message.indexOf(_serachId[n])
                         if (_indexOfSearch > 0) {
-                            _message = _message.substring(_indexOfSearch+_serachId[n].length)
+                            _message = _message.substring(_indexOfSearch + _serachId[n].length)
                         } else {
                             break
                         }
                     }
                     if (_indexOfSearch > 0) {
                         _indexOfSearch = _message.indexOf(',')
-                        if (_indexOfSearch >0)
-                            _error.id = parseInt(_message.substring(0,_indexOfSearch))
+                        if (_indexOfSearch > 0)
+                            _error.id = parseInt(_message.substring(0, _indexOfSearch))
                         else
                             _error.id = 0
                     } else {
                         _error.id = 0
                     }
-                    err = { "InvalidJSON" : err }
+                    err = { "InvalidJSON": err }
                 } else if (err.includes('api[_json_message.cmd] is not a function')) {
                     console.log('No handler for command %o', _json_message.cmd)
-                    err = { "InvalidCommand" : _json_message.cmd }
+                    err = { "InvalidCommand": _json_message.cmd }
                     _error.id = _json_message.id
                 } else {
                     console.log(err)
-                    err = { "InternalServerError" : err }
+                    err = { "InternalServerError": err }
                     _error.id = 0
                 }
                 respondUser(err, _error, 0)

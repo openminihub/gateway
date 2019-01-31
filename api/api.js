@@ -2,6 +2,8 @@ const db = require('../models')
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op
 var debug = require('debug')('api')
+const System = require('../system')
+
 
 module.exports = {
 
@@ -232,6 +234,10 @@ module.exports = {
                 return respond(response, msg, 0)
             })
     },
+
+    updateGateway: (msg, respond) => {
+        return respond(System.updateGateway(), msg, 0)
+    }
 
 }
 
