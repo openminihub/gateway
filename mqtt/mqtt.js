@@ -96,7 +96,7 @@ function parseMqttMessage(topic, message, source) {
                 _error.source = source
                 _error.user = topic[1]
                 if (err.includes('JSON')) {
-                    console.log('JSON error: %s', err)
+                    console.log('JSON error: z%s', err)
                     // Try to get "id: x" from the message string
                     var _serachId = ['"id"', ':']
                     var _indexOfSearch = 0
