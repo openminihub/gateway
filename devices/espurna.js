@@ -14,7 +14,7 @@ exports.processMqttData = function (topic, message) {
             _message.device_id = message.substring(12)
             _message.messagetype_id = 16 // 16 = V_TRIPPED
             _message.value = '1'
-            _message.rssi = null
+            _message.rssi = 0
             debug('Update Messages.db: %s %o', _message.node_id, _message)
             db.Messages.update({ value: _message.value }, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
                 .then(rowsUpdated => _doInsertOnNewMessage(rowsUpdated, _message, message))
