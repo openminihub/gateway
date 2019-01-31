@@ -9,6 +9,7 @@ const Config = require('./config')
 
 
 var my_config = Config.load()
+Config.formatConsoleOutput()
 
 SerialPort.enable(my_config.serial.port, my_config.serial.baudrate)
 Mqtt.enable(my_config.mqtt)

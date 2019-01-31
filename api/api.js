@@ -39,6 +39,7 @@ module.exports = {
 
     getDeviceValues: (msg, respond) => {
         db.DeviceValues.findAll({
+            attributes: ['node_id', 'device_id', 'devicetype_id', 'name', 'place_id', 'messages'],
             where: _isEmptyObject(msg.parameters) === true ? {} : { [Op.or]: msg.parameters }
         })
             .then(
@@ -53,6 +54,24 @@ module.exports = {
                 return respond(response, msg, 0)
             })
     },
+
+    // getDeviceValues: (msg, respond) => {
+    //     Sequelize.query('SELECT * from DeviceValues',
+    //         { type: sequelize.QueryTypes.SELECT },
+    //         { where: _isEmptyObject(msg.parameters) === true ? {} : { [Op.or]: msg.parameters } }
+    //     )
+    //         .then(
+    //             result => {
+    //                 // var response = result.get({ plain: true })
+    //                 var response = JSON.parse(JSON.stringify(result))
+    //                 return respond(response, msg, 1)
+    //             })
+    //         .catch((err) => {
+    //             // console.log('%s', err)
+    //             var response = { message: err.toString() }
+    //             return respond(response, msg, 0)
+    //         })
+    // },
 
     listPlaces: (msg, respond) => {
         debug('listPlaces, empty?: %s', _isEmptyObject(msg.parameters))
@@ -225,18 +244,25 @@ module.exports = {
                 return respond(response, msg, 0)
             })
     },
-    // respondUser: (answer, msg, result) => {
-    //     var newJSON = '{"id":"' + msg.id + '", "cmd":"'+msg.cmd+'", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
-    //     if (msg.source === 'local') {
-    //         mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
-    //     } else if (msg.source === 'cloud') {
-    //         mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
-    //     }
-    //     console.log(msg.source)
-    //     console.log(result)
-    //     console.log(msg.user)
-    //     console.log(JSON.stringify(answer))
-    // }
+
+    attachDeviceToPlace: (msg, respond) => {
+        db.Devices.update(
+            { place_id: msg.parameters.place_id },
+            { where: { [Op.and]: { node_id: msg.parameters.node_id, id: msg.parameters.device_id } } }
+        )
+            .spread(
+                (affectedCount, affectedRows) => {
+                    if (affectedCount)
+                        var response = { deviceAttached: [msg.parameters] }
+                    else
+                        var response = { deviceAttached: [] }
+                    return respond(response, msg, affectedCount)
+                })
+            .catch((err) => {
+                var response = { message: err.toString() }
+                return respond(response, msg, 0)
+            })
+    },
 }
 
 // function _isEmptyObject(obj) {
