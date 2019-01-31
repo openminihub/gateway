@@ -53,22 +53,21 @@ module.exports = {
         mqttLocal.on('message', (topic, message) => {
             return parseMqttMessage(topic, message, 'local')
         })
-    },
-
-
-    respondUser: (answer, msg, result) => {
-        var newJSON = '{"id":"' + msg.id + '", "cmd":"' + msg.cmd + '", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
-        if (msg.source === 'local') {
-            mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
-        } else if (msg.source === 'cloud') {
-            mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
-        }
-        debug(result)
-        debug(msg.source)
-        debug(msg.user)
-        debug(msg.id)
-        debug(JSON.stringify(answer))
     }
+}
+
+function respondUser(answer, msg, result) {
+    var newJSON = '{"id":"' + msg.id + '", "cmd":"' + msg.cmd + '", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
+    if (msg.source === 'local') {
+        mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+    } else if (msg.source === 'cloud') {
+        mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+    }
+    debug(result)
+    debug(msg.source)
+    debug(msg.user)
+    debug(msg.id)
+    debug(JSON.stringify(answer))
 }
 
 
