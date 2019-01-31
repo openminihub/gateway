@@ -4,38 +4,6 @@ const Op = Sequelize.Op
 var debug = require('debug')('api')
 
 module.exports = {
-    // getDeviceValues: (msg, respond) => {
-    //     db.Devices.findAll({
-    //         attributes: ['device', 'node_id', 'type', 'name', 'place_id'],
-    //         include: [{
-    //             model: db.Messages,
-    //             where: { [Op.or]: msg.parameters },
-    //             attributes: ['type', 'value', 'rssi', 'updatedAt']
-    //         }]
-    //     })
-    //         .then(
-    //             result => {
-    //                 var response = JSON.parse(JSON.stringify(result))
-    //                 for (var i = response.length; i--;) {
-    //                     if (i > 0) {
-    //                         if (response[i].node_id == response[i - 1].node_id &&
-    //                             response[i].device == response[i - 1].device) {
-    //                             if (Array.isArray(response[i - 1].Message))
-    //                                 response[i - 1].Message = response[i - 1].Message.concat(response[i].Message)
-    //                             else
-    //                                 response[i - 1].Message = [response[i - 1].Message, response[i].Message]
-    //                             response.splice(i, 1)
-    //                         }
-    //                         else {
-    //                             response[i].Message = [response[i].Message]
-    //                         }
-    //                     }
-    //                 }
-    //                 // console.log(JSON.stringify(response))
-    //                 return respond(response, msg, 1)
-    //             }
-    //         )
-    // },
 
     getDeviceValues: (msg, respond) => {
         db.DeviceValues.findAll({
@@ -54,24 +22,6 @@ module.exports = {
                 return respond(response, msg, 0)
             })
     },
-
-    // getDeviceValues: (msg, respond) => {
-    //     Sequelize.query('SELECT * from DeviceValues',
-    //         { type: sequelize.QueryTypes.SELECT },
-    //         { where: _isEmptyObject(msg.parameters) === true ? {} : { [Op.or]: msg.parameters } }
-    //     )
-    //         .then(
-    //             result => {
-    //                 // var response = result.get({ plain: true })
-    //                 var response = JSON.parse(JSON.stringify(result))
-    //                 return respond(response, msg, 1)
-    //             })
-    //         .catch((err) => {
-    //             // console.log('%s', err)
-    //             var response = { message: err.toString() }
-    //             return respond(response, msg, 0)
-    //         })
-    // },
 
     listPlaces: (msg, respond) => {
         debug('listPlaces, empty?: %s', _isEmptyObject(msg.parameters))
@@ -263,6 +213,26 @@ module.exports = {
                 return respond(response, msg, 0)
             })
     },
+
+    detachDeviceFromPlace: (msg, respond) => {
+        db.Devices.update(
+            { place_id: null },
+            { where: { [Op.and]: { node_id: msg.parameters.node_id, id: msg.parameters.device_id } } }
+        )
+            .spread(
+                (affectedCount, affectedRows) => {
+                    if (affectedCount)
+                        var response = { deviceDetached: [msg.parameters] }
+                    else
+                        var response = { deviceDetached: [] }
+                    return respond(response, msg, affectedCount)
+                })
+            .catch((err) => {
+                var response = { message: err.toString() }
+                return respond(response, msg, 0)
+            })
+    },
+
 }
 
 // function _isEmptyObject(obj) {

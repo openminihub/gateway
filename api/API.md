@@ -9,6 +9,8 @@ List of API commands
 * [listNodes](#listnodes-\--get-list-of-nodes) - Get list of nodes
 * [renameNode](#renamenode-\--rename-the-node) - Rename the node
 * [getDeviceValues](#getdevicevalues-\--get-requested-device-latest-values) - Get requested device latest values
+* [attachDeviceToPlace](#attachdevicetoplace-\--attach-the-device-to-the-place) - Attach the device to the Place
+* [detachDeviceFromPlace](#detachdevicefromplace-\--detach-the-device-from-the-place) - Detach the device from the Place
 
 ### To call API commands you must provide:
 | Property   | Type    | Description                             |
@@ -168,3 +170,26 @@ List of API commands
 |               | value          | Float   | Message value           |
 |               | rssi           | Integer | Signal strnegth         |
 |               | updatedAt      | Date    | Last update timestamp   |
+
+## attachDeviceToPlace - Attach the device to the Place
+#### IN: parameters :
+| Property  | Type    | Description |
+| --------- | ------- | ----------- |
+| node_id   | String  | Node ID     |
+| device_id | String  | Device ID   |
+| place_id  | Integer | Place ID    |
+#### OUT: payload:
+| Property       | Type  | Description     |
+| -------------- | ----- | --------------- |
+| deviceAttached | Array | Attached device |
+
+## detachDeviceFromPlace - Detach the device from the Place
+#### IN: parameters :
+| Property  | Type   | Description |
+| --------- | ------ | ----------- |
+| node_id   | String | Node ID     |
+| device_id | String | Device ID   |
+#### OUT: payload:
+| Property       | Type  | Description     |
+| -------------- | ----- | --------------- |
+| deviceDetached | Array | Detached device |
