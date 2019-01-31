@@ -39,38 +39,23 @@ module.exports = {
 
     getDeviceValues: (msg, respond) => {
         db.DeviceValues.findAll({
-            where: { [Op.or]: msg.parameters }
+            where: _isEmptyObject(msg.parameters) === true ? {} : { [Op.or]: msg.parameters }
         })
             .then(
                 result => {
+                    // var response = result.get({ plain: true })
                     var response = JSON.parse(JSON.stringify(result))
-                    for (var i = response.length; i--;) {
-                        if (i > 0) {
-                            if (response[i].node_id == response[i - 1].node_id &&
-                                response[i].device == response[i - 1].device) {
-                                if (response[i - 1].hasOwnProperty(messages))
-                                    response[i - 1].messages = response[i - 1].Message.concat(response[i].Message)
-                                else
-                                    response[i - 1].messages = [response[i - 1].messages, response[i].messages]
-                                response.splice(i, 1)
-                            }
-                            else {
-                                response[i].messages = [response[i].Message]
-                            }
-                        }
-                    }
-                    // console.log(JSON.stringify(response))
                     return respond(response, msg, 1)
-                }
-            )
+                })
+            .catch((err) => {
+                // console.log('%s', err)
+                var response = { message: err.toString() }
+                return respond(response, msg, 0)
+            })
     },
 
     listPlaces: (msg, respond) => {
         debug('listPlaces, empty?: %s', _isEmptyObject(msg.parameters))
-        if (_isEmptyObject(msg.parameters))
-            debug('true')
-        else
-            debug('false')
         db.Places.findAll({
             attributes: ['id', 'parent_id', 'name'],
             where: _isEmptyObject(msg.parameters) === true ? {} : { [Op.or]: msg.parameters }
