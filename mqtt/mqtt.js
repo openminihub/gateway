@@ -64,8 +64,8 @@ function respondUser(answer, msg, result) {
         mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
     }
     debug(msg.source)
-    debug(result)
     debug(msg.user)
+    debug(msg.id)
     debug(JSON.stringify(answer))
 }
 
@@ -88,8 +88,44 @@ function parseMqttMessage(topic, message, source) {
                 return api[_json_message.cmd](_json_message, respondUser)
             }
             catch (err) {
-                console.log('No handler for command %o', _json_message.cmd)
-                // console.log(err)
+                debug(err)
+                err = err.toString()
+                //SyntaxError: Unexpected end of JSON input
+                //TypeError: api[_json_message.cmd] is not a function
+                var _error = new Object()
+                _error.source = source
+                _error.user = topic[1]
+                if (err.includes('JSON')) {
+                    console.log('JSON error: %s', err)
+                    // Try to get "id: x" from the message string
+                    var _serachId = ['"id"', ':']
+                    var _indexOfSearch = 0
+                    for(var n in _serachId) {
+                        _indexOfSearch = _message.indexOf(_serachId[n])
+                        if (_indexOfSearch > 0) {
+                            _message = _message.substring(_indexOfSearch+_serachId[n].length)
+                        } else {
+                            break
+                        }
+                    }
+                    if (_indexOfSearch > 0) {
+                        _indexOfSearch = _message.indexOf(',')
+                        if (_indexOfSearch >0)
+                            _error.id = parseInt(_message.substring(0,_indexOfSearch))
+                        else
+                            _error.id = 0
+                    } else {
+                        _error.id = 0
+                    }
+                } else if (err.includes('api[_json_message.cmd] is not a function')) {
+                    console.log('No handler for command %o', _json_message.cmd)
+                    err = 'No handler for command: '+ _json_message.cmd
+                    _error.id = _json_message.id
+                } else {
+                    console.log(err)
+                    _error.id = 0
+                }
+                respondUser(err, _error, 0)
             }
             break
         // return handleUserMessage(topic, message)
