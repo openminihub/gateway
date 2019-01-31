@@ -1,5 +1,4 @@
 module.exports = Object.assign(
     {},
-    require('./influxdb
-    ')
+    require('./influxdb')
 )
