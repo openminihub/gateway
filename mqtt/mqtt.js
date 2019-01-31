@@ -63,6 +63,7 @@ function respondUser(answer, msg, result) {
     } else if (msg.source === 'cloud') {
         mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
     }
+    debug(result)
     debug(msg.source)
     debug(msg.user)
     debug(msg.id)
@@ -117,12 +118,14 @@ function parseMqttMessage(topic, message, source) {
                     } else {
                         _error.id = 0
                     }
+                    err = { "InvalidJSON" : err }
                 } else if (err.includes('api[_json_message.cmd] is not a function')) {
                     console.log('No handler for command %o', _json_message.cmd)
-                    err = 'No handler for command: '+ _json_message.cmd
+                    err = { "InvalidCommand" : _json_message.cmd }
                     _error.id = _json_message.id
                 } else {
                     console.log(err)
+                    err = { "InternalServerError" : err }
                     _error.id = 0
                 }
                 respondUser(err, _error, 0)

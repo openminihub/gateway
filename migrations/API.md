@@ -1,9 +1,13 @@
 # OpenMiniHub Gateway API
 List of API commands
-* [createPlace](#createplace-\--create-the-new-place) - Create the new Place
 * [listPlaces](#listplaces-\--list-the-places) - List the Places
+* [createPlace](#createplace-\--create-the-new-place) - Create the new Place
+* [renamePlace](#renameplace-\--rename-the-place) - Rename the place
+* [removePlace](#removeplace-\--remove-the-place) - Delete the place
 * [listDevices](#listdevices-\--list-devices) - List Devices
+* [renameDevice](#renamedevice-\--rename-the-device) - Rename the device
 * [listNodes](#listnodes-\--get-list-of-nodes) - Get list of nodes
+* [renameNode](#renamenode-\--rename-the-node) - Rename the node
 
 ### To call API commands you must provide:
 | Property   | Type    | Description                             |
@@ -25,35 +29,34 @@ List of API commands
 | --------- | ------ | --------------- | --------- |
 | name      | String | Place name      |
 | parent_id | String | Parent place ID | YES       |
-#### OUT: payload :
-| Property  | Type   | Description     |
-| --------- | ------ | --------------- |
-| id        | String | Place ID        |
-| name      | String | Place name      |
-| parent_id | String | Parent place ID |
+#### OUT: payload[] :
+| Property  | Type    | Description     |
+| --------- | ------- | --------------- |
+| id        | Integer | Place ID        |
+| name      | String  | Place name      |
+| parent_id | String  | Parent place ID |
 
 ## listPlaces - List the Places
 #### IN:  parameters :
-| Property | Type     | Description              | Optional? |
-| -------- | -------- | ------------------------ | --------- |
-| parentid | String[] | Array of parent place ID | YES       |
+| Property  | Type    | Description     | Optional? |
+| --------- | ------- | --------------- | --------- |
+| parent_id | Integer | Parent place ID | YES       |
 #### OUT: payload[] :
-| Property | Type     | Description                           |
-| -------- | -------- | ------------------------------------- |
-| name     | String   | Place name                            |
-| parentid | String   | Parent place ID                       |
-| devices  | String[] | Array of devices ID attached to place |
-| id       | String   | Place ID                              |
+| Property  | Type    | Description     |
+| --------- | ------- | --------------- |
+| id        | Integer | Place ID        |
+| name      | String  | Place name      |
+| parent_id | String  | Parent place ID |
 
 ## removePlace - Remove the Place
 #### IN:  parameters :
-| Property | Type     | Description                 | Optional? |
-| -------- | -------- | --------------------------- | --------- |
-| id       | String[] | Array of place ID to remove |
+| Property | Type      | Description                 | Optional? |
+| -------- | --------- | --------------------------- | --------- |
+| id       | Integer[] | Array of place ID to remove |
 #### OUT: payload :
-| Property | Type   | Description |
-| -------- | ------ | ----------- |
-| message  | String | Message     |
+| Property      | Type  | Description    |
+| ------------- | ----- | -------------- |
+| placesRemoved | Array | Removed places |
 
 ## renamePlace - Rename the Place
 #### IN:  parameters :
@@ -62,74 +65,85 @@ List of API commands
 | id       | String | Place ID to rename |
 | name     | String | Place name to set  |
 #### OUT: payload :
-| Property | Type   | Description |
-| -------- | ------ | ----------- |
-| message  | String | Message     |
+| Property     | Type  | Description   |
+| ------------ | ----- | ------------- |
+| placeRenamed | Array | Renamed place |
 
 ## listDevices - list devices
 #### IN: parameters :
-| Property   | Type      | Description                                                                                                 | Optional? |
-| ---------- | --------- | ----------------------------------------------------------------------------------------------------------- | --------- |
-| devicetype | Integer[] | Array of device types                                                                                       | YES       |
-| placeid    | String[]  | Array of place ID <br/>__null__ - to get not assigned devices <br/> __"all"__ - to get all assigned devices | YES       |
+| Property      | Type      | Description           | Optional? |
+| ------------- | --------- | --------------------- | --------- |
+| node_id       | String[]  | Array of node ID      | YES       |
+| devicetype_id | Integer[] | Array of device types | YES       |
+| place_id      | Integer[] | Array of place ID     | YES       |
 #### OUT: payload[]:
-| Property | Sub-property | Type    | Description                       | Optional? |
-| -------- | ------------ | ------- | --------------------------------- | --------- |
-| id       |              | Integer | Device id in node                 |
-| type     |              | Integer | Device type                       |
-| name     |              | String  | Device name                       |
-| placeid  |              | String  | Place ID where device is assigned | YES       |
-| nodeid   |              | String  | Node ID                           |
+| Property      | Sub-property | Type    | Description                       | Optional? |
+| ------------- | ------------ | ------- | --------------------------------- | --------- |
+| node_id       |              | String  | Node ID                           |
+| id            |              | String  | Device ID in node                 |
+| devicetype_id |              | Integer | Device type ID                    |
+| name          |              | String  | Device name                       |
+| place_id      |              | Integer | Place ID where device is assigned | YES       |
 
 ## renameDevice - Rename the Device
 #### IN:  parameters :
-| Property | Type    | Description         | Optional? |
-| -------- | ------- | ------------------- | --------- |
-| id       | Integer | Device ID to rename |
-| nodeid   | String  | Node ID to rename   |
-| name     | String  | Device name to set  |
+| Property | Type   | Description         | Optional? |
+| -------- | ------ | ------------------- | --------- |
+| node_id  | String | Node ID to rename   |
+| id       | String | Device ID to rename |
+| name     | String | Device name to set  |
 #### OUT: payload :
-| Property | Type   | Description |
-| -------- | ------ | ----------- |
-| message  | String | Message     |
+| Property      | Type  | Description    |
+| ------------- | ----- | -------------- |
+| deviceRenamed | Array | Renamed device |
 
 ## listDeviceTypes - List defined device types
 #### IN: parameters :
-| Property | Type      | Description           | Optional? |
-| -------- | --------- | --------------------- | --------- |
-| types    | Integer[] | Array of device types | YES       |
+| Property | Type      | Description                 | Optional? |
+| -------- | --------- | --------------------------- | --------- |
+| id       | Integer[] | Array of device type IDs | YES       |
+| type     | Integer[] | Array of device types       | YES       |
 #### OUT: payload:
-| Property | Type    | Description                  |
-| -------- | ------- | ---------------------------- |
-| name     | String  | Device type description/name |
-| value    | String  | Device type value definition |
-| type     | Integer | Device type                  |
+| Property | Type     | Description                            |
+| -------- | -------- | -------------------------------------- |
+| id       | Integer  | Device type ID                         |
+| type     | Integer  | Device type                            |
+| name     | String   | Device type description/name           |
+| messages | String[] | Array of available messages for device |
 
 ## listMessageTypes - List device message types
 #### IN: parameters :
 | Property | Type      | Description                   | Optional? |
 | -------- | --------- | ----------------------------- | --------- |
-| types    | Integer[] | Array of device message types | YES       |
+| id       | Integer[] | Array of device message IDs   | YES       |
+| type     | String[]  | Array of device message types | YES       |
 #### OUT: payload:
-| Property | Type    | Description                          |
-| -------- | ------- | ------------------------------------ |
-| name     | String  | Device message type description      |
-| value    | String  | Device message type value definition |
-| type     | Integer | Device message type                  |
+| Property | Type    | Description                |
+| -------- | ------- | -------------------------- |
+| id       | Integer | Device message ID          |
+| type     | String  | Device message type        |
+| name     | String  | Device message description |
+| ro       | Boolean | Is message READ ONLY?      |
 
 ## listNodes - Get list of nodes
 #### IN:  none
 #### OUT: payload[] :
-| Property  | Sub-property | Type   | Description                       | Optional? |
-| --------- | ------------ | ------ | --------------------------------- | --------- |
-| type      |              | String | Node type (OpenNode / ESP)        |
-| name      |              | String | Node name                         |
-| board     |              | String | Node firmware name                |
-| version   |              | String | Node firmware version             |
-| devices[] |              | Array  | Array of node devices             |
-|           | id           | String | Device ID                         |
-|           | type         | String | Device type                       |
-|           | name         | String | Device name                       | YES       |
-|           | placeid      | String | Place ID where device is assigned | YES       |
-| id        |              | String | node ID                           |
+| Property | Type   | Description                | Optional? |
+| -------- | ------ | -------------------------- | --------- |
+| type     | String | Node type (OpenNode / ESP) |
+| name     | String | Node name                  |
+| board    | String | Node firmware name         |
+| version  | String | Node firmware version      |
+| ip       | String | Node IP adress             | YES       |
+| id       | String | node ID                    |
 
+## renameNode - Rename the Node
+#### IN:  parameters :
+| Property | Type   | Description       |
+| -------- | ------ | ----------------- |
+| id       | String | Node ID to rename |
+| name     | String | Node name to set  |
+#### OUT: payload :
+| Property    | Type  | Description  |
+| ----------- | ----- | ------------ |
+| nodeRenamed | Array | Renamed node |
