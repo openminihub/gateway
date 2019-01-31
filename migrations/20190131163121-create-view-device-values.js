@@ -2,7 +2,8 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.sequelize.query(
-'select d.node_id, d.id as device_id, d.devicetype_id, d.name, d.place_id, dm.messages \
+'CREATE VIEW DeviceValues AS \
+select d.node_id, d.id as device_id, d.devicetype_id, d.name, d.place_id, dm.messages \
 from Devices d, \
 (select m.node_id, m.device_id, \'[\'||group_concat(\'{messagetype_id:\'||messagetype_id||\', value:\'||value||\', rssi:\'||rssi||\', updatedAt:\'||updatedAt||\'}\')||\']\' as messages \
 from Messages m \
