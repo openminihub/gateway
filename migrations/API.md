@@ -29,7 +29,7 @@ List of API commands
 | --------- | ------ | --------------- | --------- |
 | name      | String | Place name      |
 | parent_id | String | Parent place ID | YES       |
-#### OUT: payload[] :
+#### OUT: payload :
 | Property  | Type    | Description     |
 | --------- | ------- | --------------- |
 | id        | Integer | Place ID        |
@@ -76,7 +76,7 @@ List of API commands
 | node_id       | String[]  | Array of node ID      | YES       |
 | devicetype_id | Integer[] | Array of device types | YES       |
 | place_id      | Integer[] | Array of place ID     | YES       |
-#### OUT: payload[]:
+#### OUT: payload[] :
 | Property      | Sub-property | Type    | Description                       | Optional? |
 | ------------- | ------------ | ------- | --------------------------------- | --------- |
 | node_id       |              | String  | Node ID                           |
@@ -103,7 +103,7 @@ List of API commands
 | -------- | --------- | --------------------------- | --------- |
 | id       | Integer[] | Array of device type IDs | YES       |
 | type     | Integer[] | Array of device types       | YES       |
-#### OUT: payload:
+#### OUT: payload[] :
 | Property | Type     | Description                            |
 | -------- | -------- | -------------------------------------- |
 | id       | Integer  | Device type ID                         |
@@ -117,7 +117,7 @@ List of API commands
 | -------- | --------- | ----------------------------- | --------- |
 | id       | Integer[] | Array of device message IDs   | YES       |
 | type     | String[]  | Array of device message types | YES       |
-#### OUT: payload:
+#### OUT: payload[] :
 | Property | Type    | Description                |
 | -------- | ------- | -------------------------- |
 | id       | Integer | Device message ID          |

@@ -4,14 +4,42 @@ const Op = Sequelize.Op
 var debug = require('debug')('api')
 
 module.exports = {
+    // getDeviceValues: (msg, respond) => {
+    //     db.Devices.findAll({
+    //         attributes: ['device', 'node_id', 'type', 'name', 'place_id'],
+    //         include: [{
+    //             model: db.Messages,
+    //             where: { [Op.or]: msg.parameters },
+    //             attributes: ['type', 'value', 'rssi', 'updatedAt']
+    //         }]
+    //     })
+    //         .then(
+    //             result => {
+    //                 var response = JSON.parse(JSON.stringify(result))
+    //                 for (var i = response.length; i--;) {
+    //                     if (i > 0) {
+    //                         if (response[i].node_id == response[i - 1].node_id &&
+    //                             response[i].device == response[i - 1].device) {
+    //                             if (Array.isArray(response[i - 1].Message))
+    //                                 response[i - 1].Message = response[i - 1].Message.concat(response[i].Message)
+    //                             else
+    //                                 response[i - 1].Message = [response[i - 1].Message, response[i].Message]
+    //                             response.splice(i, 1)
+    //                         }
+    //                         else {
+    //                             response[i].Message = [response[i].Message]
+    //                         }
+    //                     }
+    //                 }
+    //                 // console.log(JSON.stringify(response))
+    //                 return respond(response, msg, 1)
+    //             }
+    //         )
+    // },
+
     getDeviceValues: (msg, respond) => {
-        db.Devices.findAll({
-            attributes: ['device', 'node_id', 'type', 'name', 'place_id'],
-            include: [{
-                model: db.Messages,
-                where: { [Op.or]: msg.parameters },
-                attributes: ['type', 'value', 'rssi', 'updatedAt']
-            }]
+        db.DeviceValues.findAll({
+            where: { [Op.or]: msg.parameters }
         })
             .then(
                 result => {
@@ -20,14 +48,14 @@ module.exports = {
                         if (i > 0) {
                             if (response[i].node_id == response[i - 1].node_id &&
                                 response[i].device == response[i - 1].device) {
-                                if (Array.isArray(response[i - 1].Message))
-                                    response[i - 1].Message = response[i - 1].Message.concat(response[i].Message)
+                                if (response[i - 1].hasOwnProperty(messages))
+                                    response[i - 1].messages = response[i - 1].Message.concat(response[i].Message)
                                 else
-                                    response[i - 1].Message = [response[i - 1].Message, response[i].Message]
+                                    response[i - 1].messages = [response[i - 1].messages, response[i].messages]
                                 response.splice(i, 1)
                             }
                             else {
-                                response[i].Message = [response[i].Message]
+                                response[i].messages = [response[i].Message]
                             }
                         }
                     }

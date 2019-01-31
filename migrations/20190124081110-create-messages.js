@@ -36,6 +36,8 @@ module.exports = {
       type: Sequelize.STRING
     },
     rssi: {
+      allowNull: false,
+      defaultValue: 0,
       type: Sequelize.INTEGER
     },
     createdAt: {
