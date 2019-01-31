@@ -8,6 +8,7 @@ List of API commands
 * [renameDevice](#renamedevice-\--rename-the-device) - Rename the device
 * [listNodes](#listnodes-\--get-list-of-nodes) - Get list of nodes
 * [renameNode](#renamenode-\--rename-the-node) - Rename the node
+* [getDeviceValues](#getdevicevalues-\--get-requested-device-latest-values) - Get requested device latest values
 
 ### To call API commands you must provide:
 | Property   | Type    | Description                             |
@@ -99,10 +100,10 @@ List of API commands
 
 ## listDeviceTypes - List defined device types
 #### IN: parameters :
-| Property | Type      | Description                 | Optional? |
-| -------- | --------- | --------------------------- | --------- |
+| Property | Type      | Description              | Optional? |
+| -------- | --------- | ------------------------ | --------- |
 | id       | Integer[] | Array of device type IDs | YES       |
-| type     | Integer[] | Array of device types       | YES       |
+| type     | Integer[] | Array of device types    | YES       |
 #### OUT: payload[] :
 | Property | Type     | Description                            |
 | -------- | -------- | -------------------------------------- |
@@ -147,3 +148,23 @@ List of API commands
 | Property    | Type  | Description  |
 | ----------- | ----- | ------------ |
 | nodeRenamed | Array | Renamed node |
+
+## getDeviceValues - Get requested device latest values
+#### IN: parameters[] :
+| Property  | Type   | Description | Optional? |
+| --------- | ------ | ----------- | --------- |
+| node_id   | String | Node ID     | YES       |
+| device_id | String | Device ID   | YES       |
+#### OUT: payload[] :
+| Property      | Sub-propery    | Type    | Description             |
+| ------------- | -------------- | ------- | ----------------------- |
+| node_id       |                | String  | Node ID                 |
+| device_id     |                | String  | Device id               |
+| devicetype_id |                | Integer | Device type ID          |
+| name          |                | String  | Device name             |
+| place_id      |                | Integer | Place ID                |
+| messages      |                | Array[] | List of device messages |
+|               | messagetype_id | Integer | Message type            |
+|               | value          | Float   | Message value           |
+|               | rssi           | Integer | Signal strnegth         |
+|               | updatedAt      | Date    | Last update timestamp   |
