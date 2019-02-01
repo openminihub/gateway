@@ -53,22 +53,38 @@ module.exports = {
         mqttLocal.on('message', (topic, message) => {
             return parseMqttMessage(topic, message, 'local')
         })
+    },
+
+    respondUser: (answer, msg, result) => {
+        var newJSON = '{"id":"' + msg.id + '", "cmd":"' + msg.cmd + '", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
+        if (msg.source === 'local') {
+            mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+        } else if (msg.source === 'cloud') {
+            mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+        }
+        debug(result)
+        debug(msg.source)
+        debug(msg.user)
+        debug(msg.id)
+        debug(JSON.stringify(answer))
     }
+
+
 }
 
-function respondUser(answer, msg, result) {
-    var newJSON = '{"id":"' + msg.id + '", "cmd":"' + msg.cmd + '", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
-    if (msg.source === 'local') {
-        mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
-    } else if (msg.source === 'cloud') {
-        mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
-    }
-    debug(result)
-    debug(msg.source)
-    debug(msg.user)
-    debug(msg.id)
-    debug(JSON.stringify(answer))
-}
+// function respondUser(answer, msg, result) {
+//     var newJSON = '{"id":"' + msg.id + '", "cmd":"' + msg.cmd + '", "result":' + result + ', "payload":' + JSON.stringify(answer) + '}'
+//     if (msg.source === 'local') {
+//         mqttLocal.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+//     } else if (msg.source === 'cloud') {
+//         mqttCloud.publish('user/' + msg.user + '/out', newJSON, { qos: 0, retain: false })
+//     }
+//     debug(result)
+//     debug(msg.source)
+//     debug(msg.user)
+//     debug(msg.id)
+//     debug(JSON.stringify(answer))
+// }
 
 
 function parseMqttMessage(topic, message, source) {
@@ -86,7 +102,7 @@ function parseMqttMessage(topic, message, source) {
                 _json_message.user = topic[1]
                 _json_message.source = source
                 debug('ALL: %o', _json_message)
-                return api[_json_message.cmd](_json_message, respondUser)
+                return api[_json_message.cmd](_json_message, module.exports.respondUser)
             }
             catch (err) {
                 debug(err)
@@ -128,7 +144,7 @@ function parseMqttMessage(topic, message, source) {
                     err = { "InternalServerError": err }
                     _error.id = 0
                 }
-                respondUser(err, _error, 0)
+                module.exports.respondUser(err, _error, 0)
             }
             break
         // return handleUserMessage(topic, message)
