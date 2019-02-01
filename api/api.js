@@ -239,8 +239,9 @@ module.exports = {
         debug('updateGateway')
         // return respond({"maize": "2"}, msg, 0)
         // return respond({maize: "2"}, msg, 0)
-        var response = System.updateGateway(msg)
-        return respond(response, msg, 0)
+        // var response = System.updateGateway(msg)
+        // return respond(response, msg, 0)
+        return System.updateGateway(msg, respond)
     }
 
 }
