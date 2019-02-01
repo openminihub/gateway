@@ -14,7 +14,7 @@ module.exports = {
             }
             else {
                 debug(path.join(__dirname, '../.updatenow'))
-                fs.writeFile(path.join(__dirname, '../.updatenow'), 'user/' + msg.user + '/out' + '\n' + msg.id + '\n', function (err) {
+                fs.writeFile(path.join(__dirname, '../.updatenow'), 'user/' + msg.user + '/out' + '\n' + msg.id + '\n' + msg.source + '\n', function (err) {
                     if (!err) {
                         const child = execFile(path.join(__dirname, '../gateway-update.sh'), [''], (err, stdout, stderr) => {
                             if (!err) {
