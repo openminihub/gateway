@@ -242,7 +242,12 @@ module.exports = {
         // var response = System.updateGateway(msg)
         // return respond(response, msg, 0)
         return System.updateGateway(msg, respond)
+    },
+
+    controlGateway: (msg, respond) => {
+        return System.controlGateway(msg, respond)
     }
+
 
 }
 

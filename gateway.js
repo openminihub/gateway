@@ -4,12 +4,14 @@ const Sequelize = require('sequelize');
 const Op = Sequelize.Op
 const SerialPort = require('./serialport')
 const Mqtt = require('./mqtt')
-var debug = require('debug')('gateway')
 const Config = require('./config')
+const System = require('./system')
+var debug = require('debug')('gateway')
 
 
-var my_config = Config.load()
+var gwConfig = Config.load()
 Config.formatConsoleOutput()
 
-SerialPort.enable(my_config.serial.port, my_config.serial.baudrate)
-Mqtt.enable(my_config.mqtt)
+System.isStartupAfterUpdate()
+SerialPort.enable(gwConfig.serial.port, gwConfig.serial.baudrate)
+Mqtt.enable(gwConfig.mqtt)
