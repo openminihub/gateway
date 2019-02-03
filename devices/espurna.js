@@ -13,6 +13,9 @@ exports.processMqttData = function (topic, message) {
     _message.rssi = 0
 
     switch (_msg[2]) {
+        case 'status':
+            _node.id = _msg[1]
+            break
         case 'rgb':
             _message.messagetype_id = 40 // 40 = V_RGB
             break
@@ -53,7 +56,7 @@ exports.processMqttData = function (topic, message) {
                 console.log('%s', err)
             })
     }
-    if (!_isEmptyObject(_message)) {
+    if (_message.hasOwnProperty('messagetype_id')) {
         debug('db.Messagess: %o', _message)
         db.Messages.update({ value: _message.value }, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
             .then(rowsUpdated => _doInsertOnNewMessage(rowsUpdated, _message, message))
