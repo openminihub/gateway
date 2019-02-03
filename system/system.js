@@ -66,7 +66,7 @@ module.exports = {
 
     controlGateway: (msg, respond) => {
         const { exec } = require('child_process')
-        exec((par.sudo) ? "sudo " + par.cmd : par.cmd, (err, stdout, stderr) => {
+        exec((msg.parameters.sudo) ? "sudo " + msg.parameters.cmd : msg.parameters.cmd, (err, stdout, stderr) => {
             var answer = new Object()
             var result = 0
             if (!err) {
