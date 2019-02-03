@@ -3,8 +3,7 @@
 #   ./gateway-node-update.sh
 
 dir_to_update=$PWD
-gateway_log=~/gateway/log/gateway.log
-avrdude_log=~/gateway/log/avrdude.log
+gateway_log="${dir_to_update}/log/gateway.log"
 FW="${dir_to_update}/firmware/gateway.ino.hex"
 FW_CURR="${dir_to_update}/.gwnodefw"
 
@@ -17,18 +16,16 @@ fi
 if [ -f "${dir_to_update}/.updatenow" ] ; then
     gwupdate="done"
     if [ -f "$FW" ] ; then
-      FW_NEW=`md5sum $FW | awk '{ print $1 }'`
-      if [ "$FW_NEW" != "$FW_OLD" ] ; then
-        echo "Flashing GW Node with latest firmware" >> $gateway_log
-        ./utility/avrdude -v -c arduino -p atmega328p -P /dev/serial0 -b 115200 -U flash:w:$FW &> $avrdude_log
-	if [ `grep 'Reading\|Writing' ${avrdude_log} | grep '100%' | wc -l` -ne 3 ] ; then 
-          gwupdate="failed"
-        else
-          echo "${FW_NEW}" > ${FW_CURR}
-	fi
-        cat $avrdude_log >> $gateway_log
-	rm -f $avrdude_log
-      fi
+        FW_NEW=`md5sum $FW | awk '{ print $1 }'`
+        if [ "$FW_NEW" != "$FW_OLD" ] ; then
+            echo "Flashing GW Node with latest firmware" >> $gateway_log
+            ./utility/avrdude -v -c arduino -p atmega328p -P /dev/serial0 -b 115200 -U flash:w:$FW &> $gateway_log
+	        if [ `grep 'Reading\|Writing' ${gateway_log} | grep '100%' | wc -l` -ne 3 ] ; then 
+                gwupdate="failed"
+            else
+                echo "${FW_NEW}" > ${FW_CURR}
+	        fi
+        fi
     fi
     mv ${dir_to_update}/.updatenow ${dir_to_update}/.updatedone
     echo "Gateway update ${gwupdate}" >> ${dir_to_update}/.updatedone
