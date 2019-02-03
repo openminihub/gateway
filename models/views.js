@@ -1,7 +1,7 @@
 
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const Places = sequelize.define('Views', {
+  const Views = sequelize.define('Views', {
     name: DataTypes.STRING
   }, {});
   Views.associate = function(models) {
