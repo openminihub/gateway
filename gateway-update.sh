@@ -3,7 +3,7 @@
 #   ./gateway-update.sh
 
 dir_to_update=$PWD
-gateway_log="${dir_to_update}/log/gateway.log"
+gateway_log="${dir_to_update}/logs/gateway.log"
 updateRepo() {
     local dir="$dir_to_update"
     cd $dir # switch to the git repo

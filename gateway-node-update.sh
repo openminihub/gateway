@@ -3,7 +3,7 @@
 #   ./gateway-node-update.sh
 
 dir_to_update=$PWD
-gateway_log="${dir_to_update}/log/gateway.log"
+gateway_log="${dir_to_update}/logs/gateway.log"
 FW="${dir_to_update}/firmware/gateway.ino.hex"
 FW_CURR="${dir_to_update}/.gwnodefw"
 

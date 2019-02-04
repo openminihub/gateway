@@ -56,7 +56,7 @@ git pull origin develop
 sudo npm install --unsafe-perm --build-from-source --ignore-warnings
 sudo npm cache verify    #clear any caches/incomplete installs
 sudo npm audit fix
-mkdir $GATEWAY_DIR/log -p
+mkdir $GATEWAY_DIR/logs -p
 if [ ! -f $GATEWAY_DIR/config/gateway.json ]; then
   cp -p gateway.sample.json gateway.json
 fi
@@ -94,7 +94,7 @@ echo -e "${CYAN}************* STEP: Configuring logrotate *************${NC}"
 sudo echo "#this is used by logrotate and should be placed in /etc/logrotate.d/
 #rotate the gateway logs and keep a limit of how many are archived
 #note: archives are rotated in $GATEWAY_DIR/logs so that dir must exist prior to rotation
-$GATEWAY_DIR/log/*.log {
+$GATEWAY_DIR/logs/*.log {
         size 20M
         missingok
         rotate 20
