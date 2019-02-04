@@ -1,4 +1,4 @@
-const mqtt = require('../mqtt')
+// const mqtt = require('../mqtt')
 var fs = require('fs')
 const execFile = require('child_process').execFile
 var path = require('path')
@@ -65,6 +65,7 @@ module.exports = {
     },
 
     controlGateway: (msg, respond) => {
+        debug(msg)
         const { exec } = require('child_process')
         exec((msg.parameters.sudo) ? "sudo " + msg.parameters.cmd : msg.parameters.cmd, (err, stdout, stderr) => {
             var answer = new Object()
