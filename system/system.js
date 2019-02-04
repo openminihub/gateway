@@ -76,7 +76,6 @@ module.exports = {
             }
             else {
                 answer = { message: stderr }
-                payload.push({ message: stderr })
             }
             return respond(answer, msg, result)
         })
