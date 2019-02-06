@@ -15,7 +15,8 @@
     "sequelize": "^4.42.0",
     "sequelize-cli": "^5.4.0",
     "serialport": "^7.1.4",
-    "sqlite3": "^4.0.6"
+    "sqlite3": "^4.0.6",
+    "suncalc": "^1.8.0"
   },
   "scripts": {
     "start": "node gateway.js"

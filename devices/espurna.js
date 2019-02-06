@@ -1,4 +1,5 @@
 const db = require('../models')
+const InfluxDB = require('../influxdb')
 var debug = require('debug')('ESPurna')
 
 exports.processMqttData = function (topic, message) {
@@ -63,6 +64,7 @@ exports.processMqttData = function (topic, message) {
             .catch((err) => {
                 console.log('%s', err)
             })
+            InfluxDB.writeValue(_message)
     }
 }
 

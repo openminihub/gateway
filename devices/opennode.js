@@ -1,4 +1,5 @@
 const db = require('../models')
+const InfluxDB = require('../influxdb')
 var debug = require('debug')('OpenNode')
 // const Sequelize = require('sequelize');
 // const Op = Sequelize.Op
@@ -102,12 +103,13 @@ exports.processSerialData = function (rxmessage) {
             // set value = xxx
             // where device_id = (select id from Devices
             //                    where node_id = xxx)
-            debug('Update Messages.db: %s %o', _message.node_id, _message )
-            db.Messages.update({ value: _message.value, rssi: _message.rssi}, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
+            debug('Update Messages.db: %s %o', _message.node_id, _message)
+            db.Messages.update({ value: _message.value, rssi: _message.rssi }, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
                 .then(rowsUpdated => _doInsertOnNewMessage(rowsUpdated, _message))
                 .catch((err) => {
                     console.log('%s', err)
                 })
+            InfluxDB.writeValue(_message)
             break
         case '3':  //internal
             var _node = new Object()
