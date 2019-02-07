@@ -62,6 +62,7 @@ module.exports = {
       , { id: 56, type: 'V_POWER_FACTOR', name: 'Power factor', ro: false }
       , { id: 57, type: 'V_GATE_STATUS', name: 'Gate status (OPENED, CLOSED, OPENING, CLOSING, PAUSED)', ro: true }
       , { id: 58, type: 'V_GATE_STATE', name: 'Control gate state (OPEN, CLOSE, PAUSE)', ro: true }
+      , { id: 59, type: 'V_SUN', name: 'Sun position (SUNSET, SUNRISE)', ro: true }
       ],
       {});
   },

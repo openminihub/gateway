@@ -44,6 +44,7 @@ module.exports = {
       , { id: 38, type: 'S_GPS', name: 'GPS Sensor', messages: '[V_POSITION]' }
       , { id: 39, type: 'S_WATER_QUALITY', name: 'Water quality sensor', messages: '[V_TEMP, V_PH, V_ORP, V_EC, V_STATUS]' }
       , { id: 40, type: 'S_GATE', name: 'Gate control module', messages: '[V_GATE_STATUS, V_GATE_STATE, V_ARMED, V_TRIPPED]' }
+      , { id: 41, type: 'S_SUN', name: 'Solar Calculator', messages: '[V_SUN]' }
       ],
       {});
   },

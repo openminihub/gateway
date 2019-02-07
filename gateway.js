@@ -19,5 +19,7 @@ SerialPort.enable(gwConfig.serial.port, gwConfig.serial.baudrate)
 Mqtt.enable(gwConfig.mqtt)
 
 SunCalc.getTimes(new Date(), gwConfig.position)
+SunCalc.getNextAction(gwConfig.position)
+SunCalc.scheduleNextAction()
 
 InfluxDB.enable()
