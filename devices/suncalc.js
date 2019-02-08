@@ -39,11 +39,8 @@ module.exports = {
     scheduleNextAction: (position) => {
         var _gwConfig = Config.load()
         var _sun_action = module.exports.getNextAction(_gwConfig.position)
-        var _suncalc_job = Schedule.scheduleJob('20 * * * *', function () {
-            console.log('The answer to life, the universe, and everything!');
-        })
         var _suncalc_job = Schedule.scheduleJob(_sun_action.time, function () {
-            console.log('The answer to life, the universe, and everything!');
+            console.log('Going to be: %s', _sun_action.action === 1 ? 'sunrise' : 'sunset');
         })
     }
 
