@@ -2,7 +2,7 @@
 
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return queryInterface.bulkInsert('Messages', [
+    return queryInterface.bulkInsert('DeviceMessages', [
       {
       node_id: '5',
       device_id: '1',
@@ -40,6 +40,6 @@ module.exports = {
 },
 
   down: (queryInterface, Sequelize) => {
-    return queryInterface.bulkDelete('Messages', null, {});
+    return queryInterface.bulkDelete('DeviceMessages', null, {});
   }
 };

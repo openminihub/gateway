@@ -1,13 +1,15 @@
 'use strict';
 module.exports = {
   up: (queryInterface, Sequelize) => {
-  return queryInterface.createTable('Messages', {
+  return queryInterface.createTable('DeviceMessages', {
     id: {
-      allowNull: true,
+      allowNull: false,
+      autoIncrement: true,
+      primaryKey: true,
       type: Sequelize.INTEGER
     },
-    node_id: {
-      primaryKey: true,
+  node_id: {
+      // primaryKey: true,
       type: Sequelize.STRING
       // ,
       // references: {
@@ -16,7 +18,7 @@ module.exports = {
       // }
     },
     device_id: {
-      primaryKey: true,
+      // primaryKey: true,
       type: Sequelize.STRING
       // ,
       // references: {
@@ -25,7 +27,7 @@ module.exports = {
       // }
     },
     messagetype_id: {
-      primaryKey: true,
+      // primaryKey: true,
       type: Sequelize.INTEGER
       , references: {
         model: 'MessageTypes',
@@ -33,6 +35,10 @@ module.exports = {
       }
     },
     value: {
+      type: Sequelize.STRING
+    },
+    prevvalue: {
+      allowNull: true,
       type: Sequelize.STRING
     },
     rssi: {
@@ -50,22 +56,23 @@ module.exports = {
     }
   })
 .then(() => {
-    // queryInterface.sequelize.query('ALTER TABLE "Messages" ADD CONSTRAINT devices_fk FOREIGN KEY (node_id, device_id) REFERENCES Devices(node_id, device_id);')
-    return queryInterface.addIndex('Messages', ['node_id', 'device_id', 'messagetype_id'], { indexName: 'messages_pk', indicesType: 'UNIQUE' })
+    // queryInterface.sequelize.query('ALTER TABLE "DeviceMessages" ADD CONSTRAINT devices_fk FOREIGN KEY (node_id, device_id) REFERENCES Devices(node_id, device_id);')
+    queryInterface.addIndex('DeviceMessages', ['id'], { indexName: 'devicemessages_pk', indicesType: 'UNIQUE' })
+    return queryInterface.addIndex('DeviceMessages', ['node_id', 'device_id', 'messagetype_id'], { indexName: 'devicemessages_idx', indicesType: 'UNIQUE' })
   })
 },
   down: (queryInterface, Sequelize) => {
-    return queryInterface.dropTable('Messages');
+    return queryInterface.dropTable('DeviceMessages');
   }
 };
 
-// queryInterface.addConstraint('Messages', ['node_id', 'device_id', 'type'], {
+// queryInterface.addConstraint('DeviceMessages', ['node_id', 'device_id', 'type'], {
 //   type: 'primary key',
-//   name: 'messages_pk'
+//   name: 'devicemessages_pk'
 // })
 
 
-// return queryInterface.sequelize.query('CREATE TABLE `Messages` (\
+// return queryInterface.sequelize.query('CREATE TABLE `DeviceMessages` (\
 //   `id` INTEGER, \
 //   `node_id` VARCHAR(255) NOT NULL, \
 //   `device_id` VARCHAR(255) NOT NULL, \

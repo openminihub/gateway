@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const Messages = sequelize.define('Messages', {
+  const DeviceMessages = sequelize.define('DeviceMessages', {
     node_id: {
       type: DataTypes.STRING,
       references: {
@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     messagetype_id: DataTypes.INTEGER,
     value: DataTypes.STRING,
+    prevvalue: DataTypes.STRING,
     rssi: DataTypes.INTEGER
   }, {
     indexes: [
@@ -27,10 +28,10 @@ module.exports = (sequelize, DataTypes) => {
       }
     ]
   });
-  Messages.associate = function(models) {
+  DeviceMessages.associate = function(models) {
     // associations can be defined here
     // models.Messages.belongsTo(models.Devices, { targetKey: 'node_id', foreignKey: 'node_id' })
     // models.Messages.belongsTo(models.Devices, { targetKey: 'device_id', foreignKey: 'device_id' })
   };
-  return Messages;
+  return DeviceMessages;
 };

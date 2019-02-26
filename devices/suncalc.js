@@ -2,6 +2,7 @@
 var SunCalc = require('suncalc')
 const Config = require('../config')
 var Schedule = require('node-schedule')
+const OpenNode = require('./opennode.js')
 var debug = require('debug')('suncalc')
 var _suncalc_job
 
@@ -12,6 +13,7 @@ module.exports = {
         response.sunrise = times.sunrise
         response.sunset = times.sunset
         debug('response: %o', response)
+        OpenNode.processSerialData('GATEWAY;255;0;0;41')
     },
 
     getNextAction: (position) => {
@@ -41,6 +43,8 @@ module.exports = {
         var _sun_action = module.exports.getNextAction(_gwConfig.position)
         var _suncalc_job = Schedule.scheduleJob(_sun_action.time, function () {
             console.log('Going to be: %s', _sun_action.action === 1 ? 'sunrise' : 'sunset');
+            OpenNode.processSerialData('GATEWAY;255;0;0;41')
+            OpenNode.processSerialData('GATEWAY;255;1;0;59;'+_sun_action.action.toString())
         })
     }
 

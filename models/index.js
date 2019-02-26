@@ -35,7 +35,7 @@ db.sequelize = sequelize
 
 db.sequelize.query('PRAGMA journal_mode=WAL;')
 
-db.Devices.belongsTo(db.Messages, { targetKey: 'device_id', foreignKey: 'id' })
+db.Devices.belongsTo(db.DeviceMessages, { targetKey: 'device_id', foreignKey: 'id' })
 
 
 module.exports = db

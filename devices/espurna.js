@@ -58,8 +58,8 @@ exports.processMqttData = function (topic, message) {
             })
     }
     if (_message.hasOwnProperty('messagetype_id')) {
-        debug('db.Messagess: %o', _message)
-        db.Messages.update({ value: _message.value }, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
+        debug('db.DeviceMessages: %o', _message)
+        db.DeviceMessages.update({ value: _message.value }, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
             .then(rowsUpdated => _doInsertOnNewMessage(rowsUpdated, _message, message))
             .catch((err) => {
                 console.log('%s', err)
@@ -91,7 +91,7 @@ function _doInsertOnNewMessage(rowsUpdated, values, message) {
                 // console.log(updatedRow.get({ plain: true }))
                 // console.log('...inserted...')
                 debug('Insert Messages.db: %o', values)
-                db.Messages.create(values)
+                db.DeviceMessages.create(values)
                     .then(updatedRow => {
                         // console.log(updatedRow.get({ plain: true }))
                         // console.log('...inserted...')

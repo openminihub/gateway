@@ -104,7 +104,7 @@ exports.processSerialData = function (rxmessage) {
             // where device_id = (select id from Devices
             //                    where node_id = xxx)
             debug('Update Messages.db: %s %o', _message.node_id, _message)
-            db.Messages.update({ value: _message.value, rssi: _message.rssi }, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
+            db.DeviceMessages.update({ value: _message.value, rssi: _message.rssi }, { where: { node_id: _message.node_id, device_id: _message.device_id, messagetype_id: _message.messagetype_id } })
                 .then(rowsUpdated => _doInsertOnNewMessage(rowsUpdated, _message))
                 .catch((err) => {
                     console.log('%s', err)
@@ -163,7 +163,7 @@ exports.processSerialData = function (rxmessage) {
 function _doInsertOnNewMessage(rowsUpdated, values) {
     if (rowsUpdated == 0) {
         debug('Insert Messages.db: %o', values)
-        db.Messages.create(values)
+        db.DeviceMessages.create(values)
             .then(updatedRow => {
                 // console.log(updatedRow.get({ plain: true }))
                 // console.log('...inserted...')

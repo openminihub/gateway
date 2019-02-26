@@ -7,7 +7,7 @@ module.exports = {
         id: 'GATEWAY',
         version: '1.0.0',
         board: 'GATEWAY',
-        type: 'Gateway',
+        type: 'OMH',
         name: 'Gateway',
         ip: null,
         battery: 100,
