@@ -1,7 +1,9 @@
+config/gateway.json
 data
-firmware
 node_modules
-settings.json5
-logs/*.log
-ssl/*
-setup/gateway-update.service
+package-lock.json
+log
+ssl
+.updatenow
+.updatedone
+.gwnodefw

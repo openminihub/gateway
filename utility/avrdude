@@ -1,0 +1,4 @@
+#!/bin/sh
+HOME_DIR=$PWD
+
+sudo strace -o "|${HOME_DIR}/utility/autoreset" -eioctl /usr/bin/avrdude $@

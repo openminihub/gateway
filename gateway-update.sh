@@ -1,11 +1,11 @@
 #!/bin/bash
 # Usage:
-#   ./gateway-update.sh.sh [parent_directory] 
-#   example usage:
-#       ./gateway-update.sh /home/pi/gateway
+#   ./gateway-update.sh
 
+dir_to_update=$PWD
+gateway_log="${dir_to_update}/logs/gateway.log"
 updateRepo() {
-    local dir="$1"
+    local dir="$dir_to_update"
     cd $dir # switch to the git repo
     repo_url=$(git config --get remote.origin.url)
 
@@ -13,28 +13,24 @@ updateRepo() {
     echo "Updating Repo: $dir with url: $repo_url"
     echo "Starting update in $PWD"
 
-    main_branch="master" 
-
     # reseting the local changes and update the repo
-    echo -e "\ncalling: git fetch & reset"
-    (git fetch --all && git reset --hard)
+    echo -e "\nExecuting: git fetch & reset"
+    (git fetch --all && git reset --hard origin/develop)
 
     echo ""
 }
 
-dir_to_update=${1}
-log_dir=~/gateway/logs/gateway.sys.log
-
-if [ -z "$dir_to_update" ] ; then
-    echo "Updating current directory"
-    dir_to_update=$PWD
-fi 
-
 if [ -f "${dir_to_update}/.updatenow" ] ; then
-    updateRepo $dir_to_update >> $log_dir
-    rm -rf ${dir_to_update}/.updatenow
-    echo "OpenMiniHub gateway has been updated" >> $log_dir
-    mosquitto_pub -h localhost -p 1883 -u pi -P raspberry -t system/gateway -m updated
-    echo "Restarting gateway.service" >> $log_dir
-    sudo systemctl restart gateway.service >> $log_dir
+    SERVICE_VERSION_OLD=`md5sum "${dir_to_update}/setup/gateway.service" | awk '{ print $1 }'`
+    updateRepo $dir_to_update >> $gateway_log
+    SERVICE_VERSION_NEW=`md5sum "${dir_to_update}/setup/gateway.service" | awk '{ print $1 }'`
+    if [ "$SERVICE_VERSION_NEW" != "$SERVICE_VERSION_OLD" ] ; then
+        echo "Updating gateway.service daemon service" >> $gateway_log
+        sudo cp ${dir_to_update}/setup/gateway.service /etc/systemd/system/
+        sudo systemctl daemon-reload
+    fi
+    echo "Update DONE. Restarting gateway.service" >> $gateway_log
+    sudo systemctl restart gateway.service
+else
+    echo "Update not initiated from APP"
 fi

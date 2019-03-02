@@ -1,0 +1,41 @@
+{id:0,type:'S_DOOR',name:'Door and window sensors',messages:'[V_TRIPPED, V_ARMED]'}
+{id:1,type:'S_MOTION',name:'Motion sensor',messages:'[V_TRIPPED, V_ARMED]'}
+{id:2,type:'S_SMOKE',name:'Smoke sensor',messages:'[V_TRIPPED, V_ARMED]'}
+{id:3,type:'S_BINARY',name:'Binary light or relay',messages:'[V_STATUS, V_WATT]'}
+{id:4,type:'S_DIMMER',name:'Dimmable light or fan device',messages:'[V_STATUS, V_PERCENTAGE, V_WATT]'}
+{id:5,type:'S_COVER',name:'Blinds or window cover',messages:'[V_UP, V_DOWN, V_STOP, V_PERCENTAGE]'}
+{id:6,type:'S_TEMP',name:'Temperature sensor',messages:'[V_TEMP, V_ID]'}
+{id:7,type:'S_HUM',name:'Humidity sensor',messages:'[V_HUM]'}
+{id:8,type:'S_BARO',name:'Barometer sensor',messages:'[V_PRESSURE, V_FORECAST]'}
+{id:9,type:'S_WIND',name:'Wind sensor',messages:'[V_WIND, V_GUST, V_DIRECTION]'}
+{id:10,type:'S_RAIN',name:'Rain sensor',messages:'[V_RAIN, V_RAINRATE]'}
+{id:11,type:'S_UV',name:'UV sensor',messages:'[V_UV]'}
+{id:12,type:'S_WEIGHT',name:'Personal scale sensor',messages:'[V_WEIGHT, V_IMPEDANCE]'}
+{id:13,type:'S_POWER',name:'Power meter',messages:'[V_WATT, V_KWH, V_VAR, V_VA, V_POWER_FACTOR]'}
+{id:14,type:'S_HEATER',name:'Heater device',messages:'[V_HVAC_SETPOINT_HEAT, V_HVAC_FLOW_STATE, V_TEMP, V_STATUS]'}
+{id:15,type:'S_DISTANCE',name:'Distance sensor',messages:'[V_DISTANCE, V_UNIT_PREFIX]'}
+{id:16,type:'S_LIGHT_LEVEL',name:'Light level sensor',messages:'[V_LIGHT_LEVEL, V_LEVEL]'}
+{id:17,type:'S_ARDUINO_NODE',name:'Used (internally) for presenting a non-repeating Arduino node',messages:'[]'}
+{id:18,type:'S_ARDUINO_REPEATER_NODE',name:'Used (internally) for presenting a repeating Arduino node',messages:'[]'}
+{id:19,type:'S_LOCK',name:'Lock device',messages:'[V_LOCK_STATUS]'}
+{id:20,type:'S_IR',name:'IR device',messages:'[V_IR_SEND, V_IR_RECEIVE, V_IR_RECORD]'}
+{id:21,type:'S_WATER',name:'Water meter',messages:'[V_FLOW, V_VOLUME]'}
+{id:22,type:'S_AIR_QUALITY',name:'Air quality sensor',messages:'[V_LEVEL, V_UNIT_PREFIX]'}
+{id:23,type:'S_CUSTOM',name:'Custom sensor',messages:'[]'}
+{id:24,type:'S_DUST',name:'Dust sensor',messages:'[V_LEVEL, V_UNIT_PREFIX]'}
+{id:25,type:'S_SCENE_CONTROLLER',name:'Scene controller device',messages:'[V_SCENE_ON, V_SCENE_OFF]'}
+{id:27,type:'S_RGBW_LIGHT',name:'RGB light with an additional White component',messages:'[V_RGB, V_WATT]'}
+{id:26,type:'S_RGB_LIGHT',name:'RGB light',messages:'[V_RGBW, V_WATT]'}
+{id:28,type:'S_COLOR_SENSOR',name:'Color sensor',messages:'[V_RGB]'}
+{id:29,type:'S_HVAC',name:'Thermostat/HVAC device',messages:'[V_STATUS, V_TEMP, V_HVAC_SETPOINT_HEAT, V_HVAC_SETPOINT_COOL, V_HVAC_FLOW_STATE, V_HVAC_FLOW_MODE, V_HVAC_SPEED]'}
+{id:30,type:'S_MULTIMETER',name:'Multimeter device',messages:'[V_VOLTAGE, V_CURRENT, V_IMPEDANCE]'}
+{id:31,type:'S_SPRINKLER',name:'Sprinkler',messages:'[V_STATUS, V_TRIPPED]'}
+{id:32,type:'S_WATER_LEAK',name:'Water leak sensor',messages:'[V_TRIPPED, V_ARMED]'}
+{id:33,type:'S_SOUND',name:'Sound sensor',messages:'[V_LEVEL, V_TRIPPED, V_ARMED]'}
+{id:34,type:'S_VIBRATION',name:'Vibration sensor',messages:'[V_LEVEL, V_TRIPPED, V_ARMED]'}
+{id:35,type:'S_MOISTURE',name:'Moisture sensor',messages:'[V_LEVEL, V_TRIPPED, V_ARMED]'}
+{id:36,type:'S_INFO',name:'Simple information device (LCD)',messages:'[V_TEXT]'}
+{id:37,type:'S_GAS',name:'Gas meter',messages:'[V_FLOW, V_VOLUME]'}
+{id:38,type:'S_GPS',name:'GPS Sensor',messages:'[V_POSITION]'}
+{id:39,type:'S_WATER_QUALITY',name:'Water quality sensor',messages:'[V_TEMP, V_PH, V_ORP, V_EC, V_STATUS]'}
+{id:40,type:'S_GATE',name:'Gate control module',messages:'[V_GATE_STATUS, V_GATE_STATE, V_ARMED, V_TRIPPED]'}
