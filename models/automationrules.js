@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     type: DataTypes.STRING(1),
     platform: DataTypes.STRING,
-    source_id: DataTypes.INTEGER,
+    devicemessage_id: DataTypes.INTEGER,
     operator: DataTypes.STRING,
     value: DataTypes.STRING,
     initvalue: DataTypes.STRING

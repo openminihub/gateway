@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
         key: "id"
       }
     },
-    target_id: DataTypes.INTEGER,
+    devicemessage_id: DataTypes.INTEGER,
     type: DataTypes.STRING,
     value: DataTypes.STRING
   }, {
