@@ -74,7 +74,7 @@ sudo openssl req -new -x509 -nodes -days 1825 -newkey rsa:2048 -out $GATEWAY_DIR
 
 #configure & create influxdb database
 sudo systemctl stop influxd.service
-sudo cp gateway/config/influxdb.conf /etc/influxdb/influxdb.conf
+sudo cp $GATEWAY_DIR/config/influxdb.conf /etc/influxdb/influxdb.conf
 sudo systemctl start influxd.service
 influx <<EOD
 create database openminihub
