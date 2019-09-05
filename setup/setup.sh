@@ -53,6 +53,8 @@ cd $GATEWAY_DIR || exit
 git init
 git remote add origin https://github.com/openminihub/gateway.git
 git pull origin develop
+sudo npm install -g npm-check-updates
+/opt/nodejs/bin/ncu -u
 sudo npm install --unsafe-perm --build-from-source --ignore-warnings
 sudo npm cache verify    #clear any caches/incomplete installs
 sudo npm audit fix
