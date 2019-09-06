@@ -17,7 +17,7 @@ module.exports = {
       type: {
         type: Sequelize.STRING
       },
-      target_id: {
+      devicemessage_id: {
         type: Sequelize.INTEGER
       },
       value: {
