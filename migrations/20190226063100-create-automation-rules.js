@@ -20,7 +20,7 @@ module.exports = {
       platform: {
         type: Sequelize.STRING
       },
-      source_id: {
+      devicemessage_id: {
         type: Sequelize.INTEGER
       },
       operator: {
