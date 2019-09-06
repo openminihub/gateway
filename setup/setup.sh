@@ -53,6 +53,8 @@ cd $GATEWAY_DIR || exit
 git init
 git remote add origin https://github.com/openminihub/gateway.git
 git pull origin develop
+sudo npm install -g npm-check-updates
+/opt/nodejs/bin/ncu -u
 sudo npm install --unsafe-perm --build-from-source --ignore-warnings
 sudo npm cache verify    #clear any caches/incomplete installs
 sudo npm audit fix
@@ -72,7 +74,7 @@ sudo openssl req -new -x509 -nodes -days 1825 -newkey rsa:2048 -out $GATEWAY_DIR
 
 #configure & create influxdb database
 sudo systemctl stop influxd.service
-sudo cp gateway/config/influxdb.conf /etc/influxdb/influxdb.conf
+sudo cp $GATEWAY_DIR/config/influxdb.conf /etc/influxdb/influxdb.conf
 sudo systemctl start influxd.service
 influx <<EOD
 create database openminihub
