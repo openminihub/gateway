@@ -108,6 +108,12 @@ $GATEWAY_DIR/logs/*.log {
         copytruncate
 }" | sudo tee /etc/logrotate.d/gateway
 
+echo -e "${CYAN}************* STEP: Create database and Load initial data into database *************${NC}"
+$GATEWAY_DIR/node_modules/.bin/sequelize db:migrate --env=test
+$GATEWAY_DIR/node_modules/.bin/sequelize db:seed --seed 201901.01.seed-devicetypes.js --env=test
+$GATEWAY_DIR/node_modules/.bin/sequelize db:seed --seed 201901.02.seed-messagetypes.js --env=test
+$GATEWAY_DIR/node_modules/.bin/sequelize db:seed --seed 201901.03.seed-nodes.js --env=test
+
 echo -e "${CYAN}************* STEP: Setup Gateway service ... *************${NC}"
 sudo cp $GATEWAY_DIR/setup/gateway.service /etc/systemd/system/
 sudo systemctl daemon-reload
