@@ -15,6 +15,9 @@
 - [Sequelize](https://github.com/sequelize/sequelize) for easy switch between databases & database change version control
 - Automatic gateway update
 - Data history stored in InlfuxDB
+- Lightweight - runs on Raspberry PI Zero
+- Self installing script & automatic update from GIT if new version is commited
+- The main concept is user friendly and usable by non IT persons (iOS application)
   
 ## Details & Setup Guide
 The full details of how to install this gateway will be published on [web](http://openminihub.com/gateway).
