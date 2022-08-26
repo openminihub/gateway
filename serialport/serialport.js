@@ -1,19 +1,15 @@
-var SerialPort = require('serialport')
+// var SerialPort = require('serialport')
+const { SerialPort } = require('serialport')
 const OpenNode = require('../devices/opennode.js')
 
+exports.enable = function (serial_port, baud_rate) {
 
-exports.enable = function (seria_port, baud_rate) {
-
-    var Serial = new SerialPort(seria_port, { baudRate: baud_rate, autoOpen: false }, function (error) {
+    var Serial = new SerialPort({path: serial_port, baudRate: baud_rate, autoOpen: false }, function (error) {
         if (error) {
             return console.log('SerialPort Error: ', error.message)
         }
     })
     
-    var Readline = SerialPort.parsers.Readline;
-    var SerialParser = new Readline();
-    Serial.pipe(SerialParser);
-
     Serial.on('error', function serialErrorHandler(error) {
         //Send serial error messages to console.
         console.error(error.message)
@@ -24,14 +20,16 @@ exports.enable = function (seria_port, baud_rate) {
         process.exit(1)
     })
 
-    SerialParser.on('data', function (data) { OpenNode.processSerialData(data) })
+    Serial.on('data', function (data) {
+        OpenNode.processSerialData(data)
+    })
 
     Serial.open(function (error) {
         if (error) {
             return console.log('Error opening serial port: ', error.message);
         }
         else {
-            console.log('Successfully opened serial port: %s', seria_port);
+            console.log('Successfully opened serial port: %s', serial_port);
         }
     })
 

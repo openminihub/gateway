@@ -24,7 +24,7 @@ The full details of how to install this gateway will be published on [web](http:
 
 ## Quick setup reference
 - Do a `git clone https://github.com/openminihub/gateway.git` in `/home/pi` or copy the contents of this directory in `/home/pi/gateway`
-- Run `bash ./gateway/setup/seutp.sh` to setup the gateway and install all dependencies
+- Run `bash ./gateway/setup/setup.sh` to setup the gateway and install all dependencies
 - Adjust any settings if needed in `config/gateway.json` or do it with iOS APP
 - Connect a GatewayNode to your Pi through the GPIO serial port or USB. The default configured serial port in settings.json5 is `dev/serial0` (GPIO serial port)
 

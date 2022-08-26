@@ -28,8 +28,12 @@ sudo apt-get clean
 echo -e "${CYAN}************* STEP: Installing git, minicon *************${NC}"
 sudo apt-get -y install git minicom
 
-echo -e "${CYAN}************* STEP: Installing avrdude, python-rpi.gpio *************${NC}"
-sudo apt-get install -y avrdude python python-rpi.gpio
+echo -e "${CYAN}************* STEP: Installing avrdude, python, RPi.GPIO *************${NC}"
+sudo apt-get install -y avrdude python
+pip install RPi.GPIO
+
+echo -e "${CYAN}************* STEP: Update python pip packages *************${NC}"
+pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U
 
 echo -e "${CYAN}************* STEP: Installing Mosquitto MQTT *************${NC}"
 sudo apt-get -y install mosquitto mosquitto-clients
@@ -53,6 +57,7 @@ cd $GATEWAY_DIR || exit
 git init
 git remote add origin https://github.com/openminihub/gateway.git
 git pull origin develop
+sudo npm install -g npm-check-updates
 sudo npm install --unsafe-perm --build-from-source --ignore-warnings
 sudo npm cache verify    #clear any caches/incomplete installs
 sudo npm audit fix
@@ -87,8 +92,8 @@ sudo raspi-config nonint do_serial 1
 echo -e "${CYAN}************* STEP: Enable GPIO serial port *************${NC}"
 sudo sed -i -e 's/enable_uart=0/enable_uart=1/g' -e 'enable_uart=1' /boot/config.txt
 
-echo -e "${CYAN}************* STEP: Swtich GPIO serial port to PL011 *************${NC}"
-echo "dtoverlay=pi3-miniuart-bt"|sudo tee -a /boot/config.txt
+# echo -e "${CYAN}************* STEP: Swtich GPIO serial port to PL011 *************${NC}"
+# echo "dtoverlay=pi3-miniuart-bt"|sudo tee -a /boot/config.txt
 
 echo -e "${CYAN}************* STEP: Configuring logrotate *************${NC}"
 sudo echo "#this is used by logrotate and should be placed in /etc/logrotate.d/

@@ -2,7 +2,7 @@ config/gateway.json
 data
 node_modules
 package-lock.json
-log
+logs
 ssl
 .updatenow
 .updatedone
